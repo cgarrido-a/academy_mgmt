@@ -1,0 +1,69 @@
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2>Sección #<%= @section.id %></h2>
+    <div class="actions">
+      <%= link_to "Editar", edit_admin_section_path(@section), class: "btn btn-secondary" %>
+      <%= link_to "Volver", admin_sections_path, class: "btn btn-primary" %>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <strong>Curso:</strong>
+    <p><%= link_to @section.course.title, admin_course_path(@section.course) %></p>
+  </div>
+
+  <div class="form-group">
+    <strong>Profesor:</strong>
+    <p><%= @section.teacher.user.name %></p>
+  </div>
+
+  <div class="form-group">
+    <strong>Horario:</strong>
+    <p><%= @section.schedule %></p>
+  </div>
+
+  <div class="form-group">
+    <strong>Fechas:</strong>
+    <p><%= @section.start_date.strftime('%d/%m/%Y') %> - <%= @section.end_date.strftime('%d/%m/%Y') %></p>
+  </div>
+
+  <div class="form-group">
+    <strong>Lugares Disponibles:</strong>
+    <p><%= @section.available_places %> de <%= @section.places %></p>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Inscripciones (<%= @enrollments.count %>)</h2>
+
+  <% if @enrollments.any? %>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Estudiante</th>
+          <th>Email</th>
+          <th>Monto</th>
+          <th>Fecha</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @enrollments.each do |enrollment| %>
+          <tr>
+            <td>#<%= enrollment.id %></td>
+            <td><%= enrollment.student.user.name %></td>
+            <td><%= enrollment.student.user.email %></td>
+            <td>$<%= number_with_delimiter(enrollment.amount) %></td>
+            <td><%= enrollment.created_at.strftime('%d/%m/%Y') %></td>
+            <td>
+              <%= link_to "Ver", admin_enrollment_path(enrollment), class: "btn btn-primary" %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p>No hay inscripciones en esta sección.</p>
+  <% end %>
+</div>

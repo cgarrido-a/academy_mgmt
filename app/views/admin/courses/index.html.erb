@@ -1,0 +1,39 @@
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2>Cursos</h2>
+    <%= link_to "Nuevo Curso", new_admin_course_path, class: "btn btn-success" %>
+  </div>
+
+  <% if @courses.any? %>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Título</th>
+          <th>Descripción</th>
+          <th>Secciones</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @courses.each do |course| %>
+          <tr>
+            <td><%= course.id %></td>
+            <td><%= course.title %></td>
+            <td><%= truncate(course.description, length: 50) %></td>
+            <td><%= course.sections.count %></td>
+            <td>
+              <div class="actions">
+                <%= link_to "Ver", admin_course_path(course), class: "btn btn-primary" %>
+                <%= link_to "Editar", edit_admin_course_path(course), class: "btn btn-secondary" %>
+                <%= button_to "Eliminar", admin_course_path(course), method: :delete, data: { confirm: "¿Estás seguro?" }, class: "btn btn-danger" %>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p>No hay cursos registrados. <%= link_to "Crear el primero", new_admin_course_path %></p>
+  <% end %>
+</div>

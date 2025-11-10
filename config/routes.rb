@@ -15,6 +15,17 @@ Rails.application.routes.draw do
     end
   end
 
+  # Admin routes
+  namespace :admin do
+    root "dashboard#index"
+    resources :courses
+    resources :sections
+    resources :enrollments, only: [:index, :show, :destroy]
+    resources :users
+    resources :payment_plans
+    resources :payment_methods
+  end
+
   # Defines the root path route ("/")
-  # root "posts#index"
+  root "admin/dashboard#index"
 end

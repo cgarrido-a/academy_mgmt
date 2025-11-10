@@ -1,0 +1,58 @@
+<h1>Dashboard</h1>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <h3>Cursos</h3>
+    <div class="number"><%= @total_courses %></div>
+  </div>
+
+  <div class="stat-card">
+    <h3>Secciones</h3>
+    <div class="number"><%= @total_sections %></div>
+  </div>
+
+  <div class="stat-card">
+    <h3>Estudiantes</h3>
+    <div class="number"><%= @total_students %></div>
+  </div>
+
+  <div class="stat-card">
+    <h3>Inscripciones</h3>
+    <div class="number"><%= @total_enrollments %></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Inscripciones Recientes</h2>
+
+  <% if @recent_enrollments.any? %>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Estudiante</th>
+          <th>Curso</th>
+          <th>Monto</th>
+          <th>Fecha</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @recent_enrollments.each do |enrollment| %>
+          <tr>
+            <td>#<%= enrollment.id %></td>
+            <td><%= enrollment.student.user.name %></td>
+            <td><%= enrollment.section.course.title %></td>
+            <td>$<%= number_with_delimiter(enrollment.amount) %></td>
+            <td><%= enrollment.created_at.strftime('%d/%m/%Y') %></td>
+            <td>
+              <%= link_to "Ver", admin_enrollment_path(enrollment), class: "btn btn-primary" %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p>No hay inscripciones recientes.</p>
+  <% end %>
+</div>

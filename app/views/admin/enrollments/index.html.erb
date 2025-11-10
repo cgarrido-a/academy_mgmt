@@ -1,0 +1,43 @@
+<div class="card">
+  <h2>Inscripciones</h2>
+
+  <% if @enrollments.any? %>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Estudiante</th>
+          <th>Curso</th>
+          <th>Sección</th>
+          <th>Plan de Pago</th>
+          <th>Método de Pago</th>
+          <th>Monto</th>
+          <th>Fecha</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @enrollments.each do |enrollment| %>
+          <tr>
+            <td>#<%= enrollment.id %></td>
+            <td><%= enrollment.student.user.name %></td>
+            <td><%= enrollment.section.course.title %></td>
+            <td><%= enrollment.section.schedule %></td>
+            <td><%= enrollment.payment_plan.description %></td>
+            <td><%= enrollment.payment_method.payment_method %></td>
+            <td>$<%= number_with_delimiter(enrollment.amount) %></td>
+            <td><%= enrollment.created_at.strftime('%d/%m/%Y') %></td>
+            <td>
+              <div class="actions">
+                <%= link_to "Ver", admin_enrollment_path(enrollment), class: "btn btn-primary" %>
+                <%= button_to "Eliminar", admin_enrollment_path(enrollment), method: :delete, data: { confirm: "¿Estás seguro?" }, class: "btn btn-danger" %>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p>No hay inscripciones registradas.</p>
+  <% end %>
+</div>

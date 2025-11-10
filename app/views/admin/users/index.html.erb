@@ -1,0 +1,85 @@
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2>Usuarios</h2>
+    <%= link_to "Nuevo Usuario", new_admin_user_path, class: "btn btn-success" %>
+  </div>
+
+  <!-- Pestañas de filtro -->
+  <div style="border-bottom: 2px solid #e0e0e0; margin-bottom: 1.5rem;">
+    <div style="display: flex; gap: 0.5rem;">
+      <%= link_to admin_users_path(filter: 'all'),
+          style: "padding: 0.75rem 1.5rem; text-decoration: none; color: #{@filter == 'all' ? '#3498db' : '#7f8c8d'}; border-bottom: 3px solid #{@filter == 'all' ? '#3498db' : 'transparent'}; font-weight: #{@filter == 'all' ? 'bold' : 'normal'};" do %>
+        Todos (<%= @total_users %>)
+      <% end %>
+
+      <%= link_to admin_users_path(filter: 'students'),
+          style: "padding: 0.75rem 1.5rem; text-decoration: none; color: #{@filter == 'students' ? '#27ae60' : '#7f8c8d'}; border-bottom: 3px solid #{@filter == 'students' ? '#27ae60' : 'transparent'}; font-weight: #{@filter == 'students' ? 'bold' : 'normal'};" do %>
+        🎓 Estudiantes (<%= @total_students %>)
+      <% end %>
+
+      <%= link_to admin_users_path(filter: 'teachers'),
+          style: "padding: 0.75rem 1.5rem; text-decoration: none; color: #{@filter == 'teachers' ? '#3498db' : '#7f8c8d'}; border-bottom: 3px solid #{@filter == 'teachers' ? '#3498db' : 'transparent'}; font-weight: #{@filter == 'teachers' ? 'bold' : 'normal'};" do %>
+        👨‍🏫 Profesores (<%= @total_teachers %>)
+      <% end %>
+
+      <%= link_to admin_users_path(filter: 'admins'),
+          style: "padding: 0.75rem 1.5rem; text-decoration: none; color: #{@filter == 'admins' ? '#e74c3c' : '#7f8c8d'}; border-bottom: 3px solid #{@filter == 'admins' ? '#e74c3c' : 'transparent'}; font-weight: #{@filter == 'admins' ? 'bold' : 'normal'};" do %>
+        ⚙️ Administradores (<%= @total_admins %>)
+      <% end %>
+    </div>
+  </div>
+
+  <% if @users.any? %>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Email</th>
+          <th>Rol</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @users.each do |user| %>
+          <tr>
+            <td><%= user.id %></td>
+            <td><%= user.name %></td>
+            <td><%= user.email %></td>
+            <td>
+              <% if user.teacher %>
+                <span style="background: #3498db; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">👨‍🏫 Profesor</span>
+              <% elsif user.student %>
+                <span style="background: #27ae60; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">🎓 Estudiante</span>
+              <% elsif user.admin_user %>
+                <span style="background: #e74c3c; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">⚙️ Admin</span>
+              <% else %>
+                <span style="background: #95a5a6; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">Sin rol</span>
+              <% end %>
+            </td>
+            <td>
+              <div class="actions">
+                <%= link_to "Ver", admin_user_path(user), class: "btn btn-primary" %>
+                <%= link_to "Editar", edit_admin_user_path(user), class: "btn btn-secondary" %>
+                <%= button_to "Eliminar", admin_user_path(user), method: :delete, data: { confirm: "¿Estás seguro?" }, class: "btn btn-danger" %>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p>
+      <% case @filter %>
+      <% when 'students' %>
+        No hay estudiantes registrados. <%= link_to "Crear el primero", new_admin_user_path %>
+      <% when 'teachers' %>
+        No hay profesores registrados. <%= link_to "Crear el primero", new_admin_user_path %>
+      <% when 'admins' %>
+        No hay administradores registrados. <%= link_to "Crear el primero", new_admin_user_path %>
+      <% else %>
+        No hay usuarios registrados. <%= link_to "Crear el primero", new_admin_user_path %>
+      <% end %>
+    </p>
+  <% end %>
+</div>

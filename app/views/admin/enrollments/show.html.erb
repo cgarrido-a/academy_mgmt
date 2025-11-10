@@ -1,0 +1,115 @@
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2>Inscripción #<%= @enrollment.id %></h2>
+    <%= link_to "Volver", admin_enrollments_path, class: "btn btn-primary" %>
+  </div>
+
+  <h3>Información del Estudiante</h3>
+  <div class="form-group">
+    <strong>Nombre:</strong>
+    <p><%= @enrollment.student.user.name %></p>
+  </div>
+
+  <div class="form-group">
+    <strong>Email:</strong>
+    <p><%= @enrollment.student.user.email %></p>
+  </div>
+
+  <h3>Información del Curso</h3>
+  <div class="form-group">
+    <strong>Curso:</strong>
+    <p><%= link_to @enrollment.section.course.title, admin_course_path(@enrollment.section.course) %></p>
+  </div>
+
+  <div class="form-group">
+    <strong>Sección:</strong>
+    <p><%= @enrollment.section.schedule %></p>
+  </div>
+
+  <div class="form-group">
+    <strong>Profesor:</strong>
+    <p><%= @enrollment.section.teacher.user.name %></p>
+  </div>
+
+  <div class="form-group">
+    <strong>Fechas:</strong>
+    <p><%= @enrollment.section.start_date.strftime('%d/%m/%Y') %> - <%= @enrollment.section.end_date.strftime('%d/%m/%Y') %></p>
+  </div>
+
+  <h3>Información de Pago</h3>
+  <div class="form-group">
+    <strong>Plan de Pago:</strong>
+    <p><%= @enrollment.payment_plan.description %></p>
+  </div>
+
+  <div class="form-group">
+    <strong>Método de Pago:</strong>
+    <p><%= @enrollment.payment_method.payment_method %></p>
+  </div>
+
+  <div class="form-group">
+    <strong>Monto Total:</strong>
+    <p>$<%= number_with_delimiter(@enrollment.amount) %></p>
+  </div>
+
+  <div class="form-group">
+    <strong>Fecha de Inscripción:</strong>
+    <p><%= @enrollment.created_at.strftime('%d/%m/%Y %H:%M') %></p>
+  </div>
+</div>
+
+<% if @tuition_fee %>
+  <div class="card">
+    <h2>Cuotas de Pago</h2>
+
+    <div class="form-group">
+      <strong>Período de Facturación:</strong>
+      <p><%= @tuition_fee.billing_period %></p>
+    </div>
+
+    <div class="form-group">
+      <strong>Número de Cuotas:</strong>
+      <p><%= @tuition_fee.instalments_number %></p>
+    </div>
+
+    <% if @installments.any? %>
+      <table>
+        <thead>
+          <tr>
+            <th>Cuota #</th>
+            <th>Monto</th>
+            <th>Fecha de Vencimiento</th>
+            <th>Fecha de Pago</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @installments.each_with_index do |installment, index| %>
+            <tr>
+              <td>Cuota <%= index + 1 %></td>
+              <td>$<%= number_with_delimiter(installment.amount) %></td>
+              <td><%= installment.due_date.strftime('%d/%m/%Y') %></td>
+              <td><%= installment.payment_date&.strftime('%d/%m/%Y') || '-' %></td>
+              <td>
+                <% case installment.status %>
+                <% when 'pending' %>
+                  <span style="color: #f39c12; font-weight: bold;">⏳ Pendiente</span>
+                <% when 'paid' %>
+                  <span style="color: #27ae60; font-weight: bold;">✓ Pagado</span>
+                <% when 'overdue' %>
+                  <span style="color: #e74c3c; font-weight: bold;">⚠ Vencido</span>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <p>No hay cuotas generadas para esta inscripción.</p>
+    <% end %>
+  </div>
+<% else %>
+  <div class="card">
+    <p>No se ha generado información de cuotas para esta inscripción.</p>
+  </div>
+<% end %>

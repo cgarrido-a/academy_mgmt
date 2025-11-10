@@ -1,0 +1,85 @@
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2><%= @user.name %></h2>
+    <div class="actions">
+      <%= link_to "Editar", edit_admin_user_path(@user), class: "btn btn-secondary" %>
+      <%= link_to "Volver", admin_users_path, class: "btn btn-primary" %>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <strong>Email:</strong>
+    <p><%= @user.email %></p>
+  </div>
+
+  <div class="form-group">
+    <strong>Rol:</strong>
+    <p>
+      <% if @user.teacher %>
+        <span style="background: #3498db; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">👨‍🏫 Profesor</span>
+      <% elsif @user.student %>
+        <span style="background: #27ae60; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">🎓 Estudiante</span>
+      <% elsif @user.admin_user %>
+        <span style="background: #e74c3c; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">⚙️ Administrador</span>
+      <% else %>
+        <span style="background: #95a5a6; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">Sin rol</span>
+      <% end %>
+    </p>
+  </div>
+
+  <% if @user.teacher %>
+    <div class="form-group">
+      <strong>Profesión:</strong>
+      <p><%= @user.teacher.profession || 'No especificada' %></p>
+    </div>
+
+    <div class="form-group">
+      <strong>Secciones que imparte:</strong>
+      <% sections = @user.teacher.sections %>
+      <% if sections.any? %>
+        <ul>
+          <% sections.each do |section| %>
+            <li>
+              <%= link_to section.course.title, admin_section_path(section) %> -
+              <%= section.schedule %>
+            </li>
+          <% end %>
+        </ul>
+      <% else %>
+        <p>No imparte secciones actualmente.</p>
+      <% end %>
+    </div>
+  <% end %>
+
+  <% if @user.student %>
+    <div class="form-group">
+      <strong>Inscripciones:</strong>
+      <% enrollments = @user.student.enrollments %>
+      <% if enrollments.any? %>
+        <ul>
+          <% enrollments.each do |enrollment| %>
+            <li>
+              <%= link_to enrollment.section.course.title, admin_enrollment_path(enrollment) %> -
+              <%= enrollment.section.schedule %>
+              (Monto: $<%= number_with_delimiter(enrollment.amount) %>)
+            </li>
+          <% end %>
+        </ul>
+      <% else %>
+        <p>No tiene inscripciones actualmente.</p>
+      <% end %>
+    </div>
+  <% end %>
+
+  <% if @user.admin_user %>
+    <div class="form-group">
+      <strong>Tipo de Admin:</strong>
+      <p><%= @user.admin_user.admin_type&.capitalize || 'No especificado' %></p>
+    </div>
+  <% end %>
+
+  <div class="form-group">
+    <strong>Fecha de Creación:</strong>
+    <p><%= @user.created_at.strftime('%d/%m/%Y %H:%M') %></p>
+  </div>
+</div>

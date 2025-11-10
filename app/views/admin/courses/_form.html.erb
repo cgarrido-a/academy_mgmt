@@ -1,0 +1,27 @@
+<%= form_with model: [:admin, course], local: true do |f| %>
+  <% if course.errors.any? %>
+    <div class="alert alert-error">
+      <h3><%= pluralize(course.errors.count, "error") %> impidieron guardar este curso:</h3>
+      <ul>
+        <% course.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="form-group">
+    <%= f.label :title, "Título" %>
+    <%= f.text_field :title, required: true %>
+  </div>
+
+  <div class="form-group">
+    <%= f.label :description, "Descripción" %>
+    <%= f.text_area :description, rows: 5, required: true %>
+  </div>
+
+  <div class="actions">
+    <%= f.submit "Guardar", class: "btn btn-success" %>
+    <%= link_to "Cancelar", admin_courses_path, class: "btn btn-secondary" %>
+  </div>
+<% end %>

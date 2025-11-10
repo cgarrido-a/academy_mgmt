@@ -1,0 +1,43 @@
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2>Secciones</h2>
+    <%= link_to "Nueva Sección", new_admin_section_path, class: "btn btn-success" %>
+  </div>
+
+  <% if @sections.any? %>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Curso</th>
+          <th>Profesor</th>
+          <th>Horario</th>
+          <th>Fechas</th>
+          <th>Lugares</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @sections.each do |section| %>
+          <tr>
+            <td><%= section.id %></td>
+            <td><%= section.course.title %></td>
+            <td><%= section.teacher.user.name %></td>
+            <td><%= section.schedule %></td>
+            <td><%= section.start_date.strftime('%d/%m/%Y') %> - <%= section.end_date.strftime('%d/%m/%Y') %></td>
+            <td><%= section.available_places %>/<%= section.places %></td>
+            <td>
+              <div class="actions">
+                <%= link_to "Ver", admin_section_path(section), class: "btn btn-primary" %>
+                <%= link_to "Editar", edit_admin_section_path(section), class: "btn btn-secondary" %>
+                <%= button_to "Eliminar", admin_section_path(section), method: :delete, data: { confirm: "¿Estás seguro?" }, class: "btn btn-danger" %>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p>No hay secciones registradas. <%= link_to "Crear la primera", new_admin_section_path %></p>
+  <% end %>
+</div>

@@ -1,0 +1,47 @@
+<%= form_with model: [:admin, section], local: true do |f| %>
+  <% if section.errors.any? %>
+    <div class="alert alert-error">
+      <h3><%= pluralize(section.errors.count, "error") %> impidieron guardar esta sección:</h3>
+      <ul>
+        <% section.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="form-group">
+    <%= f.label :course_id, "Curso" %>
+    <%= f.select :course_id, options_from_collection_for_select(courses, :id, :title, section.course_id), { prompt: "Seleccione un curso" }, required: true %>
+  </div>
+
+  <div class="form-group">
+    <%= f.label :teacher_id, "Profesor" %>
+    <%= f.select :teacher_id, options_from_collection_for_select(teachers, :id, ->(t) { t.user.name }, section.teacher_id), { prompt: "Seleccione un profesor" }, required: true %>
+  </div>
+
+  <div class="form-group">
+    <%= f.label :schedule, "Horario" %>
+    <%= f.text_field :schedule, required: true, placeholder: "Ej: Lunes y Miércoles 18:00-20:00" %>
+  </div>
+
+  <div class="form-group">
+    <%= f.label :places, "Cantidad de Lugares" %>
+    <%= f.number_field :places, required: true, min: 1 %>
+  </div>
+
+  <div class="form-group">
+    <%= f.label :start_date, "Fecha de Inicio" %>
+    <%= f.date_field :start_date, required: true %>
+  </div>
+
+  <div class="form-group">
+    <%= f.label :end_date, "Fecha de Fin" %>
+    <%= f.date_field :end_date, required: true %>
+  </div>
+
+  <div class="actions">
+    <%= f.submit "Guardar", class: "btn btn-success" %>
+    <%= link_to "Cancelar", admin_sections_path, class: "btn btn-secondary" %>
+  </div>
+<% end %>

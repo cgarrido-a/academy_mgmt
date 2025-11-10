@@ -1,0 +1,55 @@
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2><%= @course.title %></h2>
+    <div class="actions">
+      <%= link_to "Editar", edit_admin_course_path(@course), class: "btn btn-secondary" %>
+      <%= link_to "Volver", admin_courses_path, class: "btn btn-primary" %>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <strong>Descripción:</strong>
+    <p><%= @course.description %></p>
+  </div>
+</div>
+
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2>Secciones</h2>
+    <%= link_to "Nueva Sección", new_admin_section_path(course_id: @course.id), class: "btn btn-success" %>
+  </div>
+
+  <% if @sections.any? %>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Profesor</th>
+          <th>Horario</th>
+          <th>Fechas</th>
+          <th>Lugares</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @sections.each do |section| %>
+          <tr>
+            <td><%= section.id %></td>
+            <td><%= section.teacher.user.name %></td>
+            <td><%= section.schedule %></td>
+            <td><%= section.start_date.strftime('%d/%m/%Y') %> - <%= section.end_date.strftime('%d/%m/%Y') %></td>
+            <td><%= section.available_places %>/<%= section.places %></td>
+            <td>
+              <div class="actions">
+                <%= link_to "Ver", admin_section_path(section), class: "btn btn-primary" %>
+                <%= link_to "Editar", edit_admin_section_path(section), class: "btn btn-secondary" %>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p>Este curso no tiene secciones. <%= link_to "Crear la primera", new_admin_section_path(course_id: @course.id) %></p>
+  <% end %>
+</div>

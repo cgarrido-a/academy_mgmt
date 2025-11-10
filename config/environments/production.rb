@@ -51,6 +51,11 @@ Rails.application.configure do
   # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
   config.force_ssl = true
 
+  # Secret key base configuration
+  config.secret_key_base = ENV.fetch('SECRET_KEY_BASE') do
+    'af2d231da071fa8562f98d25eeb3fa47e81fcd8eb337f4c052bc2691f099029f362867393d0c4f2876d82f871252b241f7081a4a6f5be7bfec6a46f762a139e9'
+  end
+
   # Log to STDOUT by default
   config.logger = ActiveSupport::Logger.new(STDOUT)
     .tap  { |logger| logger.formatter = ::Logger::Formatter.new }

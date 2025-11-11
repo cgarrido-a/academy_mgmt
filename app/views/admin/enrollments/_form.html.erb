@@ -1,0 +1,65 @@
+<%= form_with model: [:admin, enrollment], local: true do |f| %>
+  <% if enrollment.errors.any? %>
+    <div class="alert alert-error">
+      <h3><%= pluralize(enrollment.errors.count, "error") %> impidieron guardar esta inscripción:</h3>
+      <ul>
+        <% enrollment.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="form-group">
+    <%= f.label :student_id, "Estudiante" %>
+    <%= f.select :student_id,
+        options_from_collection_for_select(students, :id, ->(s) { "#{s.user.name} (#{s.user.email})" }, enrollment.student_id),
+        { prompt: "Seleccione un estudiante" },
+        required: true %>
+  </div>
+
+  <div class="form-group">
+    <%= f.label :section_id, "Sección" %>
+    <%= f.select :section_id,
+        grouped_options_for_select(
+          sections.group_by(&:course).map { |course, course_sections|
+            [course.title, course_sections.map { |s| ["#{s.formatted_schedule} - #{s.teacher.user.name} (#{s.available_places} cupos)", s.id] }]
+          },
+          enrollment.section_id
+        ),
+        { prompt: "Seleccione una sección" },
+        required: true %>
+  </div>
+
+  <div class="form-group">
+    <%= f.label :payment_plan_id, "Plan de Pago" %>
+    <%= f.select :payment_plan_id,
+        options_from_collection_for_select(payment_plans, :id, :description, enrollment.payment_plan_id),
+        { prompt: "Seleccione un plan de pago" },
+        required: true %>
+  </div>
+
+  <div class="form-group">
+    <%= f.label :payment_method_id, "Método de Pago" %>
+    <%= f.select :payment_method_id,
+        options_from_collection_for_select(payment_methods, :id, :payment_method, enrollment.payment_method_id),
+        { prompt: "Seleccione un método de pago" },
+        required: true %>
+  </div>
+
+  <div class="form-group">
+    <%= f.label :amount, "Monto Total" %>
+    <%= f.number_field :amount, required: true, min: 1, step: 0.01, placeholder: "Ej: 1000" %>
+  </div>
+
+  <div class="form-group">
+    <%= f.label :payment_date, "Fecha de Pago" %>
+    <%= f.date_field :payment_date %>
+    <small style="color: #666;">Opcional - Fecha del primer pago/inscripción</small>
+  </div>
+
+  <div class="actions">
+    <%= f.submit "Guardar", class: "btn btn-success" %>
+    <%= link_to "Cancelar", admin_enrollments_path, class: "btn btn-secondary" %>
+  </div>
+<% end %>

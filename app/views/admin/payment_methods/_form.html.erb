@@ -1,0 +1,23 @@
+<%= form_with model: [:admin, payment_method], local: true do |f| %>
+  <% if payment_method.errors.any? %>
+    <div class="alert alert-error">
+      <h3><%= pluralize(payment_method.errors.count, "error") %> impidieron guardar este método:</h3>
+      <ul>
+        <% payment_method.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="form-group">
+    <%= f.label :payment_method, "Método de Pago" %>
+    <%= f.text_field :payment_method, required: true, placeholder: "Ej: Efectivo, Tarjeta de Crédito, Transferencia" %>
+    <small style="color: #666;">Nombre del método de pago</small>
+  </div>
+
+  <div class="actions">
+    <%= f.submit "Guardar", class: "btn btn-success" %>
+    <%= link_to "Cancelar", admin_payment_methods_path, class: "btn btn-secondary" %>
+  </div>
+<% end %>

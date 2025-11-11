@@ -1,0 +1,37 @@
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2>Métodos de Pago</h2>
+    <%= link_to "Nuevo Método", new_admin_payment_method_path, class: "btn btn-success" %>
+  </div>
+
+  <% if @payment_methods.any? %>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Método de Pago</th>
+          <th>Inscripciones</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @payment_methods.each do |method| %>
+          <tr>
+            <td><%= method.id %></td>
+            <td><%= method.payment_method %></td>
+            <td><%= method.enrollments.count %></td>
+            <td>
+              <div class="actions">
+                <%= link_to "Ver", admin_payment_method_path(method), class: "btn btn-primary" %>
+                <%= link_to "Editar", edit_admin_payment_method_path(method), class: "btn btn-secondary" %>
+                <%= button_to "Eliminar", admin_payment_method_path(method), method: :delete, data: { confirm: "¿Estás seguro?" }, class: "btn btn-danger" %>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p>No hay métodos de pago registrados. <%= link_to "Crear el primero", new_admin_payment_method_path %></p>
+  <% end %>
+</div>

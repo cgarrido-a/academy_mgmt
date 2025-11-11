@@ -20,7 +20,7 @@ Rails.application.routes.draw do
     root "dashboard#index"
     resources :courses
     resources :sections
-    resources :enrollments, only: [:index, :show, :destroy]
+    resources :enrollments
     resources :users
     resources :payment_plans
     resources :payment_methods

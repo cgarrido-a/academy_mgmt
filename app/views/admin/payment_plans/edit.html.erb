@@ -1,0 +1,8 @@
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2>Editar Plan de Pago</h2>
+    <%= link_to "Volver", admin_payment_plans_path, class: "btn btn-primary" %>
+  </div>
+
+  <%= render 'form', payment_plan: @payment_plan %>
+</div>

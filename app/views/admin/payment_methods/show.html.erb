@@ -1,0 +1,64 @@
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2>Método de Pago #<%= @payment_method.id %></h2>
+    <div class="actions">
+      <%= link_to "Editar", edit_admin_payment_method_path(@payment_method), class: "btn btn-secondary" %>
+      <%= link_to "Volver", admin_payment_methods_path, class: "btn btn-primary" %>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <strong>Método de Pago:</strong>
+    <p><%= @payment_method.payment_method %></p>
+  </div>
+
+  <div class="form-group">
+    <strong>Total de Inscripciones:</strong>
+    <p><%= @payment_method.enrollments.count %></p>
+  </div>
+
+  <div class="form-group">
+    <strong>Total de Cuotas Asociadas:</strong>
+    <p><%= @payment_method.tuition_fees.count %></p>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Últimas Inscripciones (<%= [@enrollments.count, 10].min %>)</h2>
+
+  <% if @enrollments.any? %>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Estudiante</th>
+          <th>Curso</th>
+          <th>Monto</th>
+          <th>Fecha</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @enrollments.each do |enrollment| %>
+          <tr>
+            <td>#<%= enrollment.id %></td>
+            <td><%= enrollment.student.user.name %></td>
+            <td><%= enrollment.section.course.title %></td>
+            <td>$<%= number_with_delimiter(enrollment.amount) %></td>
+            <td><%= enrollment.created_at.strftime('%d/%m/%Y') %></td>
+            <td>
+              <%= link_to "Ver", admin_enrollment_path(enrollment), class: "btn btn-primary" %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+    <% if @payment_method.enrollments.count > 10 %>
+      <p style="margin-top: 1rem; color: #666;">
+        Mostrando las últimas 10 inscripciones de <%= @payment_method.enrollments.count %> totales.
+      </p>
+    <% end %>
+  <% else %>
+    <p>No hay inscripciones con este método de pago.</p>
+  <% end %>
+</div>

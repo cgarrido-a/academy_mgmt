@@ -1,0 +1,28 @@
+<%= form_with model: [:admin, payment_plan], local: true do |f| %>
+  <% if payment_plan.errors.any? %>
+    <div class="alert alert-error">
+      <h3><%= pluralize(payment_plan.errors.count, "error") %> impidieron guardar este plan:</h3>
+      <ul>
+        <% payment_plan.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="form-group">
+    <%= f.label :plan, "Número de Cuotas" %>
+    <%= f.number_field :plan, required: true, min: 1, placeholder: "Ej: 1, 3, 6, 12" %>
+    <small style="color: #666;">Cantidad de cuotas en las que se dividirá el pago</small>
+  </div>
+
+  <div class="form-group">
+    <%= f.label :description, "Descripción" %>
+    <%= f.text_field :description, required: true, placeholder: "Ej: Pago único, 3 cuotas mensuales" %>
+  </div>
+
+  <div class="actions">
+    <%= f.submit "Guardar", class: "btn btn-success" %>
+    <%= link_to "Cancelar", admin_payment_plans_path, class: "btn btn-secondary" %>
+  </div>
+<% end %>

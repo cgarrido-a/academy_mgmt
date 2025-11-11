@@ -1,0 +1,39 @@
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2>Planes de Pago</h2>
+    <%= link_to "Nuevo Plan", new_admin_payment_plan_path, class: "btn btn-success" %>
+  </div>
+
+  <% if @payment_plans.any? %>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Plan (Cuotas)</th>
+          <th>Descripción</th>
+          <th>Inscripciones</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @payment_plans.each do |plan| %>
+          <tr>
+            <td><%= plan.id %></td>
+            <td><%= plan.plan %></td>
+            <td><%= plan.description %></td>
+            <td><%= plan.enrollments.count %></td>
+            <td>
+              <div class="actions">
+                <%= link_to "Ver", admin_payment_plan_path(plan), class: "btn btn-primary" %>
+                <%= link_to "Editar", edit_admin_payment_plan_path(plan), class: "btn btn-secondary" %>
+                <%= button_to "Eliminar", admin_payment_plan_path(plan), method: :delete, data: { confirm: "¿Estás seguro?" }, class: "btn btn-danger" %>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p>No hay planes de pago registrados. <%= link_to "Crear el primero", new_admin_payment_plan_path %></p>
+  <% end %>
+</div>

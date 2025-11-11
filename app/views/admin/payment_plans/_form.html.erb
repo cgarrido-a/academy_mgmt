@@ -11,14 +11,14 @@
   <% end %>
 
   <div class="form-group">
-    <%= f.label :plan, "Número de Cuotas" %>
-    <%= f.number_field :plan, required: true, min: 1, placeholder: "Ej: 1, 3, 6, 12" %>
-    <small style="color: #666;">Cantidad de cuotas en las que se dividirá el pago</small>
+    <%= f.label :plan, "Plan" %>
+    <%= f.text_field :plan, required: true, placeholder: "Ej: Plan A, Plan Mensual, Plan Trimestral" %>
+    <small style="color: #666;">Nombre o identificador del plan de pago</small>
   </div>
 
   <div class="form-group">
     <%= f.label :description, "Descripción" %>
-    <%= f.text_field :description, required: true, placeholder: "Ej: Pago único, 3 cuotas mensuales" %>
+    <%= f.text_area :description, required: true, rows: 3, placeholder: "Ej: Plan de pago en 3 cuotas mensuales sin interés" %>
   </div>
 
   <div class="actions">

@@ -8,6 +8,7 @@ class EnrollmentCreator
     @payment_plan_id = params[:payment_plan_id]
     @payment_method_id = params[:payment_method_id]
     @enrollment_amount = params[:enrollment_amount]
+    @instalments_number = params[:instalments_number]&.to_i || 1
     @errors = []
     @enrollment = nil
   end
@@ -58,19 +59,17 @@ class EnrollmentCreator
   end
 
   def create_tuition_fee_and_installments
-    payment_plan = PaymentPlan.find(@payment_plan_id)
-
     # Create tuition fee
     tuition_fee = TuitionFee.create!(
       enrollment: @enrollment,
       payment_method_id: @payment_method_id,
       total_tuition_fee: @enrollment_amount,
-      instalments_number: payment_plan.plan,
+      instalments_number: @instalments_number,
       billing_period: generate_billing_period
     )
 
     # Generate installments
-    generate_installments(tuition_fee, payment_plan.plan)
+    generate_installments(tuition_fee, @instalments_number)
   end
 
   def generate_installments(tuition_fee, number_of_installments)

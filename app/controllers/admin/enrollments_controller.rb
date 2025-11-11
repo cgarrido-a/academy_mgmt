@@ -79,7 +79,6 @@ module Admin
     end
 
     def create_tuition_fee_and_installments
-      payment_plan = @enrollment.payment_plan
       section = @enrollment.section
 
       # Generate or use provided billing period
@@ -88,17 +87,20 @@ module Admin
       # Use provided total_tuition_fee or default to enrollment_amount
       total_fee = params[:total_tuition_fee].presence&.to_f || @enrollment.enrollment_amount
 
+      # Use provided instalments_number
+      instalments_number = params[:instalments_number].presence&.to_i || 1
+
       # Create tuition fee
       tuition_fee = TuitionFee.create!(
         enrollment: @enrollment,
         payment_method_id: @enrollment.payment_method_id,
         total_tuition_fee: total_fee,
-        instalments_number: payment_plan.plan,
+        instalments_number: instalments_number,
         billing_period: billing_period
       )
 
       # Generate installments
-      generate_installments(tuition_fee, payment_plan.plan)
+      generate_installments(tuition_fee, instalments_number)
     end
 
     def generate_installments(tuition_fee, number_of_installments)

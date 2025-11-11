@@ -78,6 +78,12 @@
       <small style="color: #666;">Monto total que se dividirá en cuotas mensuales</small>
     </div>
 
+    <div class="form-group">
+      <%= label_tag :instalments_number, "Cantidad de Cuotas" %>
+      <%= number_field_tag :instalments_number, nil, min: 1, placeholder: "Ej: 3, 6, 12", required: false, id: 'instalments_number_field' %>
+      <small style="color: #666;">Número de cuotas en las que se dividirá el arancel</small>
+    </div>
+
     <div class="form-group" id="installment_preview" style="background: #f8f9fa; padding: 1rem; border-radius: 4px; display: none;">
       <strong>Vista previa de cuotas:</strong>
       <p style="margin-top: 0.5rem; font-size: 1.1rem; color: #2c3e50;">
@@ -102,29 +108,21 @@
     document.addEventListener('DOMContentLoaded', function() {
       const checkbox = document.getElementById('create_tuition_fee_checkbox');
       const fields = document.getElementById('tuition_fee_fields');
-      const paymentPlanSelect = document.querySelector('select[name="enrollment[payment_plan_id]"]');
       const arancelField = document.getElementById('total_tuition_fee_field');
+      const instalmentsField = document.getElementById('instalments_number_field');
       const installmentPreview = document.getElementById('installment_preview');
       const installmentCount = document.getElementById('installment_count');
       const installmentAmount = document.getElementById('installment_amount');
 
-      // Payment plans data (will be populated from the select options)
-      const paymentPlans = <%= raw @payment_plans.to_json(only: [:id, :plan, :description]) %>;
-
       function calculateInstallments() {
-        const selectedPlanId = paymentPlanSelect ? parseInt(paymentPlanSelect.value) : null;
         const arancelValue = parseFloat(arancelField.value);
+        const numberOfInstalments = parseInt(instalmentsField.value);
 
-        if (selectedPlanId && arancelValue && arancelValue > 0) {
-          const plan = paymentPlans.find(p => p.id === selectedPlanId);
-          if (plan && plan.plan > 0) {
-            const amountPerInstallment = Math.round(arancelValue / plan.plan);
-            installmentCount.textContent = plan.plan;
-            installmentAmount.textContent = amountPerInstallment.toLocaleString('es-CL');
-            installmentPreview.style.display = 'block';
-          } else {
-            installmentPreview.style.display = 'none';
-          }
+        if (arancelValue && arancelValue > 0 && numberOfInstalments && numberOfInstalments > 0) {
+          const amountPerInstallment = Math.round(arancelValue / numberOfInstalments);
+          installmentCount.textContent = numberOfInstalments;
+          installmentAmount.textContent = amountPerInstallment.toLocaleString('es-CL');
+          installmentPreview.style.display = 'block';
         } else {
           installmentPreview.style.display = 'none';
         }
@@ -141,12 +139,12 @@
         });
       }
 
-      if (paymentPlanSelect) {
-        paymentPlanSelect.addEventListener('change', calculateInstallments);
-      }
-
       if (arancelField) {
         arancelField.addEventListener('input', calculateInstallments);
+      }
+
+      if (instalmentsField) {
+        instalmentsField.addEventListener('input', calculateInstallments);
       }
 
       // Initial calculation

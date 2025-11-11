@@ -28,7 +28,7 @@ module Api
           :section_id,
           :payment_plan_id,
           :payment_method_id,
-          :amount
+          :enrollment_amount
         )
       end
 
@@ -56,7 +56,7 @@ module Api
             id: enrollment.payment_method.id,
             method: enrollment.payment_method.payment_method
           },
-          amount: enrollment.amount,
+          enrollment_amount: enrollment.enrollment_amount,
           payment_date: enrollment.payment_date,
           tuition_fee: tuition_fee_data(enrollment.tuition_fee)
         }
@@ -67,7 +67,7 @@ module Api
 
         {
           id: tuition_fee.id,
-          total_amount: tuition_fee.total_amount,
+          total_tuition_fee: tuition_fee.total_tuition_fee,
           instalments_number: tuition_fee.instalments_number,
           billing_period: tuition_fee.billing_period,
           installments: tuition_fee.installments.map { |installment| installment_data(installment) }

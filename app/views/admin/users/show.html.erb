@@ -61,7 +61,7 @@
             <li>
               <%= link_to enrollment.section.course.title, admin_enrollment_path(enrollment) %> -
               <%= enrollment.section.formatted_schedule %>
-              (Monto: $<%= number_with_delimiter(enrollment.amount) %>)
+              (Monto: $<%= number_with_delimiter(enrollment.enrollment_amount) %>)
             </li>
           <% end %>
         </ul>

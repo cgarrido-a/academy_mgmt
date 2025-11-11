@@ -48,15 +48,113 @@
   </div>
 
   <div class="form-group">
-    <%= f.label :amount, "Monto Total" %>
-    <%= f.number_field :amount, required: true, min: 1, step: 0.01, placeholder: "Ej: 1000" %>
+    <%= f.label :enrollment_amount, "Monto Matrícula" %>
+    <%= f.number_field :enrollment_amount, required: true, min: 0, step: 0.01, placeholder: "Ej: 500", id: 'enrollment_amount_field' %>
+    <small style="color: #666;">Pago inicial de inscripción/matrícula</small>
   </div>
 
   <div class="form-group">
-    <%= f.label :payment_date, "Fecha de Pago" %>
+    <%= f.label :payment_date, "Fecha de Pago Matrícula" %>
     <%= f.date_field :payment_date %>
-    <small style="color: #666;">Opcional - Fecha del primer pago/inscripción</small>
+    <small style="color: #666;">Opcional - Fecha del pago de matrícula</small>
   </div>
+
+  <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid #ddd;">
+
+  <h3 style="margin-bottom: 1rem; color: #2c3e50;">Configuración de Cuotas</h3>
+
+  <div class="form-group">
+    <label>
+      <%= check_box_tag 'create_tuition_fee', '1', enrollment.new_record?, id: 'create_tuition_fee_checkbox' %>
+      Crear cuotas de pago automáticamente
+    </label>
+    <small style="color: #666;">Se crearán las cuotas según el plan de pago seleccionado</small>
+  </div>
+
+  <div id="tuition_fee_fields" style="display: <%= enrollment.new_record? ? 'block' : 'none' %>;">
+    <div class="form-group">
+      <%= label_tag :total_tuition_fee, "Monto Arancel" %>
+      <%= number_field_tag :total_tuition_fee, nil, min: 1, step: 0.01, placeholder: "Ej: 5000", required: false, id: 'total_tuition_fee_field' %>
+      <small style="color: #666;">Monto total que se dividirá en cuotas mensuales</small>
+    </div>
+
+    <div class="form-group" id="installment_preview" style="background: #f8f9fa; padding: 1rem; border-radius: 4px; display: none;">
+      <strong>Vista previa de cuotas:</strong>
+      <p style="margin-top: 0.5rem; font-size: 1.1rem; color: #2c3e50;">
+        <span id="installment_count">-</span> cuotas de $<span id="installment_amount">-</span> cada una
+      </p>
+    </div>
+
+    <div class="form-group">
+      <%= label_tag :billing_period, "Período de Facturación" %>
+      <%= text_field_tag :billing_period, nil, placeholder: "Ej: 2025-01 - 2025-06 (opcional, se genera automáticamente)" %>
+      <small style="color: #666;">Opcional - Si no se especifica, se genera del rango de fechas de la sección</small>
+    </div>
+
+    <div class="form-group">
+      <%= label_tag :first_due_date, "Primera Fecha de Vencimiento" %>
+      <%= date_field_tag :first_due_date, Date.today + 1.month %>
+      <small style="color: #666;">Las siguientes cuotas se generarán mensualmente desde esta fecha</small>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const checkbox = document.getElementById('create_tuition_fee_checkbox');
+      const fields = document.getElementById('tuition_fee_fields');
+      const paymentPlanSelect = document.querySelector('select[name="enrollment[payment_plan_id]"]');
+      const arancelField = document.getElementById('total_tuition_fee_field');
+      const installmentPreview = document.getElementById('installment_preview');
+      const installmentCount = document.getElementById('installment_count');
+      const installmentAmount = document.getElementById('installment_amount');
+
+      // Payment plans data (will be populated from the select options)
+      const paymentPlans = <%= raw @payment_plans.to_json(only: [:id, :plan, :description]) %>;
+
+      function calculateInstallments() {
+        const selectedPlanId = paymentPlanSelect ? parseInt(paymentPlanSelect.value) : null;
+        const arancelValue = parseFloat(arancelField.value);
+
+        if (selectedPlanId && arancelValue && arancelValue > 0) {
+          const plan = paymentPlans.find(p => p.id === selectedPlanId);
+          if (plan && plan.plan > 0) {
+            const amountPerInstallment = Math.round(arancelValue / plan.plan);
+            installmentCount.textContent = plan.plan;
+            installmentAmount.textContent = amountPerInstallment.toLocaleString('es-CL');
+            installmentPreview.style.display = 'block';
+          } else {
+            installmentPreview.style.display = 'none';
+          }
+        } else {
+          installmentPreview.style.display = 'none';
+        }
+      }
+
+      if (checkbox) {
+        checkbox.addEventListener('change', function() {
+          fields.style.display = this.checked ? 'block' : 'none';
+          if (this.checked) {
+            calculateInstallments();
+          } else {
+            installmentPreview.style.display = 'none';
+          }
+        });
+      }
+
+      if (paymentPlanSelect) {
+        paymentPlanSelect.addEventListener('change', calculateInstallments);
+      }
+
+      if (arancelField) {
+        arancelField.addEventListener('input', calculateInstallments);
+      }
+
+      // Initial calculation
+      if (checkbox && checkbox.checked) {
+        calculateInstallments();
+      }
+    });
+  </script>
 
   <div class="actions">
     <%= f.submit "Guardar", class: "btn btn-success" %>

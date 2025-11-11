@@ -44,7 +44,7 @@
             <td>#<%= enrollment.id %></td>
             <td><%= enrollment.student.user.name %></td>
             <td><%= enrollment.section.course.title %></td>
-            <td>$<%= number_with_delimiter(enrollment.amount) %></td>
+            <td>$<%= number_with_delimiter(enrollment.enrollment_amount) %></td>
             <td><%= enrollment.created_at.strftime('%d/%m/%Y') %></td>
             <td>
               <%= link_to "Ver", admin_enrollment_path(enrollment), class: "btn btn-primary" %>

@@ -1,3 +1,4 @@
+
 # This file is auto-generated from the current state of the database. Instead
 # of editing this file, please use the migrations feature of Active Record to
 # incrementally modify your database, and then regenerate this schema definition.
@@ -10,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_11_11_004527) do
+ActiveRecord::Schema[7.1].define(version: 2025_11_11_122343) do
   create_table "admin_users", force: :cascade do |t|
     t.string "admin_type"
     t.integer "user_id", null: false
@@ -31,7 +32,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_11_004527) do
     t.integer "payment_plan_id", null: false
     t.integer "section_id", null: false
     t.integer "payment_method_id", null: false
-    t.integer "amount"
+    t.integer "enrollment_amount"
     t.date "payment_date"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
@@ -109,7 +110,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_11_004527) do
     t.integer "enrollment_id", null: false
     t.integer "payment_method_id", null: false
     t.string "billing_period"
-    t.integer "total_amount"
+    t.integer "total_tuition_fee"
     t.integer "instalments_number"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false

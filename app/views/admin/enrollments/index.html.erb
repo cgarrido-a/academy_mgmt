@@ -28,7 +28,7 @@
             <td><%= enrollment.section.formatted_schedule %></td>
             <td><%= enrollment.payment_plan.description %></td>
             <td><%= enrollment.payment_method.payment_method %></td>
-            <td>$<%= number_with_delimiter(enrollment.amount) %></td>
+            <td>$<%= number_with_delimiter(enrollment.enrollment_amount) %></td>
             <td><%= enrollment.created_at.strftime('%d/%m/%Y') %></td>
             <td>
               <div class="actions">

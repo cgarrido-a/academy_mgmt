@@ -11,7 +11,7 @@ class Enrollment < ApplicationRecord
   validates :payment_plan, presence: true
   validates :section, presence: true
   validates :payment_method, presence: true
-  validates :amount, presence: true, numericality: { greater_than: 0 }
+  validates :enrollment_amount, presence: true, numericality: { greater_than: 0 }
   validate :section_has_available_places
 
   private

@@ -7,7 +7,7 @@ class TuitionFee < ApplicationRecord
   # Validations
   validates :enrollment, presence: true
   validates :payment_method, presence: true
-  validates :total_amount, presence: true, numericality: { greater_than: 0 }
+  validates :total_tuition_fee, presence: true, numericality: { greater_than: 0 }
   validates :instalments_number, presence: true, numericality: { greater_than: 0 }
   validates :billing_period, presence: true
 end

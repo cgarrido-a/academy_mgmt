@@ -17,7 +17,8 @@ module Api
         {
           id: plan.id,
           plan: plan.plan,
-          description: plan.description
+          description: plan.description,
+          number_of_classes: plan.number_of_classes
         }
       end
     end

@@ -18,6 +18,7 @@ module Admin
 
     def create
       @section = Section.new(section_params)
+      process_schedule_params
 
       if @section.save
         redirect_to admin_section_path(@section), notice: 'Sección creada exitosamente.'
@@ -34,7 +35,10 @@ module Admin
     end
 
     def update
-      if @section.update(section_params)
+      @section.assign_attributes(section_params)
+      process_schedule_params
+
+      if @section.save
         redirect_to admin_section_path(@section), notice: 'Sección actualizada exitosamente.'
       else
         @courses = Course.all
@@ -55,7 +59,25 @@ module Admin
     end
 
     def section_params
-      params.require(:section).permit(:course_id, :teacher_id, :places, :schedule, :start_date, :end_date)
+      params.require(:section).permit(:course_id, :teacher_id, :places, :start_date, :end_date)
+    end
+
+    def process_schedule_params
+      # Process schedule array from form
+      if params[:section] && params[:section][:schedule].present?
+        schedule_data = params[:section][:schedule]
+
+        # Filter out empty entries and convert to proper format
+        @section.schedule = schedule_data.select { |entry|
+          entry[:day].present? && entry[:start_time].present? && entry[:end_time].present?
+        }.map { |entry|
+          {
+            'day' => entry[:day],
+            'start_time' => entry[:start_time],
+            'end_time' => entry[:end_time]
+          }
+        }
+      end
     end
   end
 end

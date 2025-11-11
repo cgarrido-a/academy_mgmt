@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_11_10_163906) do
+ActiveRecord::Schema[7.1].define(version: 2025_11_11_004527) do
   create_table "admin_users", force: :cascade do |t|
     t.string "admin_type"
     t.integer "user_id", null: false
@@ -81,11 +81,11 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_10_163906) do
     t.integer "course_id", null: false
     t.integer "teacher_id", null: false
     t.integer "places"
-    t.integer "schedule"
     t.date "start_date"
     t.date "end_date"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "schedule", default: "[]"
     t.index ["course_id"], name: "index_sections_on_course_id"
     t.index ["teacher_id"], name: "index_sections_on_teacher_id"
   end

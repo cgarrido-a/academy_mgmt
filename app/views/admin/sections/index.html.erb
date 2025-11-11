@@ -13,7 +13,7 @@
           <th>Profesor</th>
           <th>Horario</th>
           <th>Fechas</th>
-          <th>Lugares</th>
+          <th>Cupos</th>
           <th>Acciones</th>
         </tr>
       </thead>
@@ -23,7 +23,7 @@
             <td><%= section.id %></td>
             <td><%= section.course.title %></td>
             <td><%= section.teacher.user.name %></td>
-            <td><%= section.schedule %></td>
+            <td><%= section.formatted_schedule %></td>
             <td><%= section.start_date.strftime('%d/%m/%Y') %> - <%= section.end_date.strftime('%d/%m/%Y') %></td>
             <td><%= section.available_places %>/<%= section.places %></td>
             <td>

@@ -19,7 +19,7 @@
 
   <div class="form-group">
     <strong>Horario:</strong>
-    <p><%= @section.schedule %></p>
+    <p><%= @section.formatted_schedule %></p>
   </div>
 
   <div class="form-group">
@@ -28,8 +28,13 @@
   </div>
 
   <div class="form-group">
-    <strong>Lugares Disponibles:</strong>
-    <p><%= @section.available_places %> de <%= @section.places %></p>
+    <strong>Cupos Totales:</strong>
+    <p><%= @section.places %></p>
+  </div>
+
+  <div class="form-group">
+    <strong>Cupos Disponibles:</strong>
+    <p><%= @section.available_places %></p>
   </div>
 </div>
 

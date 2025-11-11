@@ -1,4 +1,7 @@
 class Section < ApplicationRecord
+  # Serialize schedule as JSON
+  serialize :schedule, coder: JSON
+
   # Associations
   belongs_to :course
   belongs_to :teacher
@@ -8,10 +11,10 @@ class Section < ApplicationRecord
   validates :course, presence: true
   validates :teacher, presence: true
   validates :places, presence: true, numericality: { greater_than: 0 }
-  validates :schedule, presence: true
   validates :start_date, presence: true
   validates :end_date, presence: true
   validate :end_date_after_start_date
+  validate :schedule_format
 
   # Instance methods
   def available_places
@@ -22,6 +25,26 @@ class Section < ApplicationRecord
     available_places > 0
   end
 
+  # Format schedule for display
+  def formatted_schedule
+    return "Sin horario definido" if schedule.blank? || schedule.empty?
+
+    days_es = {
+      'monday' => 'Lunes',
+      'tuesday' => 'Martes',
+      'wednesday' => 'Miércoles',
+      'thursday' => 'Jueves',
+      'friday' => 'Viernes',
+      'saturday' => 'Sábado',
+      'sunday' => 'Domingo'
+    }
+
+    schedule.map do |entry|
+      day = days_es[entry['day']] || entry['day']
+      "#{day} #{entry['start_time']}-#{entry['end_time']}"
+    end.join(', ')
+  end
+
   private
 
   def end_date_after_start_date
@@ -29,6 +52,48 @@ class Section < ApplicationRecord
 
     if end_date < start_date
       errors.add(:end_date, "must be after the start date")
+    end
+  end
+
+  def schedule_format
+    return if schedule.blank?
+
+    unless schedule.is_a?(Array)
+      errors.add(:schedule, "debe ser un arreglo")
+      return
+    end
+
+    if schedule.empty?
+      errors.add(:schedule, "debe tener al menos un horario")
+      return
+    end
+
+    schedule.each_with_index do |entry, index|
+      unless entry.is_a?(Hash)
+        errors.add(:schedule, "entrada #{index + 1} debe ser un objeto")
+        next
+      end
+
+      unless entry['day'].present?
+        errors.add(:schedule, "entrada #{index + 1} debe tener un día")
+      end
+
+      unless entry['start_time'].present?
+        errors.add(:schedule, "entrada #{index + 1} debe tener hora de inicio")
+      end
+
+      unless entry['end_time'].present?
+        errors.add(:schedule, "entrada #{index + 1} debe tener hora de fin")
+      end
+
+      # Validate time format (HH:MM)
+      if entry['start_time'].present? && !entry['start_time'].match?(/^\d{2}:\d{2}$/)
+        errors.add(:schedule, "entrada #{index + 1}: hora de inicio debe estar en formato HH:MM")
+      end
+
+      if entry['end_time'].present? && !entry['end_time'].match?(/^\d{2}:\d{2}$/)
+        errors.add(:schedule, "entrada #{index + 1}: hora de fin debe estar en formato HH:MM")
+      end
     end
   end
 end

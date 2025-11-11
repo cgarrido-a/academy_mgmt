@@ -21,12 +21,100 @@
   </div>
 
   <div class="form-group">
-    <%= f.label :schedule, "Horario" %>
-    <%= f.text_field :schedule, required: true, placeholder: "Ej: Lunes y Miércoles 18:00-20:00" %>
+    <label>Horarios</label>
+    <div id="schedule-entries">
+      <% if section.schedule.present? && section.schedule.any? %>
+        <% section.schedule.each_with_index do |entry, index| %>
+          <div class="schedule-entry" data-index="<%= index %>">
+            <select name="section[schedule][][day]" required>
+              <option value="">Seleccione día</option>
+              <option value="monday" <%= 'selected' if entry['day'] == 'monday' %>>Lunes</option>
+              <option value="tuesday" <%= 'selected' if entry['day'] == 'tuesday' %>>Martes</option>
+              <option value="wednesday" <%= 'selected' if entry['day'] == 'wednesday' %>>Miércoles</option>
+              <option value="thursday" <%= 'selected' if entry['day'] == 'thursday' %>>Jueves</option>
+              <option value="friday" <%= 'selected' if entry['day'] == 'friday' %>>Viernes</option>
+              <option value="saturday" <%= 'selected' if entry['day'] == 'saturday' %>>Sábado</option>
+              <option value="sunday" <%= 'selected' if entry['day'] == 'sunday' %>>Domingo</option>
+            </select>
+            <input type="time" name="section[schedule][][start_time]" value="<%= entry['start_time'] %>" required placeholder="Hora inicio">
+            <input type="time" name="section[schedule][][end_time]" value="<%= entry['end_time'] %>" required placeholder="Hora fin">
+            <button type="button" class="btn btn-danger btn-sm" onclick="removeScheduleEntry(this)">Eliminar</button>
+          </div>
+        <% end %>
+      <% else %>
+        <div class="schedule-entry" data-index="0">
+          <select name="section[schedule][][day]" required>
+            <option value="">Seleccione día</option>
+            <option value="monday">Lunes</option>
+            <option value="tuesday">Martes</option>
+            <option value="wednesday">Miércoles</option>
+            <option value="thursday">Jueves</option>
+            <option value="friday">Viernes</option>
+            <option value="saturday">Sábado</option>
+            <option value="sunday">Domingo</option>
+          </select>
+          <input type="time" name="section[schedule][][start_time]" required placeholder="Hora inicio">
+          <input type="time" name="section[schedule][][end_time]" required placeholder="Hora fin">
+          <button type="button" class="btn btn-danger btn-sm" onclick="removeScheduleEntry(this)">Eliminar</button>
+        </div>
+      <% end %>
+    </div>
+    <button type="button" class="btn btn-secondary btn-sm" onclick="addScheduleEntry()" style="margin-top: 10px;">Agregar Horario</button>
   </div>
 
+  <script>
+    let scheduleIndex = <%= section.schedule&.length || 1 %>;
+
+    function addScheduleEntry() {
+      const container = document.getElementById('schedule-entries');
+      const entry = document.createElement('div');
+      entry.className = 'schedule-entry';
+      entry.dataset.index = scheduleIndex++;
+      entry.innerHTML = `
+        <select name="section[schedule][][day]" required>
+          <option value="">Seleccione día</option>
+          <option value="monday">Lunes</option>
+          <option value="tuesday">Martes</option>
+          <option value="wednesday">Miércoles</option>
+          <option value="thursday">Jueves</option>
+          <option value="friday">Viernes</option>
+          <option value="saturday">Sábado</option>
+          <option value="sunday">Domingo</option>
+        </select>
+        <input type="time" name="section[schedule][][start_time]" required placeholder="Hora inicio">
+        <input type="time" name="section[schedule][][end_time]" required placeholder="Hora fin">
+        <button type="button" class="btn btn-danger btn-sm" onclick="removeScheduleEntry(this)">Eliminar</button>
+      `;
+      container.appendChild(entry);
+    }
+
+    function removeScheduleEntry(button) {
+      const entries = document.querySelectorAll('.schedule-entry');
+      if (entries.length > 1) {
+        button.parentElement.remove();
+      } else {
+        alert('Debe haber al menos un horario');
+      }
+    }
+  </script>
+
+  <style>
+    .schedule-entry {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+      align-items: center;
+    }
+    .schedule-entry select {
+      flex: 1;
+    }
+    .schedule-entry input[type="time"] {
+      flex: 1;
+    }
+  </style>
+
   <div class="form-group">
-    <%= f.label :places, "Cantidad de Lugares" %>
+    <%= f.label :places, "Cupos Totales" %>
     <%= f.number_field :places, required: true, min: 1 %>
   </div>
 

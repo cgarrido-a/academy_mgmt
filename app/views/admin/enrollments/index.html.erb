@@ -22,7 +22,7 @@
             <td>#<%= enrollment.id %></td>
             <td><%= enrollment.student.user.name %></td>
             <td><%= enrollment.section.course.title %></td>
-            <td><%= enrollment.section.schedule %></td>
+            <td><%= enrollment.section.formatted_schedule %></td>
             <td><%= enrollment.payment_plan.description %></td>
             <td><%= enrollment.payment_method.payment_method %></td>
             <td>$<%= number_with_delimiter(enrollment.amount) %></td>

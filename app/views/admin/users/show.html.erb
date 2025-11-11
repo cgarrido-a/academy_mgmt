@@ -41,7 +41,7 @@
           <% sections.each do |section| %>
             <li>
               <%= link_to section.course.title, admin_section_path(section) %> -
-              <%= section.schedule %>
+              <%= section.formatted_schedule %>
             </li>
           <% end %>
         </ul>
@@ -60,7 +60,7 @@
           <% enrollments.each do |enrollment| %>
             <li>
               <%= link_to enrollment.section.course.title, admin_enrollment_path(enrollment) %> -
-              <%= enrollment.section.schedule %>
+              <%= enrollment.section.formatted_schedule %>
               (Monto: $<%= number_with_delimiter(enrollment.amount) %>)
             </li>
           <% end %>

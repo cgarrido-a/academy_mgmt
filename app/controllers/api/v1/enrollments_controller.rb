@@ -28,7 +28,9 @@ module Api
           :section_id,
           :payment_plan_id,
           :payment_method_id,
-          :enrollment_amount
+          :enrollment_amount,
+          :total_tuition_fee,
+          :instalments_number
         )
       end
 

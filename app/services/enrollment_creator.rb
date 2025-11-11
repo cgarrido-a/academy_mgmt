@@ -8,6 +8,7 @@ class EnrollmentCreator
     @payment_plan_id = params[:payment_plan_id]
     @payment_method_id = params[:payment_method_id]
     @enrollment_amount = params[:enrollment_amount]
+    @total_tuition_fee = params[:total_tuition_fee] || params[:enrollment_amount]
     @instalments_number = params[:instalments_number]&.to_i || 1
     @errors = []
     @enrollment = nil
@@ -63,7 +64,7 @@ class EnrollmentCreator
     tuition_fee = TuitionFee.create!(
       enrollment: @enrollment,
       payment_method_id: @payment_method_id,
-      total_tuition_fee: @enrollment_amount,
+      total_tuition_fee: @total_tuition_fee,
       instalments_number: @instalments_number,
       billing_period: generate_billing_period
     )
@@ -73,12 +74,12 @@ class EnrollmentCreator
   end
 
   def generate_installments(tuition_fee, number_of_installments)
-    amount_per_installment = (@enrollment_amount.to_f / number_of_installments).round
+    amount_per_installment = (@total_tuition_fee.to_f / number_of_installments).round
 
     number_of_installments.times do |i|
       # Adjust last installment to account for rounding differences
       installment_amount = if i == number_of_installments - 1
-        @enrollment_amount - (amount_per_installment * (number_of_installments - 1))
+        @total_tuition_fee.to_f - (amount_per_installment * (number_of_installments - 1))
       else
         amount_per_installment
       end

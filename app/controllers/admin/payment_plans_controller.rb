@@ -51,7 +51,7 @@ module Admin
     end
 
     def payment_plan_params
-      params.require(:payment_plan).permit(:plan, :description)
+      params.require(:payment_plan).permit(:plan, :description, :number_of_classes)
     end
   end
 end

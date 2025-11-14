@@ -59,8 +59,8 @@
         <ul>
           <% enrollments.each do |enrollment| %>
             <li>
-              <%= link_to enrollment.section.course.title, admin_enrollment_path(enrollment) %> -
-              <%= enrollment.section.formatted_schedule %>
+              <%= link_to enrollment.sections.map { |s| s.course.title }.uniq.join(', '), admin_enrollment_path(enrollment) %> -
+              <%= enrollment.sections.map { |s| s.formatted_schedule }.join(', ') %>
               (Monto: $<%= number_with_delimiter(enrollment.enrollment_amount) %>)
             </li>
           <% end %>

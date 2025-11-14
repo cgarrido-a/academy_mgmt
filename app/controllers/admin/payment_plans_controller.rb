@@ -7,7 +7,7 @@ module Admin
     end
 
     def show
-      @enrollments = @payment_plan.enrollments.includes(student: :user, section: :course)
+      @enrollments = @payment_plan.enrollments.includes(student: :user, sections: :course)
     end
 
     def new

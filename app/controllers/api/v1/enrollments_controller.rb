@@ -30,7 +30,8 @@ module Api
           :payment_method_id,
           :enrollment_amount,
           :total_tuition_fee,
-          :instalments_number
+          :instalments_number,
+          section_ids: []
         )
       end
 
@@ -42,13 +43,15 @@ module Api
             name: enrollment.student.user.name,
             email: enrollment.student.user.email
           },
-          section: {
-            id: enrollment.section.id,
-            course: enrollment.section.course.title,
-            schedule: enrollment.section.schedule,
-            start_date: enrollment.section.start_date,
-            end_date: enrollment.section.end_date
-          },
+          sections: enrollment.sections.map do |section|
+            {
+              id: section.id,
+              course: section.course.title,
+              schedule: section.schedule,
+              start_date: section.start_date,
+              end_date: section.end_date
+            }
+          end,
           payment_plan: {
             id: enrollment.payment_plan.id,
             plan: enrollment.payment_plan.plan,

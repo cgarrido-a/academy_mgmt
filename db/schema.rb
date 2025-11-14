@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_11_11_132627) do
+ActiveRecord::Schema[7.1].define(version: 2025_11_14_000001) do
   create_table "admin_users", force: :cascade do |t|
     t.string "admin_type"
     t.integer "user_id", null: false
@@ -26,10 +26,19 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_11_132627) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "enrollment_sections", force: :cascade do |t|
+    t.integer "enrollment_id", null: false
+    t.integer "section_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["enrollment_id", "section_id"], name: "index_enrollment_sections_on_enrollment_id_and_section_id", unique: true
+    t.index ["enrollment_id"], name: "index_enrollment_sections_on_enrollment_id"
+    t.index ["section_id"], name: "index_enrollment_sections_on_section_id"
+  end
+
   create_table "enrollments", force: :cascade do |t|
     t.integer "student_id", null: false
     t.integer "payment_plan_id", null: false
-    t.integer "section_id", null: false
     t.integer "payment_method_id", null: false
     t.integer "enrollment_amount"
     t.date "payment_date"
@@ -37,7 +46,6 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_11_132627) do
     t.datetime "updated_at", null: false
     t.index ["payment_method_id"], name: "index_enrollments_on_payment_method_id"
     t.index ["payment_plan_id"], name: "index_enrollments_on_payment_plan_id"
-    t.index ["section_id"], name: "index_enrollments_on_section_id"
     t.index ["student_id"], name: "index_enrollments_on_student_id"
   end
 
@@ -64,6 +72,27 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_11_132627) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "number_of_classes"
+  end
+
+  create_table "payments", force: :cascade do |t|
+    t.integer "enrollment_id", null: false
+    t.string "payment_type", null: false
+    t.integer "installment_id"
+    t.decimal "amount", precision: 10, scale: 2, null: false
+    t.date "payment_date", null: false
+    t.integer "payment_method_id", null: false
+    t.string "reference_number"
+    t.text "notes"
+    t.integer "processed_by_id"
+    t.string "status", default: "completed", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["enrollment_id", "payment_type"], name: "index_payments_on_enrollment_id_and_payment_type"
+    t.index ["enrollment_id"], name: "index_payments_on_enrollment_id"
+    t.index ["installment_id"], name: "index_payments_on_installment_id"
+    t.index ["payment_date"], name: "index_payments_on_payment_date"
+    t.index ["payment_method_id"], name: "index_payments_on_payment_method_id"
+    t.index ["processed_by_id"], name: "index_payments_on_processed_by_id"
   end
 
   create_table "salary_payments", force: :cascade do |t|
@@ -127,11 +156,16 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_11_132627) do
   end
 
   add_foreign_key "admin_users", "users"
+  add_foreign_key "enrollment_sections", "enrollments"
+  add_foreign_key "enrollment_sections", "sections"
   add_foreign_key "enrollments", "payment_methods"
   add_foreign_key "enrollments", "payment_plans"
-  add_foreign_key "enrollments", "sections"
   add_foreign_key "enrollments", "students"
   add_foreign_key "installments", "tuition_fees"
+  add_foreign_key "payments", "enrollments"
+  add_foreign_key "payments", "installments"
+  add_foreign_key "payments", "payment_methods"
+  add_foreign_key "payments", "users", column: "processed_by_id"
   add_foreign_key "salary_payments", "payment_methods"
   add_foreign_key "salary_payments", "teachers"
   add_foreign_key "sections", "courses"

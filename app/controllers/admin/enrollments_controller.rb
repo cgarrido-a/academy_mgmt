@@ -3,7 +3,7 @@ module Admin
     before_action :set_enrollment, only: [:show, :edit, :update, :destroy]
 
     def index
-      @enrollments = Enrollment.includes(student: :user, section: :course, payment_plan: [], payment_method: [])
+      @enrollments = Enrollment.includes(student: :user, sections: :course, payment_plan: [], payment_method: [])
                                .order(created_at: :desc)
     end
 
@@ -18,15 +18,43 @@ module Admin
     end
 
     def create
-      @enrollment = Enrollment.new(enrollment_params)
+      params_for_enrollment = enrollment_params.except(:section_id, :section_ids)
+      section_ids = (enrollment_params[:section_ids] || []).reject(&:blank?)
+      @enrollment = Enrollment.new(params_for_enrollment)
       success = false
+
+      # Validate at least one section is selected
+      if section_ids.empty?
+        @enrollment.errors.add(:base, "Debe seleccionar al menos una sección")
+        load_form_data
+        render :new, status: :unprocessable_entity
+        return
+      end
 
       ActiveRecord::Base.transaction do
         if @enrollment.save
-          # Create tuition fee and installments if requested
-          if params[:create_tuition_fee] == '1'
-            create_tuition_fee_and_installments
+          # Create enrollment sections
+          section_ids.each do |section_id|
+            EnrollmentSection.create!(
+              enrollment: @enrollment,
+              section_id: section_id
+            )
           end
+
+          # Register enrollment fee payment if payment_date is provided
+          if @enrollment.payment_date.present?
+            Payment.create!(
+              enrollment: @enrollment,
+              payment_type: 'enrollment_fee',
+              amount: @enrollment.enrollment_amount,
+              payment_date: @enrollment.payment_date,
+              payment_method_id: @enrollment.payment_method_id,
+              status: 'completed'
+            )
+          end
+
+          # Create tuition fee and installments (always)
+          create_tuition_fee_and_installments
           success = true
         end
       end
@@ -48,12 +76,37 @@ module Admin
     end
 
     def update
-      if @enrollment.update(enrollment_params)
-        redirect_to admin_enrollment_path(@enrollment), notice: 'Inscripción actualizada exitosamente.'
-      else
+      params_for_enrollment = enrollment_params.except(:section_id, :section_ids)
+      section_ids = (enrollment_params[:section_ids] || []).reject(&:blank?)
+
+      # Validate at least one section is selected
+      if section_ids.empty?
+        @enrollment.errors.add(:base, "Debe seleccionar al menos una sección")
         load_form_data
         render :edit, status: :unprocessable_entity
+        return
       end
+
+      ActiveRecord::Base.transaction do
+        if @enrollment.update(params_for_enrollment)
+          # Update enrollment sections
+          @enrollment.enrollment_sections.destroy_all
+          section_ids.each do |section_id|
+            EnrollmentSection.create!(
+              enrollment: @enrollment,
+              section_id: section_id
+            )
+          end
+          redirect_to admin_enrollment_path(@enrollment), notice: 'Inscripción actualizada exitosamente.'
+        else
+          load_form_data
+          render :edit, status: :unprocessable_entity
+        end
+      end
+    rescue StandardError => e
+      @enrollment.errors.add(:base, "Error al actualizar la inscripción: #{e.message}")
+      load_form_data
+      render :edit, status: :unprocessable_entity
     end
 
     def destroy
@@ -64,30 +117,44 @@ module Admin
     private
 
     def set_enrollment
-      @enrollment = Enrollment.find(params[:id])
+      @enrollment = Enrollment.includes(:sections, :enrollment_sections).find(params[:id])
     end
 
     def load_form_data
       @students = Student.includes(:user).all
-      @sections = Section.includes(:course, :teacher).all
+      @sections = Section.includes(:course, teacher: :user).all
       @payment_plans = PaymentPlan.all
       @payment_methods = PaymentMethod.all
     end
 
     def enrollment_params
-      params.require(:enrollment).permit(:student_id, :section_id, :payment_plan_id, :payment_method_id, :enrollment_amount, :payment_date)
+      permitted = params.require(:enrollment).permit(:student_id, :section_id, :payment_plan_id, :payment_method_id, :enrollment_amount, :payment_date, section_ids: [])
+
+      # Convert section_id to section_ids array for compatibility
+      if permitted[:section_id].present? && permitted[:section_ids].blank?
+        permitted[:section_ids] = [permitted[:section_id]]
+      end
+
+      permitted
     end
 
     def create_tuition_fee_and_installments
-      section = @enrollment.section
+      section = @enrollment.sections.first
+
+      return unless section # Skip if no sections
 
       # Generate or use provided billing period
       billing_period = params[:billing_period].presence || generate_billing_period(section)
 
-      # Use provided total_tuition_fee or default to enrollment_amount
-      total_fee = params[:total_tuition_fee].presence&.to_f || @enrollment.enrollment_amount
+      # Use provided total_tuition_fee (required field)
+      total_fee = params[:total_tuition_fee].presence&.to_f
 
-      # Use provided instalments_number
+      # Validate total_tuition_fee is provided
+      unless total_fee && total_fee > 0
+        raise "Debe proporcionar un monto de arancel válido"
+      end
+
+      # Use provided instalments_number (defaults to 1)
       instalments_number = params[:instalments_number].presence&.to_i || 1
 
       # Create tuition fee

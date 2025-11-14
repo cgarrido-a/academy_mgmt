@@ -19,16 +19,17 @@
   </div>
 
   <div class="form-group">
-    <%= f.label :section_id, "Sección" %>
-    <%= f.select :section_id,
+    <%= f.label :section_ids, "Secciones" %>
+    <%= f.select :section_ids,
         grouped_options_for_select(
           sections.group_by(&:course).map { |course, course_sections|
             [course.title, course_sections.map { |s| ["#{s.formatted_schedule} - #{s.teacher.user.name} (#{s.available_places} cupos)", s.id] }]
           },
-          enrollment.section_id
+          enrollment.section_ids
         ),
-        { prompt: "Seleccione una sección" },
-        required: true %>
+        { prompt: "Seleccione una o más secciones" },
+        { multiple: true, required: true, size: 10 } %>
+    <small style="color: #666;">Mantén presionado Ctrl (Cmd en Mac) para seleccionar múltiples secciones</small>
   </div>
 
   <div class="form-group">
@@ -64,50 +65,32 @@
   <h3 style="margin-bottom: 1rem; color: #2c3e50;">Configuración de Cuotas</h3>
 
   <div class="form-group">
-    <label>
-      <%= check_box_tag 'create_tuition_fee', '1', enrollment.new_record?, id: 'create_tuition_fee_checkbox' %>
-      Crear cuotas de pago automáticamente
-    </label>
-    <small style="color: #666;">Se crearán las cuotas según el plan de pago seleccionado</small>
+    <%= label_tag :total_tuition_fee, "Monto Arancel" %>
+    <%= number_field_tag :total_tuition_fee, nil, min: 1, step: 0.01, placeholder: "Ej: 5000", required: true, id: 'total_tuition_fee_field' %>
+    <small style="color: #666;">Monto total que se dividirá en cuotas mensuales</small>
   </div>
 
-  <div id="tuition_fee_fields" style="display: <%= enrollment.new_record? ? 'block' : 'none' %>;">
-    <div class="form-group">
-      <%= label_tag :total_tuition_fee, "Monto Arancel" %>
-      <%= number_field_tag :total_tuition_fee, nil, min: 1, step: 0.01, placeholder: "Ej: 5000", required: false, id: 'total_tuition_fee_field' %>
-      <small style="color: #666;">Monto total que se dividirá en cuotas mensuales</small>
-    </div>
+  <div class="form-group">
+    <%= label_tag :instalments_number, "Cantidad de Cuotas" %>
+    <%= number_field_tag :instalments_number, 1, min: 1, placeholder: "Ej: 1, 3, 6, 12", required: true, id: 'instalments_number_field' %>
+    <small style="color: #666;">Número de cuotas en las que se dividirá el arancel</small>
+  </div>
 
-    <div class="form-group">
-      <%= label_tag :instalments_number, "Cantidad de Cuotas" %>
-      <%= number_field_tag :instalments_number, nil, min: 1, placeholder: "Ej: 3, 6, 12", required: false, id: 'instalments_number_field' %>
-      <small style="color: #666;">Número de cuotas en las que se dividirá el arancel</small>
-    </div>
+  <div class="form-group" id="installment_preview" style="background: #f8f9fa; padding: 1rem; border-radius: 4px; display: none;">
+    <strong>Vista previa de cuotas:</strong>
+    <p style="margin-top: 0.5rem; font-size: 1.1rem; color: #2c3e50;">
+      <span id="installment_count">-</span> cuotas de $<span id="installment_amount">-</span> cada una
+    </p>
+  </div>
 
-    <div class="form-group" id="installment_preview" style="background: #f8f9fa; padding: 1rem; border-radius: 4px; display: none;">
-      <strong>Vista previa de cuotas:</strong>
-      <p style="margin-top: 0.5rem; font-size: 1.1rem; color: #2c3e50;">
-        <span id="installment_count">-</span> cuotas de $<span id="installment_amount">-</span> cada una
-      </p>
-    </div>
-
-    <div class="form-group">
-      <%= label_tag :billing_period, "Período de Facturación" %>
-      <%= text_field_tag :billing_period, nil, placeholder: "Ej: 2025-01 - 2025-06 (opcional, se genera automáticamente)" %>
-      <small style="color: #666;">Opcional - Si no se especifica, se genera del rango de fechas de la sección</small>
-    </div>
-
-    <div class="form-group">
-      <%= label_tag :first_due_date, "Primera Fecha de Vencimiento" %>
-      <%= date_field_tag :first_due_date, Date.today + 1.month %>
-      <small style="color: #666;">Las siguientes cuotas se generarán mensualmente desde esta fecha</small>
-    </div>
+  <div class="form-group">
+    <%= label_tag :first_due_date, "Primera Fecha de Vencimiento" %>
+    <%= date_field_tag :first_due_date, Date.today + 1.month %>
+    <small style="color: #666;">Las siguientes cuotas se generarán mensualmente desde esta fecha</small>
   </div>
 
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      const checkbox = document.getElementById('create_tuition_fee_checkbox');
-      const fields = document.getElementById('tuition_fee_fields');
       const arancelField = document.getElementById('total_tuition_fee_field');
       const instalmentsField = document.getElementById('instalments_number_field');
       const installmentPreview = document.getElementById('installment_preview');
@@ -128,17 +111,6 @@
         }
       }
 
-      if (checkbox) {
-        checkbox.addEventListener('change', function() {
-          fields.style.display = this.checked ? 'block' : 'none';
-          if (this.checked) {
-            calculateInstallments();
-          } else {
-            installmentPreview.style.display = 'none';
-          }
-        });
-      }
-
       if (arancelField) {
         arancelField.addEventListener('input', calculateInstallments);
       }
@@ -148,9 +120,7 @@
       }
 
       // Initial calculation
-      if (checkbox && checkbox.checked) {
-        calculateInstallments();
-      }
+      calculateInstallments();
     });
   </script>
 

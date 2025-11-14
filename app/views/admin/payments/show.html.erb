@@ -1,0 +1,123 @@
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2>Pago #<%= @payment.id %></h2>
+    <div class="actions">
+      <%= link_to "Editar", edit_admin_payment_path(@payment), class: "btn btn-secondary" %>
+      <%= link_to "Volver", admin_payments_path, class: "btn btn-primary" %>
+    </div>
+  </div>
+
+  <h3>Información del Pago</h3>
+
+  <div class="form-group">
+    <strong>Tipo de Pago:</strong>
+    <p>
+      <% if @payment.enrollment_fee? %>
+        <span style="background: #3498db; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">💵 Matrícula</span>
+      <% else %>
+        <span style="background: #27ae60; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">📋 Cuota</span>
+      <% end %>
+    </p>
+  </div>
+
+  <div class="form-group">
+    <strong>Estado:</strong>
+    <p>
+      <% case @payment.status %>
+      <% when 'completed' %>
+        <span style="color: #27ae60; font-weight: bold;">✓ Completado</span>
+      <% when 'pending' %>
+        <span style="color: #f39c12; font-weight: bold;">⏳ Pendiente</span>
+      <% when 'refunded' %>
+        <span style="color: #e74c3c; font-weight: bold;">↩ Reembolsado</span>
+      <% end %>
+    </p>
+  </div>
+
+  <div class="form-group">
+    <strong>Monto:</strong>
+    <p style="font-size: 1.5rem; color: #27ae60; font-weight: bold;">$<%= number_with_delimiter(@payment.amount) %></p>
+  </div>
+
+  <div class="form-group">
+    <strong>Fecha de Pago:</strong>
+    <p><%= @payment.payment_date.strftime('%d/%m/%Y') %></p>
+  </div>
+
+  <div class="form-group">
+    <strong>Método de Pago:</strong>
+    <p><%= @payment.payment_method.payment_method %></p>
+  </div>
+
+  <% if @payment.reference_number.present? %>
+    <div class="form-group">
+      <strong>Número de Referencia:</strong>
+      <p><%= @payment.reference_number %></p>
+    </div>
+  <% end %>
+
+  <% if @payment.notes.present? %>
+    <div class="form-group">
+      <strong>Notas:</strong>
+      <p><%= @payment.notes %></p>
+    </div>
+  <% end %>
+
+  <% if @payment.processed_by.present? %>
+    <div class="form-group">
+      <strong>Procesado por:</strong>
+      <p><%= @payment.processed_by.name %></p>
+    </div>
+  <% end %>
+
+  <h3>Información de la Inscripción</h3>
+
+  <div class="form-group">
+    <strong>Estudiante:</strong>
+    <p><%= link_to @payment.enrollment.student.user.name, admin_user_path(@payment.enrollment.student.user) %></p>
+  </div>
+
+  <div class="form-group">
+    <strong>Email:</strong>
+    <p><%= @payment.enrollment.student.user.email %></p>
+  </div>
+
+  <div class="form-group">
+    <strong>Inscripción:</strong>
+    <p><%= link_to "Ver Inscripción ##{@payment.enrollment.id}", admin_enrollment_path(@payment.enrollment), class: "btn btn-primary" %></p>
+  </div>
+
+  <% if @payment.installment.present? %>
+    <h3>Información de la Cuota</h3>
+
+    <div class="form-group">
+      <strong>Cuota ID:</strong>
+      <p>#<%= @payment.installment.id %></p>
+    </div>
+
+    <div class="form-group">
+      <strong>Monto de la Cuota:</strong>
+      <p>$<%= number_with_delimiter(@payment.installment.amount) %></p>
+    </div>
+
+    <div class="form-group">
+      <strong>Fecha de Vencimiento:</strong>
+      <p><%= @payment.installment.due_date.strftime('%d/%m/%Y') %></p>
+    </div>
+
+    <div class="form-group">
+      <strong>Total Pagado:</strong>
+      <p>$<%= number_with_delimiter(@payment.installment.total_paid) %></p>
+    </div>
+
+    <div class="form-group">
+      <strong>Saldo Restante:</strong>
+      <p>$<%= number_with_delimiter(@payment.installment.remaining_amount) %></p>
+    </div>
+  <% end %>
+
+  <div class="form-group">
+    <strong>Fecha de Registro:</strong>
+    <p><%= @payment.created_at.strftime('%d/%m/%Y %H:%M') %></p>
+  </div>
+</div>

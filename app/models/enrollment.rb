@@ -2,25 +2,28 @@ class Enrollment < ApplicationRecord
   # Associations
   belongs_to :student
   belongs_to :payment_plan
-  belongs_to :section
   belongs_to :payment_method
+  has_many :enrollment_sections, dependent: :destroy
+  has_many :sections, through: :enrollment_sections
   has_one :tuition_fee, dependent: :destroy
+  has_many :payments, dependent: :destroy
 
   # Validations
   validates :student, presence: true
   validates :payment_plan, presence: true
-  validates :section, presence: true
   validates :payment_method, presence: true
   validates :enrollment_amount, presence: true, numericality: { greater_than: 0 }
-  validate :section_has_available_places
 
-  private
+  # Helper methods for payments
+  def enrollment_fee_payment
+    payments.enrollment_fees.first
+  end
 
-  def section_has_available_places
-    return if section.blank?
+  def enrollment_fee_paid?
+    enrollment_fee_payment.present?
+  end
 
-    unless section.has_available_places?
-      errors.add(:section, "has no available places")
-    end
+  def total_paid
+    payments.completed.sum(:amount)
   end
 end

@@ -4,7 +4,7 @@ class EnrollmentCreator
   def initialize(params)
     @name = params[:name]
     @email = params[:email]
-    @section_id = params[:section_id]
+    @section_ids = params[:section_ids] || [params[:section_id]].compact
     @payment_plan_id = params[:payment_plan_id]
     @payment_method_id = params[:payment_method_id]
     @enrollment_amount = params[:enrollment_amount]
@@ -18,6 +18,8 @@ class EnrollmentCreator
     ActiveRecord::Base.transaction do
       find_or_create_user_and_student
       create_enrollment
+      create_enrollment_sections
+      create_enrollment_fee_payment
       create_tuition_fee_and_installments
     end
 
@@ -51,11 +53,31 @@ class EnrollmentCreator
   def create_enrollment
     @enrollment = Enrollment.create!(
       student: @student,
-      section_id: @section_id,
       payment_plan_id: @payment_plan_id,
       payment_method_id: @payment_method_id,
       enrollment_amount: @enrollment_amount,
       payment_date: Date.today
+    )
+  end
+
+  def create_enrollment_sections
+    @section_ids.each do |section_id|
+      EnrollmentSection.create!(
+        enrollment: @enrollment,
+        section_id: section_id
+      )
+    end
+  end
+
+  def create_enrollment_fee_payment
+    # Register enrollment fee payment
+    Payment.create!(
+      enrollment: @enrollment,
+      payment_type: 'enrollment_fee',
+      amount: @enrollment_amount,
+      payment_date: Date.today,
+      payment_method_id: @payment_method_id,
+      status: 'completed'
     )
   end
 
@@ -99,7 +121,8 @@ class EnrollmentCreator
   end
 
   def generate_billing_period
-    section = Section.find(@section_id)
+    # Use the first section to generate billing period
+    section = Section.find(@section_ids.first)
     "#{section.start_date.strftime('%Y-%m')} - #{section.end_date.strftime('%Y-%m')}"
   end
 

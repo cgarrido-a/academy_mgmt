@@ -24,8 +24,8 @@
           <tr>
             <td>#<%= enrollment.id %></td>
             <td><%= enrollment.student.user.name %></td>
-            <td><%= enrollment.section.course.title %></td>
-            <td><%= enrollment.section.formatted_schedule %></td>
+            <td><%= enrollment.sections.map { |s| s.course.title }.uniq.join(', ') %></td>
+            <td><%= enrollment.sections.map { |s| s.formatted_schedule }.join(', ') %></td>
             <td><%= enrollment.payment_plan.description %></td>
             <td><%= enrollment.payment_method.payment_method %></td>
             <td>$<%= number_with_delimiter(enrollment.enrollment_amount) %></td>

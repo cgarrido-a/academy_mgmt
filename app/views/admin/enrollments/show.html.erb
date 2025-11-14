@@ -18,26 +18,34 @@
     <p><%= @enrollment.student.user.email %></p>
   </div>
 
-  <h3>Información del Curso</h3>
-  <div class="form-group">
-    <strong>Curso:</strong>
-    <p><%= link_to @enrollment.section.course.title, admin_course_path(@enrollment.section.course) %></p>
-  </div>
+  <h3>Secciones Inscritas</h3>
+  <% if @enrollment.sections.any? %>
+    <% @enrollment.sections.each_with_index do |section, index| %>
+      <div style="<%= 'margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #ddd;' if index > 0 %>">
+        <div class="form-group">
+          <strong>Curso:</strong>
+          <p><%= link_to section.course.title, admin_course_path(section.course) %></p>
+        </div>
 
-  <div class="form-group">
-    <strong>Sección:</strong>
-    <p><%= @enrollment.section.formatted_schedule %></p>
-  </div>
+        <div class="form-group">
+          <strong>Sección:</strong>
+          <p><%= section.formatted_schedule %></p>
+        </div>
 
-  <div class="form-group">
-    <strong>Profesor:</strong>
-    <p><%= @enrollment.section.teacher.user.name %></p>
-  </div>
+        <div class="form-group">
+          <strong>Profesor:</strong>
+          <p><%= section.teacher.user.name %></p>
+        </div>
 
-  <div class="form-group">
-    <strong>Fechas:</strong>
-    <p><%= @enrollment.section.start_date.strftime('%d/%m/%Y') %> - <%= @enrollment.section.end_date.strftime('%d/%m/%Y') %></p>
-  </div>
+        <div class="form-group">
+          <strong>Fechas:</strong>
+          <p><%= section.start_date.strftime('%d/%m/%Y') %> - <%= section.end_date.strftime('%d/%m/%Y') %></p>
+        </div>
+      </div>
+    <% end %>
+  <% else %>
+    <p>No hay secciones asociadas a esta inscripción.</p>
+  <% end %>
 
   <h3>Información de Pago</h3>
   <div class="form-group">
@@ -58,6 +66,62 @@
   <div class="form-group">
     <strong>Fecha de Inscripción:</strong>
     <p><%= @enrollment.created_at.strftime('%d/%m/%Y %H:%M') %></p>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Historial de Pagos</h2>
+
+  <% enrollment_fee_payment = @enrollment.enrollment_fee_payment %>
+  <% if enrollment_fee_payment %>
+    <div style="background: #e8f5e9; padding: 1rem; border-radius: 4px; margin-bottom: 1rem;">
+      <strong>Pago de Matrícula</strong>
+      <p>Monto: <strong>$<%= number_with_delimiter(enrollment_fee_payment.amount) %></strong></p>
+      <p>Fecha: <%= enrollment_fee_payment.payment_date.strftime('%d/%m/%Y') %></p>
+      <p>Método: <%= enrollment_fee_payment.payment_method.payment_method %></p>
+      <%= link_to "Ver Detalle", admin_payment_path(enrollment_fee_payment), class: "btn btn-primary" %>
+    </div>
+  <% else %>
+    <div style="background: #fff3cd; padding: 1rem; border-radius: 4px; margin-bottom: 1rem;">
+      <p style="margin: 0;">⚠️ No se ha registrado el pago de matrícula</p>
+      <%= link_to "Registrar Pago de Matrícula", new_admin_payment_path(enrollment_id: @enrollment.id, payment_type: 'enrollment_fee'), class: "btn btn-success", style: "margin-top: 0.5rem;" %>
+    </div>
+  <% end %>
+
+  <% installment_payments = @enrollment.payments.installment_payments.order(payment_date: :desc) %>
+  <% if installment_payments.any? %>
+    <h3>Pagos de Cuotas (<%= installment_payments.count %>)</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Cuota</th>
+          <th>Monto</th>
+          <th>Método</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% installment_payments.each do |payment| %>
+          <tr>
+            <td><%= payment.payment_date.strftime('%d/%m/%Y') %></td>
+            <td>Cuota #<%= payment.installment_id %></td>
+            <td>$<%= number_with_delimiter(payment.amount) %></td>
+            <td><%= payment.payment_method.payment_method %></td>
+            <td>
+              <%= link_to "Ver", admin_payment_path(payment), class: "btn btn-primary" %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% end %>
+
+  <div style="margin-top: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 4px;">
+    <strong>Total Pagado:</strong>
+    <span style="font-size: 1.5rem; color: #27ae60; font-weight: bold;">
+      $<%= number_with_delimiter(@enrollment.total_paid) %>
+    </span>
   </div>
 </div>
 

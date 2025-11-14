@@ -3,15 +3,13 @@
 one:
   student: one
   payment_plan: one
-  section: one
   payment_method: one
-  amount: 1
+  enrollment_amount: 1000
   payment_date: 2025-11-10
 
 two:
   student: two
   payment_plan: two
-  section: two
   payment_method: two
-  amount: 1
+  enrollment_amount: 1000
   payment_date: 2025-11-10

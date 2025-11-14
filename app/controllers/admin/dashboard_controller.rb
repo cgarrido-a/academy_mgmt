@@ -5,7 +5,7 @@ module Admin
       @total_sections = Section.count
       @total_students = Student.count
       @total_enrollments = Enrollment.count
-      @recent_enrollments = Enrollment.includes(student: :user, section: :course)
+      @recent_enrollments = Enrollment.includes(student: :user, sections: :course)
                                        .order(created_at: :desc)
                                        .limit(10)
     end

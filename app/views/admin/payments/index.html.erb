@@ -1,0 +1,68 @@
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2>Pagos</h2>
+    <%= link_to "Registrar Pago", new_admin_payment_path, class: "btn btn-success" %>
+  </div>
+
+  <% if @payments.any? %>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Fecha</th>
+          <th>Estudiante</th>
+          <th>Tipo</th>
+          <th>Monto</th>
+          <th>Método</th>
+          <th>Referencia</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @payments.each do |payment| %>
+          <tr>
+            <td>#<%= payment.id %></td>
+            <td><%= payment.payment_date.strftime('%d/%m/%Y') %></td>
+            <td><%= payment.enrollment.student.user.name %></td>
+            <td>
+              <% if payment.enrollment_fee? %>
+                <span style="background: #3498db; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">Matrícula</span>
+              <% else %>
+                <span style="background: #27ae60; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">Cuota #<%= payment.installment_id %></span>
+              <% end %>
+            </td>
+            <td>$<%= number_with_delimiter(payment.amount) %></td>
+            <td><%= payment.payment_method.payment_method %></td>
+            <td><%= payment.reference_number || '-' %></td>
+            <td>
+              <% case payment.status %>
+              <% when 'completed' %>
+                <span style="color: #27ae60; font-weight: bold;">✓ Completado</span>
+              <% when 'pending' %>
+                <span style="color: #f39c12; font-weight: bold;">⏳ Pendiente</span>
+              <% when 'refunded' %>
+                <span style="color: #e74c3c; font-weight: bold;">↩ Reembolsado</span>
+              <% end %>
+            </td>
+            <td>
+              <div class="actions">
+                <%= link_to "Ver", admin_payment_path(payment), class: "btn btn-primary" %>
+                <%= link_to "Editar", edit_admin_payment_path(payment), class: "btn btn-secondary" %>
+                <%= button_to "Eliminar", admin_payment_path(payment), method: :delete, data: { confirm: "¿Estás seguro?" }, class: "btn btn-danger" %>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+
+    <% if @payments.respond_to?(:total_pages) && @payments.total_pages > 1 %>
+      <div style="margin-top: 1.5rem; text-align: center;">
+        <%= paginate @payments %>
+      </div>
+    <% end %>
+  <% else %>
+    <p>No hay pagos registrados.</p>
+  <% end %>
+</div>

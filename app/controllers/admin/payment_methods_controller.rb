@@ -7,8 +7,8 @@ module Admin
     end
 
     def show
-      @enrollments = @payment_method.enrollments.includes(student: :user, section: :course).limit(10)
-      @tuition_fees = @payment_method.tuition_fees.includes(enrollment: [:student, :section]).limit(10)
+      @enrollments = @payment_method.enrollments.includes(student: :user, sections: :course).limit(10)
+      @tuition_fees = @payment_method.tuition_fees.includes(enrollment: [:student, { sections: :course }]).limit(10)
     end
 
     def new

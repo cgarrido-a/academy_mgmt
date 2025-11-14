@@ -5,7 +5,8 @@ class Section < ApplicationRecord
   # Associations
   belongs_to :course
   belongs_to :teacher
-  has_many :enrollments, dependent: :destroy
+  has_many :enrollment_sections, dependent: :destroy
+  has_many :enrollments, through: :enrollment_sections
 
   # Validations
   validates :course, presence: true

@@ -24,6 +24,7 @@ Rails.application.routes.draw do
     resources :users
     resources :payment_plans
     resources :payment_methods
+    resources :payments
   end
 
   # Defines the root path route ("/")

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mis Pagos - Academy Management</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <%= csrf_meta_tags %>
+  <%= csp_meta_tag %>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f5; }
+
+    .navbar { background: #2c3e50; color: white; padding: 1rem 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .navbar h1 { font-size: 1.5rem; }
+
+    .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+
+    .card { background: white; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .card h2 { margin-bottom: 1rem; color: #2c3e50; }
+
+    .alert { padding: 1rem; border-radius: 4px; margin-bottom: 1rem; }
+    .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .alert-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .alert-warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+
+    .btn { display: inline-block; padding: 0.5rem 1rem; border-radius: 4px; text-decoration: none; border: none; cursor: pointer; font-size: 1rem; transition: all 0.2s; }
+    .btn-primary { background: #3498db; color: white; }
+    .btn-primary:hover { background: #2980b9; }
+    .btn-success { background: #27ae60; color: white; }
+    .btn-success:hover { background: #229954; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #dee2e6; }
+    th { background: #f8f9fa; font-weight: 600; color: #2c3e50; }
+
+    .payment-item { background: #f8f9fa; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; border-left: 4px solid #3498db; }
+    .payment-item.overdue { border-left-color: #e74c3c; }
+    .payment-amount { font-size: 1.5rem; font-weight: bold; color: #27ae60; }
+    .status-badge { padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem; }
+    .status-pending { background: #fff3cd; color: #856404; }
+    .status-overdue { background: #f8d7da; color: #721c24; }
+    .status-paid { background: #d4edda; color: #155724; }
+  </style>
+</head>
+
+<body>
+  <div class="navbar">
+    <h1>🎓 Mis Pagos</h1>
+  </div>
+
+  <div class="container">
+    <% if notice %>
+      <div class="alert alert-success"><%= notice %></div>
+    <% end %>
+
+    <% if alert %>
+      <div class="alert alert-error"><%= alert %></div>
+    <% end %>
+
+    <!-- Pending Enrollment Fees -->
+    <% if @pending_enrollment_fees.any? %>
+      <div class="card">
+        <h2>💵 Matrículas Pendientes</h2>
+
+        <% @pending_enrollment_fees.each do |enrollment| %>
+          <div class="payment-item">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <h3 style="margin-bottom: 0.5rem;">Matrícula - Inscripción #<%= enrollment.id %></h3>
+                <p><strong>Cursos:</strong> <%= enrollment.sections.map { |s| s.course.title }.uniq.join(', ') %></p>
+                <p><strong>Plan:</strong> <%= enrollment.payment_plan.description %></p>
+                <p class="payment-amount">$<%= number_with_delimiter(enrollment.enrollment_amount) %></p>
+              </div>
+              <div>
+                <%= button_to "Pagar con Webpay", student_pay_enrollment_fee_payments_path(enrollment_id: enrollment.id), method: :post, class: "btn btn-success", style: "font-size: 1.1rem; padding: 0.75rem 1.5rem;" %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <!-- Pending Installments -->
+    <% if @pending_installments.any? %>
+      <div class="card">
+        <h2>📋 Cuotas Pendientes</h2>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Inscripción</th>
+              <th>Curso</th>
+              <th>Cuota</th>
+              <th>Vencimiento</th>
+              <th>Monto</th>
+              <th>Pagado</th>
+              <th>Saldo</th>
+              <th>Estado</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @pending_installments.each do |installment| %>
+              <tr>
+                <td>#<%= installment.tuition_fee.enrollment.id %></td>
+                <td><%= installment.tuition_fee.enrollment.sections.first&.course&.title || '-' %></td>
+                <td>Cuota #<%= installment.id %></td>
+                <td><%= installment.due_date.strftime('%d/%m/%Y') %></td>
+                <td>$<%= number_with_delimiter(installment.amount) %></td>
+                <td>$<%= number_with_delimiter(installment.total_paid) %></td>
+                <td>$<%= number_with_delimiter(installment.remaining_amount) %></td>
+                <td>
+                  <% if installment.status == 'overdue' %>
+                    <span class="status-badge status-overdue">⚠ Vencida</span>
+                  <% elsif installment.status == 'paid' %>
+                    <span class="status-badge status-paid">✓ Pagada</span>
+                  <% else %>
+                    <span class="status-badge status-pending">⏳ Pendiente</span>
+                  <% end %>
+                </td>
+                <td>
+                  <% if installment.remaining_amount > 0 %>
+                    <%= button_to "Pagar $#{number_with_delimiter(installment.remaining_amount)}",
+                        student_pay_installment_payments_path(
+                          enrollment_id: installment.tuition_fee.enrollment.id,
+                          installment_id: installment.id
+                        ),
+                        method: :post,
+                        class: "btn btn-success" %>
+                  <% else %>
+                    <span class="status-badge status-paid">Pagada</span>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+
+    <% if @pending_enrollment_fees.empty? && @pending_installments.empty? %>
+      <div class="card">
+        <div style="text-align: center; padding: 2rem;">
+          <h2 style="color: #27ae60;">✓ ¡Todo al día!</h2>
+          <p style="margin-top: 1rem; color: #7f8c8d;">No tienes pagos pendientes en este momento.</p>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Info about Transbank -->
+    <div class="card" style="background: #e8f5e9; border-left: 4px solid #27ae60;">
+      <h3 style="color: #27ae60;">🔒 Pago Seguro con Transbank</h3>
+      <p style="margin-top: 0.5rem;">Todos los pagos se procesan de manera segura a través de Transbank Webpay Plus.</p>
+      <ul style="margin-top: 0.5rem; margin-left: 1.5rem;">
+        <li>Paga con tarjetas de débito o crédito</li>
+        <li>Transacciones protegidas y encriptadas</li>
+        <li>Confirmación inmediata de tu pago</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

@@ -7,6 +7,7 @@ class Enrollment < ApplicationRecord
   has_many :sections, through: :enrollment_sections
   has_one :tuition_fee, dependent: :destroy
   has_many :payments, dependent: :destroy
+  has_many :transbank_transactions, dependent: :destroy
 
   # Validations
   validates :student, presence: true

@@ -25,7 +25,24 @@ Rails.application.routes.draw do
     resources :payment_plans
     resources :payment_methods
     resources :payments
+    resources :transbank_transactions, only: [:index, :show]
   end
+
+  # Student routes
+  namespace :student do
+    resources :payments, only: [:index] do
+      collection do
+        post 'pay_enrollment_fee/:enrollment_id', action: :pay_enrollment_fee, as: :pay_enrollment_fee
+        post 'pay_installment/:enrollment_id/:installment_id', action: :pay_installment, as: :pay_installment
+      end
+    end
+  end
+
+  # Transbank routes
+  get '/transbank/callback', to: 'transbank#callback', as: :transbank_callback
+  post '/transbank/callback', to: 'transbank#callback'
+  get '/transbank/result/success', to: 'transbank#success', as: :success_transbank_result
+  get '/transbank/result/failure', to: 'transbank#failure', as: :failure_transbank_result
 
   # Defines the root path route ("/")
   root "admin/dashboard#index"

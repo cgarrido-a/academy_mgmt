@@ -41,6 +41,12 @@ gem "jbuilder"
 # Use Rack CORS for handling Cross-Origin Resource Sharing (CORS)
 gem "rack-cors"
 
+# Transbank SDK for payment integration
+gem "transbank-sdk"
+
+# Pagination
+gem "kaminari"
+
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[ windows jruby ]
 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_11_14_000001) do
+ActiveRecord::Schema[7.1].define(version: 2025_11_14_120000) do
   create_table "admin_users", force: :cascade do |t|
     t.string "admin_type"
     t.integer "user_id", null: false
@@ -135,6 +135,30 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_14_000001) do
     t.index ["user_id"], name: "index_teachers_on_user_id"
   end
 
+  create_table "transbank_transactions", force: :cascade do |t|
+    t.integer "enrollment_id", null: false
+    t.integer "installment_id"
+    t.string "payment_type", null: false
+    t.string "token", null: false
+    t.string "buy_order", null: false
+    t.decimal "amount", precision: 10, scale: 2, null: false
+    t.string "status", default: "pending", null: false
+    t.string "authorization_code"
+    t.string "payment_type_code"
+    t.integer "response_code"
+    t.string "card_number"
+    t.datetime "transaction_date"
+    t.text "raw_response"
+    t.text "error_message"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["buy_order"], name: "index_transbank_transactions_on_buy_order"
+    t.index ["enrollment_id"], name: "index_transbank_transactions_on_enrollment_id"
+    t.index ["installment_id"], name: "index_transbank_transactions_on_installment_id"
+    t.index ["status"], name: "index_transbank_transactions_on_status"
+    t.index ["token"], name: "index_transbank_transactions_on_token", unique: true
+  end
+
   create_table "tuition_fees", force: :cascade do |t|
     t.integer "enrollment_id", null: false
     t.integer "payment_method_id", null: false
@@ -172,6 +196,8 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_14_000001) do
   add_foreign_key "sections", "teachers"
   add_foreign_key "students", "users"
   add_foreign_key "teachers", "users"
+  add_foreign_key "transbank_transactions", "enrollments"
+  add_foreign_key "transbank_transactions", "installments"
   add_foreign_key "tuition_fees", "enrollments"
   add_foreign_key "tuition_fees", "payment_methods"
 end

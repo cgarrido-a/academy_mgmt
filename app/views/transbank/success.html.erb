@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Pago Exitoso - Academy Management</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <%= csrf_meta_tags %>
+  <%= csp_meta_tag %>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f5; }
+
+    .container { max-width: 600px; margin: 4rem auto; padding: 0 1rem; }
+
+    .card { background: white; border-radius: 8px; padding: 2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; }
+
+    .success-icon { font-size: 4rem; color: #27ae60; margin-bottom: 1rem; }
+    h1 { color: #27ae60; margin-bottom: 1rem; }
+    .amount { font-size: 2.5rem; font-weight: bold; color: #2c3e50; margin: 1rem 0; }
+
+    .details { text-align: left; margin: 2rem 0; background: #f8f9fa; padding: 1rem; border-radius: 4px; }
+    .details p { margin: 0.5rem 0; }
+
+    .btn { display: inline-block; padding: 0.75rem 1.5rem; border-radius: 4px; text-decoration: none; margin-top: 1rem; }
+    .btn-primary { background: #3498db; color: white; }
+    .btn-primary:hover { background: #2980b9; }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="success-icon">✓</div>
+      <h1>¡Pago Exitoso!</h1>
+      <p>Tu pago ha sido procesado correctamente</p>
+
+      <div class="amount">$<%= number_with_delimiter(@transaction.amount) %></div>
+
+      <div class="details">
+        <p><strong>Tipo:</strong>
+          <% if @transaction.enrollment_fee? %>
+            Pago de Matrícula
+          <% else %>
+            Pago de Cuota #<%= @transaction.installment_id %>
+          <% end %>
+        </p>
+        <p><strong>Inscripción:</strong> #<%= @transaction.enrollment.id %></p>
+        <p><strong>Orden de Compra:</strong> <%= @transaction.buy_order %></p>
+        <p><strong>Código de Autorización:</strong> <%= @transaction.authorization_code %></p>
+        <% if @transaction.card_number.present? %>
+          <p><strong>Tarjeta:</strong> **** **** **** <%= @transaction.card_number %></p>
+        <% end %>
+        <p><strong>Fecha:</strong> <%= @transaction.transaction_date&.strftime('%d/%m/%Y %H:%M') || Time.now.strftime('%d/%m/%Y %H:%M') %></p>
+      </div>
+
+      <p style="color: #7f8c8d; font-size: 0.9rem; margin-top: 1rem;">
+        Recibirás un correo electrónico con el comprobante de pago.
+      </p>
+
+      <%= link_to "Ver Mis Pagos", student_payments_path, class: "btn btn-primary" %>
+    </div>
+
+    <div style="text-align: center; margin-top: 2rem; color: #7f8c8d; font-size: 0.875rem;">
+      <p>Powered by Transbank Webpay Plus</p>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,126 @@
+<div class="card">
+  <h2>Transacciones Transbank</h2>
+
+  <!-- Stats -->
+  <div class="stats-grid" style="margin-bottom: 2rem;">
+    <div class="stat-card">
+      <h3>Total Transacciones</h3>
+      <div class="number"><%= @total_transactions %></div>
+    </div>
+
+    <div class="stat-card" style="border-left: 4px solid #27ae60;">
+      <h3>Autorizadas</h3>
+      <div class="number" style="color: #27ae60;"><%= @authorized_count %></div>
+    </div>
+
+    <div class="stat-card" style="border-left: 4px solid #f39c12;">
+      <h3>Pendientes</h3>
+      <div class="number" style="color: #f39c12;"><%= @pending_count %></div>
+    </div>
+
+    <div class="stat-card" style="border-left: 4px solid #e74c3c;">
+      <h3>Fallidas</h3>
+      <div class="number" style="color: #e74c3c;"><%= @failed_count %></div>
+    </div>
+  </div>
+
+  <div style="background: #e8f5e9; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem;">
+    <strong>Total Autorizado:</strong>
+    <span style="font-size: 1.5rem; color: #27ae60; font-weight: bold; margin-left: 1rem;">
+      $<%= number_with_delimiter(@total_amount_authorized) %>
+    </span>
+  </div>
+
+  <!-- Filters -->
+  <div style="margin-bottom: 1rem;">
+    <strong>Filtros:</strong>
+    <%= link_to "Todas", admin_transbank_transactions_path, class: "btn btn-secondary", style: "margin-left: 0.5rem;" %>
+    <%= link_to "Autorizadas", admin_transbank_transactions_path(status: 'authorized'), class: "btn btn-success", style: "margin-left: 0.5rem;" %>
+    <%= link_to "Pendientes", admin_transbank_transactions_path(status: 'pending'), class: "btn", style: "margin-left: 0.5rem; background: #f39c12; color: white;" %>
+    <%= link_to "Fallidas", admin_transbank_transactions_path(status: 'failed'), class: "btn btn-danger", style: "margin-left: 0.5rem;" %>
+  </div>
+
+  <!-- Transactions Table -->
+  <% if @transactions.any? %>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Fecha</th>
+          <th>Estudiante</th>
+          <th>Tipo</th>
+          <th>Monto</th>
+          <th>Buy Order</th>
+          <th>Estado</th>
+          <th>Cod. Autorización</th>
+          <th>Tarjeta</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @transactions.each do |transaction| %>
+          <tr>
+            <td>#<%= transaction.id %></td>
+            <td><%= transaction.created_at.strftime('%d/%m/%Y %H:%M') %></td>
+            <td><%= transaction.enrollment.student.user.name %></td>
+            <td>
+              <% if transaction.enrollment_fee? %>
+                <span style="background: #3498db; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem;">Matrícula</span>
+              <% else %>
+                <span style="background: #27ae60; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem;">Cuota #<%= transaction.installment_id %></span>
+              <% end %>
+            </td>
+            <td style="font-weight: bold;">$<%= number_with_delimiter(transaction.amount) %></td>
+            <td style="font-size: 0.875rem; font-family: monospace;"><%= transaction.buy_order %></td>
+            <td>
+              <% case transaction.status %>
+              <% when 'authorized' %>
+                <span style="background: #d4edda; color: #155724; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem; font-weight: bold;">✓ Autorizada</span>
+              <% when 'pending' %>
+                <span style="background: #fff3cd; color: #856404; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem; font-weight: bold;">⏳ Pendiente</span>
+              <% when 'failed' %>
+                <span style="background: #f8d7da; color: #721c24; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem; font-weight: bold;">✗ Fallida</span>
+              <% when 'nullified' %>
+                <span style="background: #e2e3e5; color: #383d41; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem; font-weight: bold;">↩ Anulada</span>
+              <% end %>
+            </td>
+            <td style="font-family: monospace; font-size: 0.875rem;">
+              <%= transaction.authorization_code || '-' %>
+            </td>
+            <td>
+              <% if transaction.card_number.present? %>
+                **** <%= transaction.card_number %>
+              <% else %>
+                -
+              <% end %>
+            </td>
+            <td>
+              <%= link_to "Ver", admin_transbank_transaction_path(transaction), class: "btn btn-primary" %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+
+    <% if @transactions.respond_to?(:total_pages) && @transactions.total_pages > 1 %>
+      <div style="margin-top: 1.5rem; text-align: center;">
+        <%= paginate @transactions %>
+      </div>
+    <% end %>
+  <% else %>
+    <p>No hay transacciones registradas.</p>
+  <% end %>
+</div>
+
+<div class="card" style="background: #e3f2fd; border-left: 4px solid #2196f3;">
+  <h3 style="color: #1976d2;">ℹ️ Información sobre Transacciones</h3>
+  <ul style="margin-top: 0.5rem; margin-left: 1.5rem;">
+    <li><strong>Autorizada:</strong> Pago procesado exitosamente por Transbank</li>
+    <li><strong>Pendiente:</strong> Transacción iniciada pero no confirmada (timeout o usuario abandonó)</li>
+    <li><strong>Fallida:</strong> Pago rechazado (fondos insuficientes, tarjeta bloqueada, etc.)</li>
+    <li><strong>Anulada:</strong> Transacción revertida/anulada</li>
+  </ul>
+  <p style="margin-top: 1rem; color: #666;">
+    Las transacciones autorizadas generan automáticamente un registro de pago (Payment) y actualizan el estado de las cuotas.
+  </p>
+</div>

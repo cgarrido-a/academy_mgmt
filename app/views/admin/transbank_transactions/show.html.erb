@@ -1,0 +1,180 @@
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2>Transacción Transbank #<%= @transaction.id %></h2>
+    <div class="actions">
+      <%= link_to "Volver", admin_transbank_transactions_path, class: "btn btn-primary" %>
+    </div>
+  </div>
+
+  <!-- Status Badge -->
+  <div style="margin-bottom: 2rem;">
+    <% case @transaction.status %>
+    <% when 'authorized' %>
+      <div style="background: #d4edda; padding: 1rem; border-radius: 4px; border-left: 4px solid #27ae60;">
+        <h3 style="color: #155724; margin: 0;">✓ Transacción Autorizada</h3>
+        <p style="margin: 0.5rem 0 0 0; color: #155724;">El pago fue procesado exitosamente</p>
+      </div>
+    <% when 'pending' %>
+      <div style="background: #fff3cd; padding: 1rem; border-radius: 4px; border-left: 4px solid #f39c12;">
+        <h3 style="color: #856404; margin: 0;">⏳ Transacción Pendiente</h3>
+        <p style="margin: 0.5rem 0 0 0; color: #856404;">Esperando confirmación o timeout</p>
+      </div>
+    <% when 'failed' %>
+      <div style="background: #f8d7da; padding: 1rem; border-radius: 4px; border-left: 4px solid #e74c3c;">
+        <h3 style="color: #721c24; margin: 0;">✗ Transacción Fallida</h3>
+        <p style="margin: 0.5rem 0 0 0; color: #721c24;">El pago fue rechazado</p>
+      </div>
+    <% when 'nullified' %>
+      <div style="background: #e2e3e5; padding: 1rem; border-radius: 4px; border-left: 4px solid #6c757d;">
+        <h3 style="color: #383d41; margin: 0;">↩ Transacción Anulada</h3>
+        <p style="margin: 0.5rem 0 0 0; color: #383d41;">La transacción fue revertida</p>
+      </div>
+    <% end %>
+  </div>
+
+  <h3>Información de la Transacción</h3>
+
+  <div class="form-group">
+    <strong>Tipo de Pago:</strong>
+    <p>
+      <% if @transaction.enrollment_fee? %>
+        <span style="background: #3498db; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">💵 Pago de Matrícula</span>
+      <% else %>
+        <span style="background: #27ae60; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">📋 Pago de Cuota #<%= @transaction.installment_id %></span>
+      <% end %>
+    </p>
+  </div>
+
+  <div class="form-group">
+    <strong>Monto:</strong>
+    <p style="font-size: 2rem; color: #27ae60; font-weight: bold;">$<%= number_with_delimiter(@transaction.amount) %></p>
+  </div>
+
+  <div class="form-group">
+    <strong>Buy Order (Orden de Compra):</strong>
+    <p style="font-family: monospace; background: #f8f9fa; padding: 0.5rem; border-radius: 4px;"><%= @transaction.buy_order %></p>
+  </div>
+
+  <div class="form-group">
+    <strong>Token:</strong>
+    <p style="font-family: monospace; font-size: 0.875rem; background: #f8f9fa; padding: 0.5rem; border-radius: 4px; word-break: break-all;">
+      <%= @transaction.token %>
+    </p>
+  </div>
+
+  <div class="form-group">
+    <strong>Fecha de Creación:</strong>
+    <p><%= @transaction.created_at.strftime('%d/%m/%Y %H:%M:%S') %></p>
+  </div>
+
+  <% if @transaction.authorized? %>
+    <h3 style="margin-top: 2rem;">Detalles de Autorización</h3>
+
+    <div class="form-group">
+      <strong>Código de Autorización:</strong>
+      <p style="font-family: monospace; font-size: 1.2rem; color: #27ae60; font-weight: bold;"><%= @transaction.authorization_code %></p>
+    </div>
+
+    <div class="form-group">
+      <strong>Código de Tipo de Pago:</strong>
+      <p><%= @transaction.payment_type_code || '-' %></p>
+    </div>
+
+    <div class="form-group">
+      <strong>Código de Respuesta:</strong>
+      <p><%= @transaction.response_code %></p>
+    </div>
+
+    <% if @transaction.card_number.present? %>
+      <div class="form-group">
+        <strong>Tarjeta Utilizada:</strong>
+        <p style="font-family: monospace;">**** **** **** <%= @transaction.card_number %></p>
+      </div>
+    <% end %>
+
+    <% if @transaction.transaction_date.present? %>
+      <div class="form-group">
+        <strong>Fecha de Transacción Transbank:</strong>
+        <p><%= @transaction.transaction_date.strftime('%d/%m/%Y %H:%M:%S') %></p>
+      </div>
+    <% end %>
+
+    <% if @payment %>
+      <div class="form-group">
+        <strong>Pago Registrado:</strong>
+        <p><%= link_to "Ver Payment ##{@payment.id}", admin_payment_path(@payment), class: "btn btn-success" %></p>
+      </div>
+    <% end %>
+  <% end %>
+
+  <% if @transaction.failed? && @transaction.error_message.present? %>
+    <h3 style="margin-top: 2rem; color: #e74c3c;">Información del Error</h3>
+
+    <div class="form-group">
+      <strong>Mensaje de Error:</strong>
+      <p style="background: #f8d7da; padding: 0.75rem; border-radius: 4px; color: #721c24;">
+        <%= @transaction.error_message %>
+      </p>
+    </div>
+  <% end %>
+
+  <h3 style="margin-top: 2rem;">Información del Estudiante</h3>
+
+  <div class="form-group">
+    <strong>Nombre:</strong>
+    <p><%= link_to @transaction.enrollment.student.user.name, admin_user_path(@transaction.enrollment.student.user) %></p>
+  </div>
+
+  <div class="form-group">
+    <strong>Email:</strong>
+    <p><%= @transaction.enrollment.student.user.email %></p>
+  </div>
+
+  <div class="form-group">
+    <strong>Inscripción:</strong>
+    <p><%= link_to "Ver Inscripción ##{@transaction.enrollment.id}", admin_enrollment_path(@transaction.enrollment), class: "btn btn-primary" %></p>
+  </div>
+
+  <% if @transaction.installment.present? %>
+    <h3 style="margin-top: 2rem;">Información de la Cuota</h3>
+
+    <div class="form-group">
+      <strong>Cuota ID:</strong>
+      <p>#<%= @transaction.installment.id %></p>
+    </div>
+
+    <div class="form-group">
+      <strong>Monto de la Cuota:</strong>
+      <p>$<%= number_with_delimiter(@transaction.installment.amount) %></p>
+    </div>
+
+    <div class="form-group">
+      <strong>Fecha de Vencimiento:</strong>
+      <p><%= @transaction.installment.due_date.strftime('%d/%m/%Y') %></p>
+    </div>
+
+    <div class="form-group">
+      <strong>Estado Actual de la Cuota:</strong>
+      <p>
+        <% case @transaction.installment.status %>
+        <% when 'paid' %>
+          <span style="background: #d4edda; color: #155724; padding: 0.25rem 0.5rem; border-radius: 4px;">✓ Pagada</span>
+        <% when 'pending' %>
+          <span style="background: #fff3cd; color: #856404; padding: 0.25rem 0.5rem; border-radius: 4px;">⏳ Pendiente</span>
+        <% when 'overdue' %>
+          <span style="background: #f8d7da; color: #721c24; padding: 0.25rem 0.5rem; border-radius: 4px;">⚠ Vencida</span>
+        <% end %>
+      </p>
+    </div>
+  <% end %>
+
+  <% if @transaction.raw_response.present? %>
+    <h3 style="margin-top: 2rem;">Respuesta Completa de Transbank</h3>
+    <details>
+      <summary style="cursor: pointer; padding: 0.5rem; background: #f8f9fa; border-radius: 4px;">
+        Ver JSON completo
+      </summary>
+      <pre style="background: #f8f9fa; padding: 1rem; border-radius: 4px; overflow-x: auto; margin-top: 0.5rem;"><%= JSON.pretty_generate(JSON.parse(@transaction.raw_response)) rescue @transaction.raw_response %></pre>
+    </details>
+  <% end %>
+</div>

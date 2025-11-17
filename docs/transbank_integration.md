@@ -8,6 +8,28 @@ El sistema permite a los estudiantes pagar sus matrículas y cuotas a través de
 
 ## Flujo de Pago
 
+### Con Frontend Separado (API JSON)
+
+```
+1. Estudiante → Ve sus pagos pendientes en el frontend
+2. Estudiante → Hace clic en "Pagar con Webpay"
+3. Frontend → POST /student/payments/pay_enrollment_fee/:id (o pay_installment)
+4. Backend → Crea TransbankTransaction (status: pending)
+5. Backend → Inicia transacción con Transbank API
+6. Backend → Retorna JSON con URL de Transbank
+7. Frontend → Redirige al estudiante a Transbank (window.location.href)
+8. Estudiante → Completa el pago en Transbank
+9. Transbank → Redirige al callback /transbank/callback (en backend)
+10. Backend → Confirma la transacción con Transbank
+11. Backend → Si aprobada:
+   - Crea registro Payment
+   - Actualiza TransbankTransaction (status: authorized)
+   - Actualiza estado de Installment (si aplica)
+12. Backend → Redirige a página de éxito/fallo (puede ser en frontend)
+```
+
+### Con Vistas de Rails (Monolito)
+
 ```
 1. Estudiante → Ve sus pagos pendientes en /student/payments
 2. Estudiante → Hace clic en "Pagar con Webpay"
@@ -95,6 +117,163 @@ Para producción, necesitas:
 - `GET/POST /transbank/callback` - Callback de Transbank (recibe confirmación)
 - `GET /transbank/result/success` - Página de éxito
 - `GET /transbank/result/failure` - Página de fallo
+
+## Integración con Frontend Separado
+
+### Respuesta JSON de las APIs
+
+Ambos endpoints (`pay_enrollment_fee` y `pay_installment`) retornan JSON:
+
+**Respuesta Exitosa (200 OK):**
+```json
+{
+  "url": "https://webpay3gint.transbank.cl/webpayserver/initTransaction",
+  "token": "01ab89c...",
+  "full_url": "https://webpay3gint.transbank.cl/webpayserver/initTransaction?token_ws=01ab89c...",
+  "buy_order": "ENR-123-20251117",
+  "amount": 50000,
+  "installment_id": 456  // Solo en pay_installment
+}
+```
+
+**Respuesta de Error (422 o 500):**
+```json
+{
+  "error": "La matrícula ya ha sido pagada."
+}
+```
+
+### Ejemplo de Integración Frontend
+
+#### JavaScript / Fetch API
+
+```javascript
+// Pagar matrícula
+async function payEnrollmentFee(enrollmentId) {
+  try {
+    const response = await fetch(`/student/payments/pay_enrollment_fee/${enrollmentId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // Agregar token de autenticación si lo usas
+        // 'Authorization': `Bearer ${token}`
+      },
+      credentials: 'include' // Importante para cookies/sesiones
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      // Redirigir al estudiante a Transbank
+      window.location.href = data.full_url;
+    } else {
+      // Mostrar error al usuario
+      alert(data.error);
+    }
+  } catch (error) {
+    console.error('Error al iniciar pago:', error);
+    alert('Error al conectar con el servidor');
+  }
+}
+
+// Pagar cuota
+async function payInstallment(enrollmentId, installmentId) {
+  try {
+    const response = await fetch(
+      `/student/payments/pay_installment/${enrollmentId}/${installmentId}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      }
+    );
+
+    const data = await response.json();
+
+    if (response.ok) {
+      window.location.href = data.full_url;
+    } else {
+      alert(data.error);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
+```
+
+#### React Example
+
+```jsx
+import { useState } from 'react';
+
+function PaymentButton({ enrollmentId, installmentId = null }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handlePayment = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const endpoint = installmentId
+        ? `/student/payments/pay_installment/${enrollmentId}/${installmentId}`
+        : `/student/payments/pay_enrollment_fee/${enrollmentId}`;
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Redirigir a Transbank
+        window.location.href = data.full_url;
+      } else {
+        setError(data.error);
+      }
+    } catch (err) {
+      setError('Error al procesar el pago');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div>
+      <button onClick={handlePayment} disabled={loading}>
+        {loading ? 'Procesando...' : 'Pagar con Webpay'}
+      </button>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+    </div>
+  );
+}
+```
+
+### Configuración CORS
+
+Para que el frontend pueda comunicarse con el backend desde otro dominio:
+
+**Ya está configurado en `config/initializers/cors.rb`:**
+```ruby
+Rails.application.config.middleware.insert_before 0, Rack::Cors do
+  allow do
+    origins '*' # En desarrollo
+    # En producción: origins 'https://tu-frontend.com'
+
+    resource '*',
+      headers: :any,
+      methods: [:get, :post, :put, :patch, :delete, :options, :head],
+      credentials: true
+  end
+end
+```
+
+**Para producción**, cambia `origins '*'` por el dominio específico de tu frontend:
+```ruby
+origins 'https://tu-frontend.com', 'https://www.tu-frontend.com'
+```
 
 ## Seguridad
 

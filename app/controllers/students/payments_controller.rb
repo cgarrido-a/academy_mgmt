@@ -20,7 +20,9 @@ module Students
     # POST /student/payments/pay_enrollment_fee/:enrollment_id
     def pay_enrollment_fee
       if @enrollment.enrollment_fee_paid?
-        redirect_to students_payments_path, alert: 'La matrícula ya ha sido pagada.'
+        render json: {
+          error: 'La matrícula ya ha sido pagada.'
+        }, status: :unprocessable_entity
         return
       end
 
@@ -53,18 +55,28 @@ module Students
       # Update transaction with token
       transaction_record.update!(token: response['token'])
 
-      # Redirect to Transbank
-      redirect_to "#{response['url']}?token_ws=#{response['token']}", allow_other_host: true
+      # Return Transbank URL as JSON
+      render json: {
+        url: response['url'],
+        token: response['token'],
+        full_url: "#{response['url']}?token_ws=#{response['token']}",
+        buy_order: buy_order,
+        amount: @enrollment.enrollment_amount
+      }, status: :ok
 
     rescue StandardError => e
       Rails.logger.error "Error creating Transbank transaction: #{e.message}"
-      redirect_to students_payments_path, alert: "Error al procesar el pago: #{e.message}"
+      render json: {
+        error: "Error al procesar el pago: #{e.message}"
+      }, status: :internal_server_error
     end
 
     # POST /student/payments/pay_installment/:enrollment_id/:installment_id
     def pay_installment
       if @installment.fully_paid?
-        redirect_to students_payments_path, alert: 'Esta cuota ya ha sido pagada.'
+        render json: {
+          error: 'Esta cuota ya ha sido pagada.'
+        }, status: :unprocessable_entity
         return
       end
 
@@ -100,12 +112,21 @@ module Students
       # Update transaction with token
       transaction_record.update!(token: response['token'])
 
-      # Redirect to Transbank
-      redirect_to "#{response['url']}?token_ws=#{response['token']}", allow_other_host: true
+      # Return Transbank URL as JSON
+      render json: {
+        url: response['url'],
+        token: response['token'],
+        full_url: "#{response['url']}?token_ws=#{response['token']}",
+        buy_order: buy_order,
+        amount: amount_to_pay,
+        installment_id: @installment.id
+      }, status: :ok
 
     rescue StandardError => e
       Rails.logger.error "Error creating Transbank transaction: #{e.message}"
-      redirect_to students_payments_path, alert: "Error al procesar el pago: #{e.message}"
+      render json: {
+        error: "Error al procesar el pago: #{e.message}"
+      }, status: :internal_server_error
     end
 
     private

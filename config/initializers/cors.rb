@@ -2,12 +2,23 @@
 
 Rails.application.config.middleware.insert_before 0, Rack::Cors do
   allow do
-    # Cambia esto por el origen de tu frontend en producción
-    origins '*' # En desarrollo permite cualquier origen. En producción, especifica: 'http://localhost:3001', 'https://tu-frontend.com'
+    # Especifica los orígenes permitidos de tu frontend
+    # Para desarrollo local, usa localhost con los puertos comunes
+    # Para producción, agrega tu dominio a la lista o usa la variable FRONTEND_URL
 
-    resource '/api/*',
+    allowed_origins = [
+      'http://localhost:3000',   # Create React App, Next.js
+      'http://localhost:5173',   # Vite
+      'http://localhost:4200',   # Angular
+      'http://localhost:8080',   # Vue CLI
+      ENV['FRONTEND_URL']        # Variable de entorno para producción
+    ].compact  # Elimina valores nil
+
+    origins allowed_origins
+
+    resource '*',
       headers: :any,
       methods: [:get, :post, :put, :patch, :delete, :options, :head],
-      credentials: false
+      credentials: true
   end
 end

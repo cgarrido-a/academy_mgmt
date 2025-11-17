@@ -29,7 +29,7 @@ Rails.application.routes.draw do
   end
 
   # Student routes
-  namespace :student do
+  namespace :students do
     resources :payments, only: [:index] do
       collection do
         post 'pay_enrollment_fee/:enrollment_id', action: :pay_enrollment_fee, as: :pay_enrollment_fee

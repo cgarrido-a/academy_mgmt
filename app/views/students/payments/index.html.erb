@@ -72,7 +72,7 @@
                 <p class="payment-amount">$<%= number_with_delimiter(enrollment.enrollment_amount) %></p>
               </div>
               <div>
-                <%= button_to "Pagar con Webpay", student_pay_enrollment_fee_payments_path(enrollment_id: enrollment.id), method: :post, class: "btn btn-success", style: "font-size: 1.1rem; padding: 0.75rem 1.5rem;" %>
+                <%= button_to "Pagar con Webpay", students_pay_enrollment_fee_payments_path(enrollment_id: enrollment.id), method: :post, class: "btn btn-success", style: "font-size: 1.1rem; padding: 0.75rem 1.5rem;" %>
               </div>
             </div>
           </div>
@@ -121,7 +121,7 @@
                 <td>
                   <% if installment.remaining_amount > 0 %>
                     <%= button_to "Pagar $#{number_with_delimiter(installment.remaining_amount)}",
-                        student_pay_installment_payments_path(
+                        students_pay_installment_payments_path(
                           enrollment_id: installment.tuition_fee.enrollment.id,
                           installment_id: installment.id
                         ),

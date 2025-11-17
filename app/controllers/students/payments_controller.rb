@@ -1,4 +1,4 @@
-module Student
+module Students
   class PaymentsController < ApplicationController
     before_action :set_student
     before_action :set_enrollment, only: [:pay_enrollment_fee, :pay_installment]
@@ -20,7 +20,7 @@ module Student
     # POST /student/payments/pay_enrollment_fee/:enrollment_id
     def pay_enrollment_fee
       if @enrollment.enrollment_fee_paid?
-        redirect_to student_payments_path, alert: 'La matrícula ya ha sido pagada.'
+        redirect_to students_payments_path, alert: 'La matrícula ya ha sido pagada.'
         return
       end
 
@@ -58,13 +58,13 @@ module Student
 
     rescue StandardError => e
       Rails.logger.error "Error creating Transbank transaction: #{e.message}"
-      redirect_to student_payments_path, alert: "Error al procesar el pago: #{e.message}"
+      redirect_to students_payments_path, alert: "Error al procesar el pago: #{e.message}"
     end
 
     # POST /student/payments/pay_installment/:enrollment_id/:installment_id
     def pay_installment
       if @installment.fully_paid?
-        redirect_to student_payments_path, alert: 'Esta cuota ya ha sido pagada.'
+        redirect_to students_payments_path, alert: 'Esta cuota ya ha sido pagada.'
         return
       end
 
@@ -105,7 +105,7 @@ module Student
 
     rescue StandardError => e
       Rails.logger.error "Error creating Transbank transaction: #{e.message}"
-      redirect_to student_payments_path, alert: "Error al procesar el pago: #{e.message}"
+      redirect_to students_payments_path, alert: "Error al procesar el pago: #{e.message}"
     end
 
     private

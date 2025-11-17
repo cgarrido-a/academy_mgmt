@@ -6,10 +6,17 @@ module Api
         creator = EnrollmentCreator.new(enrollment_params)
 
         if creator.call
+          enrollment = creator.enrollment
+
+          # Initialize Transbank payment for enrollment fee
+          transbank_data = initialize_transbank_payment(enrollment)
+
           render json: {
             success: true,
             message: 'Enrollment created successfully',
-            data: enrollment_data(creator.enrollment)
+            enrollment_id: enrollment.id,
+            data: enrollment_data(enrollment),
+            transbank_payment: transbank_data
           }, status: :created
         else
           render json: {
@@ -17,6 +24,14 @@ module Api
             errors: creator.errors
           }, status: :unprocessable_entity
         end
+      rescue StandardError => e
+        Rails.logger.error "Error creating enrollment with Transbank: #{e.message}"
+        Rails.logger.error e.backtrace.join("\n")
+
+        render json: {
+          success: false,
+          error: "Error al procesar la inscripción: #{e.message}"
+        }, status: :internal_server_error
       end
 
       private
@@ -86,6 +101,57 @@ module Api
           due_date: installment.due_date,
           status: installment.status
         }
+      end
+
+      def initialize_transbank_payment(enrollment)
+        # Generate buy order
+        buy_order = TransbankTransaction.generate_buy_order(enrollment.id, 'enrollment_fee')
+
+        # Create Transbank transaction record
+        transaction_record = TransbankTransaction.create!(
+          enrollment: enrollment,
+          payment_type: 'enrollment_fee',
+          buy_order: buy_order,
+          amount: enrollment.enrollment_amount,
+          status: 'pending',
+          token: '' # Will be updated after Transbank response
+        )
+
+        # Initialize Webpay Plus transaction
+        tx = Transbank::Webpay::WebpayPlus::Transaction.new(
+          commerce_code: TransbankConfig.commerce_code,
+          api_key: TransbankConfig.api_key,
+          environment: TransbankConfig.environment
+        )
+
+        response = tx.create(
+          buy_order: buy_order,
+          session_id: SecureRandom.hex(10), # Generate a unique session ID
+          amount: enrollment.enrollment_amount.to_i,
+          return_url: transbank_callback_url
+        )
+
+        # Update transaction with token
+        transaction_record.update!(token: response['token'])
+
+        # Return Transbank payment data
+        {
+          url: response['url'],
+          token: response['token'],
+          full_url: "#{response['url']}?token_ws=#{response['token']}",
+          buy_order: buy_order,
+          amount: enrollment.enrollment_amount
+        }
+      end
+
+      def transbank_callback_url
+        # This should point to your backend callback URL
+        # Adjust the host/domain as needed for your environment
+        if Rails.env.production?
+          "#{ENV['BACKEND_URL']}/transbank/callback"
+        else
+          "http://localhost:3001/transbank/callback"
+        end
       end
     end
   end

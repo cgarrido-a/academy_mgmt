@@ -8,12 +8,33 @@ El sistema permite a los estudiantes pagar sus matrículas y cuotas a través de
 
 ## Flujo de Pago
 
-### Con Frontend Separado (API JSON)
+### Flujo Principal: Inscripción + Pago de Matrícula
 
 ```
-1. Estudiante → Ve sus pagos pendientes en el frontend
-2. Estudiante → Hace clic en "Pagar con Webpay"
-3. Frontend → POST /student/payments/pay_enrollment_fee/:id (o pay_installment)
+1. Estudiante → Completa formulario de inscripción en el frontend
+2. Frontend → POST /api/v1/enrollments (crea enrollment + inicia pago)
+3. Backend → Crea Student (si no existe)
+4. Backend → Crea Enrollment
+5. Backend → Crea TransbankTransaction (status: pending)
+6. Backend → Inicia transacción con Transbank API
+7. Backend → Retorna JSON con datos del enrollment + URL de Transbank
+8. Frontend → Redirige al estudiante a Transbank (window.location.href)
+9. Estudiante → Completa el pago en Transbank
+10. Transbank → Redirige al callback /transbank/callback (en backend)
+11. Backend → Confirma la transacción con Transbank
+12. Backend → Si aprobada:
+   - Crea registro Payment para la matrícula
+   - Actualiza TransbankTransaction (status: authorized)
+   - Marca enrollment_fee_paid = true
+13. Backend → Redirige a página de éxito/fallo (puede ser en frontend)
+```
+
+### Flujo Alternativo: Pago de Cuotas
+
+```
+1. Estudiante → Ve sus cuotas pendientes en el frontend
+2. Estudiante → Hace clic en "Pagar cuota"
+3. Frontend → POST /student/payments/pay_installment/:enrollment_id/:installment_id
 4. Backend → Crea TransbankTransaction (status: pending)
 5. Backend → Inicia transacción con Transbank API
 6. Backend → Retorna JSON con URL de Transbank
@@ -24,7 +45,7 @@ El sistema permite a los estudiantes pagar sus matrículas y cuotas a través de
 11. Backend → Si aprobada:
    - Crea registro Payment
    - Actualiza TransbankTransaction (status: authorized)
-   - Actualiza estado de Installment (si aplica)
+   - Actualiza estado de Installment
 12. Backend → Redirige a página de éxito/fallo (puede ser en frontend)
 ```
 
@@ -108,9 +129,12 @@ Para producción, necesitas:
 
 ## Rutas
 
+### API de Inscripción (Frontend Separado)
+- `POST /api/v1/enrollments` - Crear inscripción e iniciar pago de matrícula
+
 ### Para Estudiantes
 - `GET /student/payments` - Ver pagos pendientes
-- `POST /student/payments/pay_enrollment_fee/:enrollment_id` - Iniciar pago de matrícula
+- `POST /student/payments/pay_enrollment_fee/:enrollment_id` - Iniciar pago de matrícula (si ya existe enrollment)
 - `POST /student/payments/pay_installment/:enrollment_id/:installment_id` - Iniciar pago de cuota
 
 ### Callbacks de Transbank
@@ -145,7 +169,178 @@ Ambos endpoints (`pay_enrollment_fee` y `pay_installment`) retornan JSON:
 
 ### Ejemplo de Integración Frontend
 
-#### JavaScript / Fetch API
+#### 1. Crear Inscripción e Iniciar Pago (Flujo Principal)
+
+**JavaScript / Fetch API:**
+
+```javascript
+// Crear enrollment y obtener URL de pago
+async function createEnrollmentAndPay(enrollmentData) {
+  try {
+    const response = await fetch('/api/v1/enrollments', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        enrollment: {
+          name: enrollmentData.name,
+          email: enrollmentData.email,
+          section_ids: enrollmentData.section_ids,
+          payment_plan_id: enrollmentData.payment_plan_id,
+          payment_method_id: 2, // Webpay Plus
+          enrollment_amount: enrollmentData.enrollment_amount,
+          total_tuition_fee: enrollmentData.total_tuition_fee,
+          instalments_number: enrollmentData.instalments_number
+        }
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.success && data.transbank_payment) {
+      // Guardar enrollment_id por si se necesita después
+      localStorage.setItem('enrollment_id', data.enrollment_id);
+
+      // Redirigir a Transbank para pagar
+      window.location.href = data.transbank_payment.full_url;
+    } else {
+      // Mostrar errores
+      console.error('Errores:', data.errors);
+      alert('Error al crear la inscripción');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error al conectar con el servidor');
+  }
+}
+
+// Ejemplo de uso
+const enrollmentData = {
+  name: 'Juan Pérez',
+  email: 'juan@example.com',
+  section_ids: [1, 2], // IDs de las secciones/cursos
+  payment_plan_id: 1,
+  enrollment_amount: 50000,
+  total_tuition_fee: 450000,
+  instalments_number: 9
+};
+
+createEnrollmentAndPay(enrollmentData);
+```
+
+**React Example:**
+
+```jsx
+import { useState } from 'react';
+
+function EnrollmentForm() {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    section_ids: [],
+    payment_plan_id: '',
+    enrollment_amount: 0,
+    total_tuition_fee: 0,
+    instalments_number: 0
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/v1/enrollments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ enrollment: formData })
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.transbank_payment) {
+        // Guardar enrollment_id
+        localStorage.setItem('enrollment_id', data.enrollment_id);
+
+        // Redirigir a Transbank
+        window.location.href = data.transbank_payment.full_url;
+      } else {
+        setError(data.errors || 'Error al crear la inscripción');
+      }
+    } catch (err) {
+      setError('Error al procesar la inscripción');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input
+        type="text"
+        placeholder="Nombre completo"
+        value={formData.name}
+        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+        required
+      />
+      <input
+        type="email"
+        placeholder="Email"
+        value={formData.email}
+        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+        required
+      />
+      {/* Más campos del formulario... */}
+
+      <button type="submit" disabled={loading}>
+        {loading ? 'Procesando...' : 'Inscribirse y Pagar'}
+      </button>
+
+      {error && <div className="error">{JSON.stringify(error)}</div>}
+    </form>
+  );
+}
+```
+
+**Respuesta del Backend:**
+
+```json
+{
+  "success": true,
+  "message": "Enrollment created successfully",
+  "enrollment_id": 123,
+  "data": {
+    "id": 123,
+    "student": {
+      "id": 45,
+      "name": "Juan Pérez",
+      "email": "juan@example.com"
+    },
+    "sections": [...],
+    "payment_plan": {...},
+    "enrollment_amount": 50000,
+    "tuition_fee": {...}
+  },
+  "transbank_payment": {
+    "url": "https://webpay3gint.transbank.cl/webpayserver/initTransaction",
+    "token": "01ab89c...",
+    "full_url": "https://webpay3gint.transbank.cl/webpayserver/initTransaction?token_ws=01ab89c...",
+    "buy_order": "ENR-123-20251117",
+    "amount": 50000
+  }
+}
+```
+
+#### 2. Pagar Cuotas (Flujo Alternativo)
+
+**JavaScript / Fetch API**
 
 ```javascript
 // Pagar matrícula

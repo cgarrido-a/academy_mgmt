@@ -107,17 +107,7 @@ module Api
         # Generate buy order
         buy_order = TransbankTransaction.generate_buy_order(enrollment.id, 'enrollment_fee')
 
-        # Create Transbank transaction record
-        transaction_record = TransbankTransaction.create!(
-          enrollment: enrollment,
-          payment_type: 'enrollment_fee',
-          buy_order: buy_order,
-          amount: enrollment.enrollment_amount,
-          status: 'pending',
-          token: '' # Will be updated after Transbank response
-        )
-
-        # Initialize Webpay Plus transaction
+        # Initialize Webpay Plus transaction FIRST to get the token
         tx = Transbank::Webpay::WebpayPlus::Transaction.new(
           commerce_code: TransbankConfig.commerce_code,
           api_key: TransbankConfig.api_key,
@@ -131,8 +121,15 @@ module Api
           return_url: transbank_callback_url
         )
 
-        # Update transaction with token
-        transaction_record.update!(token: response['token'])
+        # NOW create Transbank transaction record with the token
+        TransbankTransaction.create!(
+          enrollment: enrollment,
+          payment_type: 'enrollment_fee',
+          buy_order: buy_order,
+          amount: enrollment.enrollment_amount,
+          status: 'pending',
+          token: response['token']
+        )
 
         # Return Transbank payment data
         {

@@ -26,11 +26,7 @@
             <td><%= payment.payment_date.strftime('%d/%m/%Y') %></td>
             <td><%= payment.enrollment.student.user.name %></td>
             <td>
-              <% if payment.enrollment_fee? %>
-                <span style="background: #3498db; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">Matrícula</span>
-              <% else %>
-                <span style="background: #27ae60; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">Cuota #<%= payment.installment_id %></span>
-              <% end %>
+              <span style="background: #3498db; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">Matrícula</span>
             </td>
             <td>$<%= number_with_delimiter(payment.amount) %></td>
             <td><%= payment.payment_method.payment_method %></td>

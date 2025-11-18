@@ -38,8 +38,8 @@
         </div>
 
         <div class="form-group">
-          <strong>Fechas:</strong>
-          <p><%= section.start_date.strftime('%d/%m/%Y') %> - <%= section.end_date.strftime('%d/%m/%Y') %></p>
+          <strong>Fecha:</strong>
+          <p><%= section.date.strftime('%d/%m/%Y') %></p>
         </div>
       </div>
     <% end %>
@@ -88,35 +88,6 @@
     </div>
   <% end %>
 
-  <% installment_payments = @enrollment.payments.installment_payments.order(payment_date: :desc) %>
-  <% if installment_payments.any? %>
-    <h3>Pagos de Cuotas (<%= installment_payments.count %>)</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Fecha</th>
-          <th>Cuota</th>
-          <th>Monto</th>
-          <th>Método</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% installment_payments.each do |payment| %>
-          <tr>
-            <td><%= payment.payment_date.strftime('%d/%m/%Y') %></td>
-            <td>Cuota #<%= payment.installment_id %></td>
-            <td>$<%= number_with_delimiter(payment.amount) %></td>
-            <td><%= payment.payment_method.payment_method %></td>
-            <td>
-              <%= link_to "Ver", admin_payment_path(payment), class: "btn btn-primary" %>
-            </td>
-          </tr>
-        <% end %>
-      </tbody>
-    </table>
-  <% end %>
-
   <div style="margin-top: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 4px;">
     <strong>Total Pagado:</strong>
     <span style="font-size: 1.5rem; color: #27ae60; font-weight: bold;">
@@ -124,59 +95,3 @@
     </span>
   </div>
 </div>
-
-<% if @tuition_fee %>
-  <div class="card">
-    <h2>Cuotas de Pago</h2>
-
-    <div class="form-group">
-      <strong>Período de Facturación:</strong>
-      <p><%= @tuition_fee.billing_period %></p>
-    </div>
-
-    <div class="form-group">
-      <strong>Número de Cuotas:</strong>
-      <p><%= @tuition_fee.instalments_number %></p>
-    </div>
-
-    <% if @installments.any? %>
-      <table>
-        <thead>
-          <tr>
-            <th>Cuota #</th>
-            <th>Monto</th>
-            <th>Fecha de Vencimiento</th>
-            <th>Fecha de Pago</th>
-            <th>Estado</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% @installments.each_with_index do |installment, index| %>
-            <tr>
-              <td>Cuota <%= index + 1 %></td>
-              <td>$<%= number_with_delimiter(installment.amount) %></td>
-              <td><%= installment.due_date.strftime('%d/%m/%Y') %></td>
-              <td><%= installment.payment_date&.strftime('%d/%m/%Y') || '-' %></td>
-              <td>
-                <% case installment.status %>
-                <% when 'pending' %>
-                  <span style="color: #f39c12; font-weight: bold;">⏳ Pendiente</span>
-                <% when 'paid' %>
-                  <span style="color: #27ae60; font-weight: bold;">✓ Pagado</span>
-                <% when 'overdue' %>
-                  <span style="color: #e74c3c; font-weight: bold;">⚠ Vencido</span>
-                <% end %>
-              </td>
-            </tr>
-          <% end %>
-        </tbody>
-      </table>
-    <% else %>
-      <p>No hay cuotas generadas para esta inscripción.</p>
-    <% end %>
-  </div>
-<% else %>
-  <div class="card">
-    <p>No se ha generado información de cuotas para esta inscripción.</p>
-  </div>
-<% end %>

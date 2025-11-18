@@ -64,11 +64,7 @@
             <td><%= transaction.created_at.strftime('%d/%m/%Y %H:%M') %></td>
             <td><%= transaction.enrollment.student.user.name %></td>
             <td>
-              <% if transaction.enrollment_fee? %>
-                <span style="background: #3498db; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem;">Matrícula</span>
-              <% else %>
-                <span style="background: #27ae60; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem;">Cuota #<%= transaction.installment_id %></span>
-              <% end %>
+              <span style="background: #3498db; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem;">Matrícula</span>
             </td>
             <td style="font-weight: bold;">$<%= number_with_delimiter(transaction.amount) %></td>
             <td style="font-size: 0.875rem; font-family: monospace;"><%= transaction.buy_order %></td>

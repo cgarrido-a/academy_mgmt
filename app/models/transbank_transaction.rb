@@ -1,12 +1,10 @@
 class TransbankTransaction < ApplicationRecord
   # Associations
   belongs_to :enrollment
-  belongs_to :installment, optional: true
 
   # Enums
   enum payment_type: {
-    enrollment_fee: 'enrollment_fee',
-    installment: 'installment'
+    enrollment_fee: 'enrollment_fee'
   }
 
   enum status: {
@@ -24,22 +22,15 @@ class TransbankTransaction < ApplicationRecord
   validates :amount, presence: true, numericality: { greater_than: 0 }
   validates :status, presence: true
 
-  # Validate that installment payments must have an installment_id
-  validate :installment_payment_must_have_installment
-
   # Scopes
   scope :pending, -> { where(status: 'pending') }
   scope :authorized, -> { where(status: 'authorized') }
   scope :recent, -> { order(created_at: :desc) }
 
   # Generate a unique buy order
-  def self.generate_buy_order(enrollment_id, payment_type, installment_id = nil)
+  def self.generate_buy_order(enrollment_id, payment_type)
     timestamp = Time.now.to_i
-    if installment_id
-      "ENR#{enrollment_id}-INST#{installment_id}-#{timestamp}"
-    else
-      "ENR#{enrollment_id}-FEE-#{timestamp}"
-    end
+    "ENR#{enrollment_id}-FEE-#{timestamp}"
   end
 
   # Mark transaction as authorized and create payment record
@@ -76,7 +67,6 @@ class TransbankTransaction < ApplicationRecord
       # Create Payment record
       payment = Payment.create!(
         enrollment: enrollment,
-        installment: installment,
         payment_type: payment_type,
         amount: amount,
         payment_date: Date.today,
@@ -85,11 +75,6 @@ class TransbankTransaction < ApplicationRecord
         notes: "Pago automático vía Transbank. Buy Order: #{buy_order}",
         status: 'completed'
       )
-
-      # Update installment status if applicable
-      if installment.present?
-        installment.update_payment_status!
-      end
 
       payment
     end
@@ -101,13 +86,5 @@ class TransbankTransaction < ApplicationRecord
       status: 'failed',
       error_message: error_message
     )
-  end
-
-  private
-
-  def installment_payment_must_have_installment
-    if payment_type == 'installment' && installment_id.blank?
-      errors.add(:installment_id, "debe estar presente para pagos de cuotas")
-    end
   end
 end

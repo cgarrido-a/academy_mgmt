@@ -80,65 +80,7 @@
       </div>
     <% end %>
 
-    <!-- Pending Installments -->
-    <% if @pending_installments.any? %>
-      <div class="card">
-        <h2>📋 Cuotas Pendientes</h2>
-
-        <table>
-          <thead>
-            <tr>
-              <th>Inscripción</th>
-              <th>Curso</th>
-              <th>Cuota</th>
-              <th>Vencimiento</th>
-              <th>Monto</th>
-              <th>Pagado</th>
-              <th>Saldo</th>
-              <th>Estado</th>
-              <th>Acción</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% @pending_installments.each do |installment| %>
-              <tr>
-                <td>#<%= installment.tuition_fee.enrollment.id %></td>
-                <td><%= installment.tuition_fee.enrollment.sections.first&.course&.title || '-' %></td>
-                <td>Cuota #<%= installment.id %></td>
-                <td><%= installment.due_date.strftime('%d/%m/%Y') %></td>
-                <td>$<%= number_with_delimiter(installment.amount) %></td>
-                <td>$<%= number_with_delimiter(installment.total_paid) %></td>
-                <td>$<%= number_with_delimiter(installment.remaining_amount) %></td>
-                <td>
-                  <% if installment.status == 'overdue' %>
-                    <span class="status-badge status-overdue">⚠ Vencida</span>
-                  <% elsif installment.status == 'paid' %>
-                    <span class="status-badge status-paid">✓ Pagada</span>
-                  <% else %>
-                    <span class="status-badge status-pending">⏳ Pendiente</span>
-                  <% end %>
-                </td>
-                <td>
-                  <% if installment.remaining_amount > 0 %>
-                    <%= button_to "Pagar $#{number_with_delimiter(installment.remaining_amount)}",
-                        students_pay_installment_payments_path(
-                          enrollment_id: installment.tuition_fee.enrollment.id,
-                          installment_id: installment.id
-                        ),
-                        method: :post,
-                        class: "btn btn-success" %>
-                  <% else %>
-                    <span class="status-badge status-paid">Pagada</span>
-                  <% end %>
-                </td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    <% end %>
-
-    <% if @pending_enrollment_fees.empty? && @pending_installments.empty? %>
+    <% if @pending_enrollment_fees.empty? %>
       <div class="card">
         <div style="text-align: center; padding: 2rem;">
           <h2 style="color: #27ae60;">✓ ¡Todo al día!</h2>

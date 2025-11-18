@@ -59,7 +59,7 @@ module Admin
     end
 
     def section_params
-      params.require(:section).permit(:course_id, :teacher_id, :places, :start_date, :end_date)
+      params.require(:section).permit(:course_id, :teacher_id, :places, :date)
     end
 
     def process_schedule_params

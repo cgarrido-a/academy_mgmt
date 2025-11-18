@@ -33,7 +33,6 @@ Rails.application.routes.draw do
     resources :payments, only: [:index] do
       collection do
         post 'pay_enrollment_fee/:enrollment_id', action: :pay_enrollment_fee, as: :pay_enrollment_fee
-        post 'pay_installment/:enrollment_id/:installment_id', action: :pay_installment, as: :pay_installment
       end
     end
   end

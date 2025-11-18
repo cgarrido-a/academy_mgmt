@@ -26,7 +26,7 @@
           <th>ID</th>
           <th>Profesor</th>
           <th>Horario</th>
-          <th>Fechas</th>
+          <th>Fecha</th>
           <th>Cupos</th>
           <th>Acciones</th>
         </tr>
@@ -37,7 +37,7 @@
             <td><%= section.id %></td>
             <td><%= section.teacher.user.name %></td>
             <td><%= section.formatted_schedule %></td>
-            <td><%= section.start_date.strftime('%d/%m/%Y') %> - <%= section.end_date.strftime('%d/%m/%Y') %></td>
+            <td><%= section.date.strftime('%d/%m/%Y') %></td>
             <td><%= section.available_places %>/<%= section.places %></td>
             <td>
               <div class="actions">

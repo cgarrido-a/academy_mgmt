@@ -37,11 +37,7 @@
   <div class="form-group">
     <strong>Tipo de Pago:</strong>
     <p>
-      <% if @transaction.enrollment_fee? %>
-        <span style="background: #3498db; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">💵 Pago de Matrícula</span>
-      <% else %>
-        <span style="background: #27ae60; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">📋 Pago de Cuota #<%= @transaction.installment_id %></span>
-      <% end %>
+      <span style="background: #3498db; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">💵 Pago de Matrícula</span>
     </p>
   </div>
 
@@ -134,39 +130,6 @@
     <strong>Inscripción:</strong>
     <p><%= link_to "Ver Inscripción ##{@transaction.enrollment.id}", admin_enrollment_path(@transaction.enrollment), class: "btn btn-primary" %></p>
   </div>
-
-  <% if @transaction.installment.present? %>
-    <h3 style="margin-top: 2rem;">Información de la Cuota</h3>
-
-    <div class="form-group">
-      <strong>Cuota ID:</strong>
-      <p>#<%= @transaction.installment.id %></p>
-    </div>
-
-    <div class="form-group">
-      <strong>Monto de la Cuota:</strong>
-      <p>$<%= number_with_delimiter(@transaction.installment.amount) %></p>
-    </div>
-
-    <div class="form-group">
-      <strong>Fecha de Vencimiento:</strong>
-      <p><%= @transaction.installment.due_date.strftime('%d/%m/%Y') %></p>
-    </div>
-
-    <div class="form-group">
-      <strong>Estado Actual de la Cuota:</strong>
-      <p>
-        <% case @transaction.installment.status %>
-        <% when 'paid' %>
-          <span style="background: #d4edda; color: #155724; padding: 0.25rem 0.5rem; border-radius: 4px;">✓ Pagada</span>
-        <% when 'pending' %>
-          <span style="background: #fff3cd; color: #856404; padding: 0.25rem 0.5rem; border-radius: 4px;">⏳ Pendiente</span>
-        <% when 'overdue' %>
-          <span style="background: #f8d7da; color: #721c24; padding: 0.25rem 0.5rem; border-radius: 4px;">⚠ Vencida</span>
-        <% end %>
-      </p>
-    </div>
-  <% end %>
 
   <% if @transaction.raw_response.present? %>
     <h3 style="margin-top: 2rem;">Respuesta Completa de Transbank</h3>

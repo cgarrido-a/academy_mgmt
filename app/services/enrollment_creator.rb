@@ -9,7 +9,6 @@ class EnrollmentCreator
     @payment_method_id = params[:payment_method_id]
     @enrollment_amount = params[:enrollment_amount]
     @total_tuition_fee = params[:total_tuition_fee] || params[:enrollment_amount]
-    @instalments_number = params[:instalments_number]&.to_i || 1
     @errors = []
     @enrollment = nil
   end
@@ -20,7 +19,6 @@ class EnrollmentCreator
       create_enrollment
       create_enrollment_sections
       create_enrollment_fee_payment
-      create_tuition_fee_and_installments
     end
 
     @enrollment.present?
@@ -91,45 +89,18 @@ class EnrollmentCreator
       status: 'completed'
     )
   end
-
   def create_tuition_fee_and_installments
     # Create tuition fee
     tuition_fee = TuitionFee.create!(
       enrollment: @enrollment,
       payment_method_id: @payment_method_id,
       total_tuition_fee: @total_tuition_fee,
-      instalments_number: @instalments_number,
       billing_period: generate_billing_period
     )
 
-    # Generate installments
-    generate_installments(tuition_fee, @instalments_number)
   end
 
-  def generate_installments(tuition_fee, number_of_installments)
-    amount_per_installment = (@total_tuition_fee.to_f / number_of_installments).round
-
-    number_of_installments.times do |i|
-      # Adjust last installment to account for rounding differences
-      installment_amount = if i == number_of_installments - 1
-        @total_tuition_fee.to_f - (amount_per_installment * (number_of_installments - 1))
-      else
-        amount_per_installment
-      end
-
-      Installment.create!(
-        tuition_fee: tuition_fee,
-        amount: installment_amount,
-        due_date: calculate_due_date(i),
-        status: 'pending'
-      )
-    end
-  end
-
-  def calculate_due_date(installment_index)
-    # Due date is monthly starting from today
-    Date.today + (installment_index + 1).months
-  end
+ 
 
   def generate_billing_period
     # Use the first section to generate billing period

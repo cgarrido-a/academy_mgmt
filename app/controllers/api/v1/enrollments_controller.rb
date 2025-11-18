@@ -45,7 +45,6 @@ module Api
           :payment_method_id,
           :enrollment_amount,
           :total_tuition_fee,
-          :instalments_number,
           section_ids: []
         )
       end

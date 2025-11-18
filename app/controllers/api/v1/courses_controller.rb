@@ -26,8 +26,7 @@ module Api
         {
           id: section.id,
           schedule: section.schedule,
-          start_date: section.start_date,
-          end_date: section.end_date,
+          date: section.date,
           places: section.places,
           available_places: section.available_places,
           teacher_name: section.teacher.user.name

@@ -36,13 +36,7 @@
       <p>Lo sentimos, tu pago no pudo ser procesado</p>
 
       <div class="details">
-        <p><strong>Tipo:</strong>
-          <% if @transaction.enrollment_fee? %>
-            Pago de Matrícula
-          <% else %>
-            Pago de Cuota #<%= @transaction.installment_id %>
-          <% end %>
-        </p>
+        <p><strong>Tipo:</strong> Pago de Matrícula y Arancel</p>
         <p><strong>Inscripción:</strong> #<%= @transaction.enrollment.id %></p>
         <p><strong>Orden de Compra:</strong> <%= @transaction.buy_order %></p>
         <% if @transaction.error_message.present? %>

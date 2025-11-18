@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_11_14_120000) do
+ActiveRecord::Schema[7.1].define(version: 2025_11_18_132343) do
   create_table "admin_users", force: :cascade do |t|
     t.string "admin_type"
     t.integer "user_id", null: false
@@ -49,17 +49,6 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_14_120000) do
     t.index ["student_id"], name: "index_enrollments_on_student_id"
   end
 
-  create_table "installments", force: :cascade do |t|
-    t.integer "tuition_fee_id", null: false
-    t.date "due_date"
-    t.integer "amount"
-    t.date "payment_date"
-    t.string "status"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["tuition_fee_id"], name: "index_installments_on_tuition_fee_id"
-  end
-
   create_table "payment_methods", force: :cascade do |t|
     t.string "payment_method"
     t.datetime "created_at", null: false
@@ -77,7 +66,6 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_14_120000) do
   create_table "payments", force: :cascade do |t|
     t.integer "enrollment_id", null: false
     t.string "payment_type", null: false
-    t.integer "installment_id"
     t.decimal "amount", precision: 10, scale: 2, null: false
     t.date "payment_date", null: false
     t.integer "payment_method_id", null: false
@@ -89,7 +77,6 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_14_120000) do
     t.datetime "updated_at", null: false
     t.index ["enrollment_id", "payment_type"], name: "index_payments_on_enrollment_id_and_payment_type"
     t.index ["enrollment_id"], name: "index_payments_on_enrollment_id"
-    t.index ["installment_id"], name: "index_payments_on_installment_id"
     t.index ["payment_date"], name: "index_payments_on_payment_date"
     t.index ["payment_method_id"], name: "index_payments_on_payment_method_id"
     t.index ["processed_by_id"], name: "index_payments_on_processed_by_id"
@@ -111,11 +98,10 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_14_120000) do
     t.integer "course_id", null: false
     t.integer "teacher_id", null: false
     t.integer "places"
-    t.date "start_date"
-    t.date "end_date"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.text "schedule", default: "[]"
+    t.date "date"
     t.index ["course_id"], name: "index_sections_on_course_id"
     t.index ["teacher_id"], name: "index_sections_on_teacher_id"
   end
@@ -137,7 +123,6 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_14_120000) do
 
   create_table "transbank_transactions", force: :cascade do |t|
     t.integer "enrollment_id", null: false
-    t.integer "installment_id"
     t.string "payment_type", null: false
     t.string "token", null: false
     t.string "buy_order", null: false
@@ -154,21 +139,8 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_14_120000) do
     t.datetime "updated_at", null: false
     t.index ["buy_order"], name: "index_transbank_transactions_on_buy_order"
     t.index ["enrollment_id"], name: "index_transbank_transactions_on_enrollment_id"
-    t.index ["installment_id"], name: "index_transbank_transactions_on_installment_id"
     t.index ["status"], name: "index_transbank_transactions_on_status"
     t.index ["token"], name: "index_transbank_transactions_on_token", unique: true
-  end
-
-  create_table "tuition_fees", force: :cascade do |t|
-    t.integer "enrollment_id", null: false
-    t.integer "payment_method_id", null: false
-    t.string "billing_period"
-    t.integer "total_tuition_fee"
-    t.integer "instalments_number"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["enrollment_id"], name: "index_tuition_fees_on_enrollment_id"
-    t.index ["payment_method_id"], name: "index_tuition_fees_on_payment_method_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -185,9 +157,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_14_120000) do
   add_foreign_key "enrollments", "payment_methods"
   add_foreign_key "enrollments", "payment_plans"
   add_foreign_key "enrollments", "students"
-  add_foreign_key "installments", "tuition_fees"
   add_foreign_key "payments", "enrollments"
-  add_foreign_key "payments", "installments"
   add_foreign_key "payments", "payment_methods"
   add_foreign_key "payments", "users", column: "processed_by_id"
   add_foreign_key "salary_payments", "payment_methods"
@@ -197,7 +167,4 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_14_120000) do
   add_foreign_key "students", "users"
   add_foreign_key "teachers", "users"
   add_foreign_key "transbank_transactions", "enrollments"
-  add_foreign_key "transbank_transactions", "installments"
-  add_foreign_key "tuition_fees", "enrollments"
-  add_foreign_key "tuition_fees", "payment_methods"
 end

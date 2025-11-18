@@ -1,8 +1,7 @@
 module Students
   class PaymentsController < ApplicationController
     before_action :set_student
-    before_action :set_enrollment, only: [:pay_enrollment_fee, :pay_installment]
-    before_action :set_installment, only: [:pay_installment]
+    before_action :set_enrollment, only: [:pay_enrollment_fee]
 
     # GET /student/payments
     def index
@@ -69,65 +68,7 @@ module Students
       render json: {
         error: "Error al procesar el pago: #{e.message}"
       }, status: :internal_server_error
-    end
-
-    # POST /student/payments/pay_installment/:enrollment_id/:installment_id
-    def pay_installment
-      if @installment.fully_paid?
-        render json: {
-          error: 'Esta cuota ya ha sido pagada.'
-        }, status: :unprocessable_entity
-        return
-      end
-
-      amount_to_pay = @installment.remaining_amount
-
-      # Generate buy order
-      buy_order = TransbankTransaction.generate_buy_order(@enrollment.id, 'installment', @installment.id)
-
-      # Create Transbank transaction record
-      transaction_record = TransbankTransaction.create!(
-        enrollment: @enrollment,
-        installment: @installment,
-        payment_type: 'installment',
-        buy_order: buy_order,
-        amount: amount_to_pay,
-        status: 'pending',
-        token: ''
-      )
-
-      # Initialize Webpay Plus transaction
-      tx = Transbank::Webpay::WebpayPlus::Transaction.new(
-        commerce_code: TransbankConfig.commerce_code,
-        api_key: TransbankConfig.api_key,
-        environment: TransbankConfig.environment
-      )
-      response = tx.create(
-        buy_order: buy_order,
-        session_id: session.id.to_s,
-        amount: amount_to_pay.to_i,
-        return_url: transbank_return_url
-      )
-
-      # Update transaction with token
-      transaction_record.update!(token: response['token'])
-
-      # Return Transbank URL as JSON
-      render json: {
-        url: response['url'],
-        token: response['token'],
-        full_url: "#{response['url']}?token_ws=#{response['token']}",
-        buy_order: buy_order,
-        amount: amount_to_pay,
-        installment_id: @installment.id
-      }, status: :ok
-
-    rescue StandardError => e
-      Rails.logger.error "Error creating Transbank transaction: #{e.message}"
-      render json: {
-        error: "Error al procesar el pago: #{e.message}"
-      }, status: :internal_server_error
-    end
+    end   
 
     private
 
@@ -139,12 +80,6 @@ module Students
 
     def set_enrollment
       @enrollment = @student.enrollments.find(params[:enrollment_id])
-    end
-
-    def set_installment
-      @installment = Installment.joins(tuition_fee: :enrollment)
-                                .where(enrollments: { id: @enrollment.id })
-                                .find(params[:installment_id])
     end
 
     def transbank_return_url

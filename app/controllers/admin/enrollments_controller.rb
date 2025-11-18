@@ -9,7 +9,6 @@ module Admin
 
     def show
       @tuition_fee = @enrollment.tuition_fee
-      @installments = @tuition_fee&.installments || []
     end
 
     def new

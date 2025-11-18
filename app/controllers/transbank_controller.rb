@@ -38,14 +38,14 @@ class TransbankController < ApplicationController
 
         Rails.logger.info "Payment successfully processed: #{payment.id}"
 
-        redirect_to success_transbank_result_path(transaction_id: transaction_record.id)
+        redirect_to_frontend_success(transaction_record)
       else
         # Transaction rejected
         transaction_record.mark_as_failed!("Código de respuesta: #{response['response_code']}")
 
         Rails.logger.warn "Payment failed: #{response.inspect}"
 
-        redirect_to failure_transbank_result_path(transaction_id: transaction_record.id)
+        redirect_to_frontend_failure(transaction_record)
       end
 
     rescue StandardError => e
@@ -54,7 +54,7 @@ class TransbankController < ApplicationController
 
       transaction_record.mark_as_failed!(e.message)
 
-      redirect_to failure_transbank_result_path(transaction_id: transaction_record.id)
+      redirect_to_frontend_failure(transaction_record)
     end
   end
 
@@ -77,9 +77,38 @@ class TransbankController < ApplicationController
 
   def redirect_to_result(transaction_record)
     if transaction_record.authorized?
-      redirect_to success_transbank_result_path(transaction_id: transaction_record.id)
+      redirect_to_frontend_success(transaction_record)
     else
-      redirect_to failure_transbank_result_path(transaction_id: transaction_record.id)
+      redirect_to_frontend_failure(transaction_record)
     end
+  end
+
+  def redirect_to_frontend_success(transaction_record)
+    # Build frontend success URL with transaction details
+    frontend_url = ENV['FRONTEND_URL'] || 'http://localhost:3000'
+
+    redirect_url = "#{frontend_url}/payment/success?" + {
+      enrollment_id: transaction_record.enrollment_id,
+      transaction_id: transaction_record.id,
+      buy_order: transaction_record.buy_order,
+      amount: transaction_record.amount,
+      authorization_code: transaction_record.authorization_code
+    }.to_query
+
+    redirect_to redirect_url, allow_other_host: true
+  end
+
+  def redirect_to_frontend_failure(transaction_record)
+    # Build frontend failure URL with transaction details
+    frontend_url = ENV['FRONTEND_URL'] || 'http://localhost:3000'
+
+    redirect_url = "#{frontend_url}/payment/failure?" + {
+      enrollment_id: transaction_record.enrollment_id,
+      transaction_id: transaction_record.id,
+      buy_order: transaction_record.buy_order,
+      error: transaction_record.error_message || 'Pago rechazado'
+    }.to_query
+
+    redirect_to redirect_url, allow_other_host: true
   end
 end

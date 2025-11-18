@@ -108,17 +108,21 @@ module Api
         buy_order = TransbankTransaction.generate_buy_order(enrollment.id, 'enrollment_fee')
 
         # Initialize Webpay Plus transaction FIRST to get the token
-        tx = Transbank::Webpay::WebpayPlus::Transaction.new(
-          commerce_code: TransbankConfig.commerce_code,
-          api_key: TransbankConfig.api_key,
-          environment: TransbankConfig.environment
+        # Create an options object
+        options = Struct.new(:commerce_code, :api_key, :environment, :timeout).new(
+          ::TransbankConfig.commerce_code,
+          ::TransbankConfig.api_key,
+          ::TransbankConfig.environment,
+          15000 # timeout in milliseconds
         )
 
+        tx = Transbank::Webpay::WebpayPlus::Transaction.new(options)
+
         response = tx.create(
-          buy_order: buy_order,
-          session_id: SecureRandom.hex(10), # Generate a unique session ID
-          amount: enrollment.enrollment_amount.to_i,
-          return_url: transbank_callback_url
+          buy_order,
+          SecureRandom.hex(10),
+          enrollment.enrollment_amount.to_i,
+          transbank_callback_url
         )
 
         # NOW create Transbank transaction record with the token

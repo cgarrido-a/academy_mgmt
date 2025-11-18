@@ -70,7 +70,18 @@ class EnrollmentCreator
   end
 
   def create_enrollment_fee_payment
-    # Register enrollment fee payment
+    # Only create payment record if payment method is NOT online payment (Transbank)
+    # For Transbank, payment will be created after confirmation in the callback
+    payment_method = PaymentMethod.find(@payment_method_id)
+
+    # Skip payment creation for Transbank/Webpay/online card payments
+    # Payment will be created after payment confirmation in Transbank callback
+    return if payment_method.payment_method&.downcase&.include?('transbank') ||
+              payment_method.payment_method&.downcase&.include?('webpay') ||
+              payment_method.payment_method&.downcase&.include?('tarjeta') ||
+              @payment_method_id == 1 # ID 1 is online card payment
+
+    # For other payment methods (cash, transfer, etc), create payment immediately
     Payment.create!(
       enrollment: @enrollment,
       payment_type: 'enrollment_fee',

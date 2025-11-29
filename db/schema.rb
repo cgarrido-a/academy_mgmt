@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_11_18_132343) do
+ActiveRecord::Schema[7.1].define(version: 2025_11_29_222142) do
   create_table "admin_users", force: :cascade do |t|
     t.string "admin_type"
     t.integer "user_id", null: false
@@ -31,7 +31,8 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_18_132343) do
     t.integer "section_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["enrollment_id", "section_id"], name: "index_enrollment_sections_on_enrollment_id_and_section_id", unique: true
+    t.date "date"
+    t.index ["enrollment_id", "section_id", "date"], name: "index_enrollment_sections_on_enrollment_section_and_date", unique: true
     t.index ["enrollment_id"], name: "index_enrollment_sections_on_enrollment_id"
     t.index ["section_id"], name: "index_enrollment_sections_on_section_id"
   end
@@ -44,6 +45,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_18_132343) do
     t.date "payment_date"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "total_tuition_fee"
     t.index ["payment_method_id"], name: "index_enrollments_on_payment_method_id"
     t.index ["payment_plan_id"], name: "index_enrollments_on_payment_plan_id"
     t.index ["student_id"], name: "index_enrollments_on_student_id"
@@ -61,6 +63,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_18_132343) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "number_of_classes"
+    t.integer "price"
   end
 
   create_table "payments", force: :cascade do |t|
@@ -101,7 +104,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_18_132343) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.text "schedule", default: "[]"
-    t.date "date"
+    t.string "weekday"
     t.index ["course_id"], name: "index_sections_on_course_id"
     t.index ["teacher_id"], name: "index_sections_on_teacher_id"
   end
@@ -149,6 +152,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_18_132343) do
     t.string "name"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "phone"
   end
 
   add_foreign_key "admin_users", "users"

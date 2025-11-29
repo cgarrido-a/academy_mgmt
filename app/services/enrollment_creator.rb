@@ -61,6 +61,7 @@ class EnrollmentCreator
       payment_plan_id: @payment_plan_id,
       payment_method_id: @payment_method_id,
       enrollment_amount: @enrollment_amount,
+      total_tuition_fee: @total_tuition_fee,
       payment_date: Date.today
     )
   end
@@ -113,21 +114,12 @@ class EnrollmentCreator
     Payment.create!(
       enrollment: @enrollment,
       payment_type: 'enrollment_fee',
-      amount: @enrollment_amount,
+      amount: @total_tuition_fee,
       payment_date: Date.today,
       payment_method_id: @payment_method_id,
       status: 'completed'
     )
   end
-
-  # Removed: tuition_fees and installments tables no longer exist
-  # def create_tuition_fee_and_installments
-  #   ...
-  # end
-
-  # def generate_billing_period
-  #   ...
-  # end
 
   def generate_temporary_password
     # Generate a random temporary password

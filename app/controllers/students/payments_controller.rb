@@ -33,7 +33,7 @@ module Students
         enrollment: @enrollment,
         payment_type: 'enrollment_fee',
         buy_order: buy_order,
-        amount: @enrollment.enrollment_amount,
+        amount: @enrollment.total_tuition_fee,
         status: 'pending',
         token: '' # Will be updated after Transbank response
       )
@@ -47,7 +47,7 @@ module Students
       response = tx.create(
         buy_order: buy_order,
         session_id: session.id.to_s,
-        amount: @enrollment.enrollment_amount.to_i,
+        amount: @enrollment.total_tuition_fee.to_i,
         return_url: transbank_return_url
       )
 
@@ -60,7 +60,7 @@ module Students
         token: response['token'],
         full_url: "#{response['url']}?token_ws=#{response['token']}",
         buy_order: buy_order,
-        amount: @enrollment.enrollment_amount
+        amount: @enrollment.total_tuition_fee
       }, status: :ok
 
     rescue StandardError => e

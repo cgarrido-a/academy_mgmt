@@ -79,21 +79,14 @@ module Api
             method: enrollment.payment_method.payment_method
           },
           enrollment_amount: enrollment.enrollment_amount,
-          payment_date: enrollment.payment_date
-          # tuition_fee: tuition_fee_data(enrollment.tuition_fee) # Removed: tuition_fees table no longer exists
+          payment_date: enrollment.payment_date,
+          total_tuition_fee: enrollment.total_tuition_fee
         }
       end
 
-      # Removed: tuition_fees and installments tables no longer exist
-      # def tuition_fee_data(tuition_fee)
-      #   ...
-      # end
-
-      # def installment_data(installment)
-      #   ...
-      # end
 
       def initialize_transbank_payment(enrollment)
+        puts "Initializing Transbank payment for Enrollment ID: #{enrollment.inspect}"
         # Generate buy order
         buy_order = TransbankTransaction.generate_buy_order(enrollment.id, 'enrollment_fee')
 
@@ -111,7 +104,7 @@ module Api
         response = tx.create(
           buy_order,
           SecureRandom.hex(10),
-          enrollment.enrollment_amount.to_i,
+          enrollment.total_tuition_fee.to_i,
           transbank_callback_url
         )
 
@@ -131,18 +124,16 @@ module Api
           token: response['token'],
           full_url: "#{response['url']}?token_ws=#{response['token']}",
           buy_order: buy_order,
-          amount: enrollment.enrollment_amount
+          amount: enrollment.total_tuition_fee
         }
       end
 
       def transbank_callback_url
         # This should point to your backend callback URL
         # Adjust the host/domain as needed for your environment
-        if Rails.env.production?
-          "#{ENV['BACKEND_URL']}/transbank/callback"
-        else
-          "http://localhost:3001/transbank/callback"
-        end
+   
+          "http://localhost:5173/transbank/callback"
+    
       end
     end
   end

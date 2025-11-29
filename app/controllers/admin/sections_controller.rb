@@ -59,7 +59,7 @@ module Admin
     end
 
     def section_params
-      params.require(:section).permit(:course_id, :teacher_id, :places, :date)
+      params.require(:section).permit(:course_id, :teacher_id, :places, :weekday)
     end
 
     def process_schedule_params
@@ -69,10 +69,9 @@ module Admin
 
         # Filter out empty entries and convert to proper format
         @section.schedule = schedule_data.select { |entry|
-          entry[:day].present? && entry[:start_time].present? && entry[:end_time].present?
+          entry[:start_time].present? && entry[:end_time].present?
         }.map { |entry|
           {
-            'day' => entry[:day],
             'start_time' => entry[:start_time],
             'end_time' => entry[:end_time]
           }

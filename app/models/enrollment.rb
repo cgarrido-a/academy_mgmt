@@ -5,7 +5,6 @@ class Enrollment < ApplicationRecord
   belongs_to :payment_method
   has_many :enrollment_sections, dependent: :destroy
   has_many :sections, through: :enrollment_sections
-  has_one :tuition_fee, dependent: :destroy
   has_many :payments, dependent: :destroy
   has_many :transbank_transactions, dependent: :destroy
 

@@ -17,6 +17,13 @@
   </div>
 
   <div class="form-group">
+    <%= f.label :price, "Precio" %>
+    <%= f.text_field :price, required: true, placeholder: "Ej: Plan A, Plan Mensual, Plan Trimestral" %>
+    <small style="color: #666;">Precio del plan</small>
+  </div>
+
+
+  <div class="form-group">
     <%= f.label :description, "Descripción" %>
     <%= f.text_area :description, required: true, rows: 3, placeholder: "Ej: Plan de pago en 3 cuotas mensuales sin interés" %>
   </div>

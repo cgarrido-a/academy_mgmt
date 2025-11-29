@@ -12,7 +12,7 @@ class Section < ApplicationRecord
   validates :course, presence: true
   validates :teacher, presence: true
   validates :places, presence: true, numericality: { greater_than: 0 }
-  validates :date, presence: true
+  validates :weekday, presence: true
   validate :schedule_format
 
   # Instance methods
@@ -24,23 +24,22 @@ class Section < ApplicationRecord
     available_places > 0
   end
 
+  # Calculate available places for a specific date
+  def available_places_for_date(date)
+    enrolled_count = enrollment_sections.where(date: date).count
+    places - enrolled_count
+  end
+
+  def has_available_places_for_date?(date)
+    available_places_for_date(date) > 0
+  end
+
   # Format schedule for display
   def formatted_schedule
     return "Sin horario definido" if schedule.blank? || schedule.empty?
 
-    days_es = {
-      'monday' => 'Lunes',
-      'tuesday' => 'Martes',
-      'wednesday' => 'Miércoles',
-      'thursday' => 'Jueves',
-      'friday' => 'Viernes',
-      'saturday' => 'Sábado',
-      'sunday' => 'Domingo'
-    }
-
     schedule.map do |entry|
-      day = days_es[entry['day']] || entry['day']
-      "#{day} #{entry['start_time']}-#{entry['end_time']}"
+      "#{entry['start_time']}-#{entry['end_time']}"
     end.join(', ')
   end
 
@@ -63,10 +62,6 @@ class Section < ApplicationRecord
       unless entry.is_a?(Hash)
         errors.add(:schedule, "entrada #{index + 1} debe ser un objeto")
         next
-      end
-
-      unless entry['day'].present?
-        errors.add(:schedule, "entrada #{index + 1} debe tener un día")
       end
 
       unless entry['start_time'].present?

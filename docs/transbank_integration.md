@@ -4,7 +4,7 @@ Este documento describe cómo funciona la integración con Transbank Webpay Plus
 
 ## Descripción General
 
-El sistema permite a los estudiantes pagar sus matrículas y cuotas a través de Transbank Webpay Plus, procesando automáticamente los pagos y actualizando los estados correspondientes.
+El sistema permite a los estudiantes pagar sus matrículas a través de Transbank Webpay Plus, procesando automáticamente los pagos y actualizando los estados correspondientes.
 
 ## Flujo de Pago
 
@@ -29,25 +29,6 @@ El sistema permite a los estudiantes pagar sus matrículas y cuotas a través de
 13. Backend → Redirige a página de éxito/fallo (puede ser en frontend)
 ```
 
-### Flujo Alternativo: Pago de Cuotas
-
-```
-1. Estudiante → Ve sus cuotas pendientes en el frontend
-2. Estudiante → Hace clic en "Pagar cuota"
-3. Frontend → POST /student/payments/pay_installment/:enrollment_id/:installment_id
-4. Backend → Crea TransbankTransaction (status: pending)
-5. Backend → Inicia transacción con Transbank API
-6. Backend → Retorna JSON con URL de Transbank
-7. Frontend → Redirige al estudiante a Transbank (window.location.href)
-8. Estudiante → Completa el pago en Transbank
-9. Transbank → Redirige al callback /transbank/callback (en backend)
-10. Backend → Confirma la transacción con Transbank
-11. Backend → Si aprobada:
-   - Crea registro Payment
-   - Actualiza TransbankTransaction (status: authorized)
-   - Actualiza estado de Installment
-12. Backend → Redirige a página de éxito/fallo (puede ser en frontend)
-```
 
 ### Con Vistas de Rails (Monolito)
 
@@ -63,7 +44,6 @@ El sistema permite a los estudiantes pagar sus matrículas y cuotas a través de
 9. Sistema → Si aprobada:
    - Crea registro Payment
    - Actualiza TransbankTransaction (status: authorized)
-   - Actualiza estado de Installment (si aplica)
 10. Estudiante → Redirigido a página de éxito/fallo
 ```
 
@@ -135,7 +115,6 @@ Para producción, necesitas:
 ### Para Estudiantes
 - `GET /student/payments` - Ver pagos pendientes
 - `POST /student/payments/pay_enrollment_fee/:enrollment_id` - Iniciar pago de matrícula (si ya existe enrollment)
-- `POST /student/payments/pay_installment/:enrollment_id/:installment_id` - Iniciar pago de cuota
 
 ### Callbacks de Transbank
 - `GET/POST /transbank/callback` - Callback de Transbank (recibe confirmación)
@@ -146,7 +125,7 @@ Para producción, necesitas:
 
 ### Respuesta JSON de las APIs
 
-Ambos endpoints (`pay_enrollment_fee` y `pay_installment`) retornan JSON:
+El endpoint `pay_enrollment_fee` retorna JSON:
 
 **Respuesta Exitosa (200 OK):**
 ```json
@@ -155,8 +134,7 @@ Ambos endpoints (`pay_enrollment_fee` y `pay_installment`) retornan JSON:
   "token": "01ab89c...",
   "full_url": "https://webpay3gint.transbank.cl/webpayserver/initTransaction?token_ws=01ab89c...",
   "buy_order": "ENR-123-20251117",
-  "amount": 50000,
-  "installment_id": 456  // Solo en pay_installment
+  "amount": 50000
 }
 ```
 
@@ -190,9 +168,7 @@ async function createEnrollmentAndPay(enrollmentData) {
           section_ids: enrollmentData.section_ids,
           payment_plan_id: enrollmentData.payment_plan_id,
           payment_method_id: 2, // Webpay Plus
-          enrollment_amount: enrollmentData.enrollment_amount,
-          total_tuition_fee: enrollmentData.total_tuition_fee,
-          instalments_number: enrollmentData.instalments_number
+          enrollment_amount: enrollmentData.enrollment_amount
         }
       })
     });
@@ -222,9 +198,7 @@ const enrollmentData = {
   email: 'juan@example.com',
   section_ids: [1, 2], // IDs de las secciones/cursos
   payment_plan_id: 1,
-  enrollment_amount: 50000,
-  total_tuition_fee: 450000,
-  instalments_number: 9
+  enrollment_amount: 50000
 };
 
 createEnrollmentAndPay(enrollmentData);
@@ -241,9 +215,7 @@ function EnrollmentForm() {
     email: '',
     section_ids: [],
     payment_plan_id: '',
-    enrollment_amount: 0,
-    total_tuition_fee: 0,
-    instalments_number: 0
+    enrollment_amount: 0
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -325,8 +297,7 @@ function EnrollmentForm() {
     },
     "sections": [...],
     "payment_plan": {...},
-    "enrollment_amount": 50000,
-    "tuition_fee": {...}
+    "enrollment_amount": 50000
   },
   "transbank_payment": {
     "url": "https://webpay3gint.transbank.cl/webpayserver/initTransaction",
@@ -335,114 +306,6 @@ function EnrollmentForm() {
     "buy_order": "ENR-123-20251117",
     "amount": 50000
   }
-}
-```
-
-#### 2. Pagar Cuotas (Flujo Alternativo)
-
-**JavaScript / Fetch API**
-
-```javascript
-// Pagar matrícula
-async function payEnrollmentFee(enrollmentId) {
-  try {
-    const response = await fetch(`/student/payments/pay_enrollment_fee/${enrollmentId}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // Agregar token de autenticación si lo usas
-        // 'Authorization': `Bearer ${token}`
-      },
-      credentials: 'include' // Importante para cookies/sesiones
-    });
-
-    const data = await response.json();
-
-    if (response.ok) {
-      // Redirigir al estudiante a Transbank
-      window.location.href = data.full_url;
-    } else {
-      // Mostrar error al usuario
-      alert(data.error);
-    }
-  } catch (error) {
-    console.error('Error al iniciar pago:', error);
-    alert('Error al conectar con el servidor');
-  }
-}
-
-// Pagar cuota
-async function payInstallment(enrollmentId, installmentId) {
-  try {
-    const response = await fetch(
-      `/student/payments/pay_installment/${enrollmentId}/${installmentId}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include'
-      }
-    );
-
-    const data = await response.json();
-
-    if (response.ok) {
-      window.location.href = data.full_url;
-    } else {
-      alert(data.error);
-    }
-  } catch (error) {
-    console.error('Error:', error);
-  }
-}
-```
-
-#### React Example
-
-```jsx
-import { useState } from 'react';
-
-function PaymentButton({ enrollmentId, installmentId = null }) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  const handlePayment = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const endpoint = installmentId
-        ? `/student/payments/pay_installment/${enrollmentId}/${installmentId}`
-        : `/student/payments/pay_enrollment_fee/${enrollmentId}`;
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include'
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // Redirigir a Transbank
-        window.location.href = data.full_url;
-      } else {
-        setError(data.error);
-      }
-    } catch (err) {
-      setError('Error al procesar el pago');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div>
-      <button onClick={handlePayment} disabled={loading}>
-        {loading ? 'Procesando...' : 'Pagar con Webpay'}
-      </button>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-    </div>
-  );
 }
 ```
 
@@ -487,11 +350,7 @@ Cuando un pago es autorizado:
 
 1. **TransbankTransaction** → `status: 'authorized'`
 2. **Payment** → Nuevo registro creado
-3. **Installment** → Se llama `update_payment_status!` que:
-   - Calcula `total_paid` sumando todos los payments
-   - Si `total_paid >= amount` → `status: 'paid'`
-   - Si vencida y no pagada → `status: 'overdue'`
-   - Si no → `status: 'pending'`
+3. **Enrollment** → Se actualiza `enrollment_fee_paid` a `true`
 
 ## Testing
 
@@ -571,7 +430,7 @@ El sistema incluye un panel completo en `/admin/transbank_transactions` con:
 - ✅ **Tabla completa con**:
   - ID y fecha de transacción
   - Estudiante
-  - Tipo de pago (matrícula/cuota)
+  - Tipo de pago (matrícula)
   - Monto
   - Buy order
   - Estado
@@ -582,7 +441,6 @@ El sistema incluye un panel completo en `/admin/transbank_transactions` con:
   - Información completa de la transacción
   - Detalles de autorización (si aplica)
   - Información del estudiante
-  - Información de la cuota (si aplica)
   - Respuesta completa de Transbank (JSON)
   - Enlace al payment generado (si fue autorizada)
   - Mensaje de error (si falló)

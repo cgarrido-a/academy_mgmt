@@ -6,16 +6,17 @@ class EnrollmentSection < ApplicationRecord
   # Validations
   validates :enrollment, presence: true
   validates :section, presence: true
-  validates :enrollment_id, uniqueness: { scope: :section_id, message: "ya está inscrito en esta sección" }
-  validate :section_has_available_places
+  validates :date, presence: true
+  validates :enrollment_id, uniqueness: { scope: [:section_id, :date], message: "ya está inscrito en esta sección para esta fecha" }
+  validate :section_has_available_places_for_date
 
   private
 
-  def section_has_available_places
-    return if section.blank?
+  def section_has_available_places_for_date
+    return if section.blank? || date.blank?
 
-    unless section.has_available_places?
-      errors.add(:section, "has no available places")
+    unless section.has_available_places_for_date?(date)
+      errors.add(:section, "no tiene cupos disponibles para la fecha #{date.strftime('%d/%m/%Y')}")
     end
   end
 end

@@ -21,21 +21,24 @@
   </div>
 
   <div class="form-group">
+    <%= f.label :weekday, "Día de la semana" %>
+    <%= f.select :weekday, [
+      ['Lunes', 'Lunes'],
+      ['Martes', 'Martes'],
+      ['Miércoles', 'Miércoles'],
+      ['Jueves', 'Jueves'],
+      ['Viernes', 'Viernes'],
+      ['Sábado', 'Sábado'],
+      ['Domingo', 'Domingo']
+    ], { prompt: "Seleccione un día" }, required: true %>
+  </div>
+
+  <div class="form-group">
     <label>Horarios</label>
     <div id="schedule-entries">
       <% if section.schedule.present? && section.schedule.any? %>
         <% section.schedule.each_with_index do |entry, index| %>
           <div class="schedule-entry" data-index="<%= index %>">
-            <select name="section[schedule][][day]" required>
-              <option value="">Seleccione día</option>
-              <option value="monday" <%= 'selected' if entry['day'] == 'monday' %>>Lunes</option>
-              <option value="tuesday" <%= 'selected' if entry['day'] == 'tuesday' %>>Martes</option>
-              <option value="wednesday" <%= 'selected' if entry['day'] == 'wednesday' %>>Miércoles</option>
-              <option value="thursday" <%= 'selected' if entry['day'] == 'thursday' %>>Jueves</option>
-              <option value="friday" <%= 'selected' if entry['day'] == 'friday' %>>Viernes</option>
-              <option value="saturday" <%= 'selected' if entry['day'] == 'saturday' %>>Sábado</option>
-              <option value="sunday" <%= 'selected' if entry['day'] == 'sunday' %>>Domingo</option>
-            </select>
             <input type="time" name="section[schedule][][start_time]" value="<%= entry['start_time'] %>" required placeholder="Hora inicio">
             <input type="time" name="section[schedule][][end_time]" value="<%= entry['end_time'] %>" required placeholder="Hora fin">
             <button type="button" class="btn btn-danger btn-sm" onclick="removeScheduleEntry(this)">Eliminar</button>
@@ -43,16 +46,6 @@
         <% end %>
       <% else %>
         <div class="schedule-entry" data-index="0">
-          <select name="section[schedule][][day]" required>
-            <option value="">Seleccione día</option>
-            <option value="monday">Lunes</option>
-            <option value="tuesday">Martes</option>
-            <option value="wednesday">Miércoles</option>
-            <option value="thursday">Jueves</option>
-            <option value="friday">Viernes</option>
-            <option value="saturday">Sábado</option>
-            <option value="sunday">Domingo</option>
-          </select>
           <input type="time" name="section[schedule][][start_time]" required placeholder="Hora inicio">
           <input type="time" name="section[schedule][][end_time]" required placeholder="Hora fin">
           <button type="button" class="btn btn-danger btn-sm" onclick="removeScheduleEntry(this)">Eliminar</button>
@@ -71,16 +64,6 @@
       entry.className = 'schedule-entry';
       entry.dataset.index = scheduleIndex++;
       entry.innerHTML = `
-        <select name="section[schedule][][day]" required>
-          <option value="">Seleccione día</option>
-          <option value="monday">Lunes</option>
-          <option value="tuesday">Martes</option>
-          <option value="wednesday">Miércoles</option>
-          <option value="thursday">Jueves</option>
-          <option value="friday">Viernes</option>
-          <option value="saturday">Sábado</option>
-          <option value="sunday">Domingo</option>
-        </select>
         <input type="time" name="section[schedule][][start_time]" required placeholder="Hora inicio">
         <input type="time" name="section[schedule][][end_time]" required placeholder="Hora fin">
         <button type="button" class="btn btn-danger btn-sm" onclick="removeScheduleEntry(this)">Eliminar</button>
@@ -105,9 +88,6 @@
       margin-bottom: 10px;
       align-items: center;
     }
-    .schedule-entry select {
-      flex: 1;
-    }
     .schedule-entry input[type="time"] {
       flex: 1;
     }
@@ -116,11 +96,6 @@
   <div class="form-group">
     <%= f.label :places, "Cupos Totales" %>
     <%= f.number_field :places, required: true, min: 1 %>
-  </div>
-
-  <div class="form-group">
-    <%= f.label :date, "Fecha" %>
-    <%= f.date_field :date, required: true %>
   </div>
 
   <div class="actions">

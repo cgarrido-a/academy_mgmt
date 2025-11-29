@@ -9,6 +9,12 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       resources :courses, only: [:index]
+      resources :sections, only: [] do
+        member do
+          get 'calendar', action: :calendar
+          get 'preview_class_dates', action: :preview_class_dates
+        end
+      end
       resources :payment_plans, only: [:index]
       resources :payment_methods, only: [:index]
       resources :enrollments, only: [:create]

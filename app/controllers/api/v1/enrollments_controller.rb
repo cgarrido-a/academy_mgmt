@@ -40,12 +40,15 @@ module Api
         params.require(:enrollment).permit(
           :name,
           :email,
+          :phone,
+          :start_date,
           :section_id,
           :payment_plan_id,
           :payment_method_id,
           :enrollment_amount,
           :total_tuition_fee,
-          section_ids: []
+          section_ids: [],
+          section_dates: {}
         )
       end
 
@@ -57,13 +60,13 @@ module Api
             name: enrollment.student.user.name,
             email: enrollment.student.user.email
           },
-          sections: enrollment.sections.map do |section|
+          sections: enrollment.enrollment_sections.map do |enrollment_section|
             {
-              id: section.id,
-              course: section.course.title,
-              schedule: section.schedule,
-              start_date: section.start_date,
-              end_date: section.end_date
+              id: enrollment_section.section.id,
+              course: enrollment_section.section.course.title,
+              weekday: enrollment_section.section.weekday,
+              schedule: enrollment_section.section.schedule,
+              date: enrollment_section.date
             }
           end,
           payment_plan: {
@@ -76,31 +79,19 @@ module Api
             method: enrollment.payment_method.payment_method
           },
           enrollment_amount: enrollment.enrollment_amount,
-          payment_date: enrollment.payment_date,
-          tuition_fee: tuition_fee_data(enrollment.tuition_fee)
+          payment_date: enrollment.payment_date
+          # tuition_fee: tuition_fee_data(enrollment.tuition_fee) # Removed: tuition_fees table no longer exists
         }
       end
 
-      def tuition_fee_data(tuition_fee)
-        return nil unless tuition_fee
+      # Removed: tuition_fees and installments tables no longer exist
+      # def tuition_fee_data(tuition_fee)
+      #   ...
+      # end
 
-        {
-          id: tuition_fee.id,
-          total_tuition_fee: tuition_fee.total_tuition_fee,
-          instalments_number: tuition_fee.instalments_number,
-          billing_period: tuition_fee.billing_period,
-          installments: tuition_fee.installments.map { |installment| installment_data(installment) }
-        }
-      end
-
-      def installment_data(installment)
-        {
-          id: installment.id,
-          amount: installment.amount,
-          due_date: installment.due_date,
-          status: installment.status
-        }
-      end
+      # def installment_data(installment)
+      #   ...
+      # end
 
       def initialize_transbank_payment(enrollment)
         # Generate buy order
@@ -129,7 +120,7 @@ module Api
           enrollment: enrollment,
           payment_type: 'enrollment_fee',
           buy_order: buy_order,
-          amount: enrollment.enrollment_amount,
+          amount: enrollment.total_tuition_fee,
           status: 'pending',
           token: response['token']
         )

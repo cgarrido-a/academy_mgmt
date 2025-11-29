@@ -24,11 +24,16 @@ class TransbankController < ApplicationController
 
     begin
       # Commit the transaction with Transbank
-      tx = Transbank::Webpay::WebpayPlus::Transaction.new(
-        commerce_code: TransbankConfig.commerce_code,
-        api_key: TransbankConfig.api_key,
-        environment: TransbankConfig.environment
+      require 'ostruct'
+
+      options = OpenStruct.new(
+        commerce_code: ENV['TRANSBANK_COMMERCE_CODE'],
+        api_key: ENV['TRANSBANK_API_KEY'],
+        environment: :integration,
+        timeout: 15000
       )
+
+      tx = Transbank::Webpay::WebpayPlus::Transaction.new(options)
       response = tx.commit(token)
 
       # Check if transaction was approved
@@ -85,7 +90,7 @@ class TransbankController < ApplicationController
 
   def redirect_to_frontend_success(transaction_record)
     # Build frontend success URL with transaction details
-    frontend_url = ENV['FRONTEND_URL'] || 'http://localhost:3000'
+    frontend_url = ENV['FRONTEND_URL'] || 'http://localhost:5173'
 
     redirect_url = "#{frontend_url}/payment/success?" + {
       enrollment_id: transaction_record.enrollment_id,
@@ -100,7 +105,7 @@ class TransbankController < ApplicationController
 
   def redirect_to_frontend_failure(transaction_record)
     # Build frontend failure URL with transaction details
-    frontend_url = ENV['FRONTEND_URL'] || 'http://localhost:3000'
+    frontend_url = ENV['FRONTEND_URL'] || 'http://localhost:5173'
 
     redirect_url = "#{frontend_url}/payment/failure?" + {
       enrollment_id: transaction_record.enrollment_id,

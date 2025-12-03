@@ -3,7 +3,7 @@ module Admin
     before_action :set_transaction, only: [:show]
 
     def index
-      @transactions = TransbankTransaction.includes(:enrollment, :tuition_fee, enrollment: { student: :user })
+      @transactions = TransbankTransaction.includes(:enrollment, enrollment: { student: :user })
 
       # Apply status filter if provided
       if params[:status].present? && ['authorized', 'pending', 'failed', 'nullified'].include?(params[:status])
@@ -27,7 +27,7 @@ module Admin
     private
 
     def set_transaction
-      @transaction = TransbankTransaction.includes(:enrollment, :tuition_fee, enrollment: { student: :user }).find(params[:id])
+      @transaction = TransbankTransaction.includes(:enrollment, enrollment: { student: :user }).find(params[:id])
     end
   end
 end

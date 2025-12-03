@@ -62,6 +62,14 @@ Rails.application.configure do
   # Suppress logger output for asset requests.
   config.assets.quiet = true
 
+  config.hosts << "decided-east-calling-threatening.trycloudflare.com"
+
+  # Configure default URL options for URL helpers
+  config.action_controller.default_url_options = {
+    host: ENV['BACKEND_HOST'] || 'localhost',
+    port: ENV['BACKEND_PORT'] || 3000
+  }
+
   # Raises error for missing translations.
   # config.i18n.raise_on_missing_translations = true
 

@@ -131,9 +131,8 @@ module Api
       def transbank_callback_url
         # This should point to your backend callback URL
         # Adjust the host/domain as needed for your environment
-   
-          "http://localhost:5173/transbank/callback"
-    
+        backend_url = ENV['BACKEND_URL'] || 'https://decided-east-calling-threatening.trycloudflare.com'
+        "#{backend_url}/transbank/callback"
       end
     end
   end

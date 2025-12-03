@@ -27,9 +27,9 @@ class TransbankController < ApplicationController
       require 'ostruct'
 
       options = OpenStruct.new(
-        commerce_code: ENV['TRANSBANK_COMMERCE_CODE'],
-        api_key: ENV['TRANSBANK_API_KEY'],
-        environment: :integration,
+        commerce_code: TransbankConfig.commerce_code,
+        api_key: TransbankConfig.api_key,
+        environment: TransbankConfig.environment,
         timeout: 15000
       )
 

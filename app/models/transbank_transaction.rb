@@ -92,13 +92,13 @@ class TransbankTransaction < ApplicationRecord
         raw_response: transbank_response.to_json
       )
 
-      # Create Payment record
+      # Create Payment record using the enrollment's payment method
       payment = Payment.create!(
         enrollment: enrollment,
         payment_type: payment_type,
         amount: amount,
         payment_date: Date.today,
-        payment_method: PaymentMethod.find_or_create_by!(payment_method: 'Transbank Webpay'),
+        payment_method: enrollment.payment_method,
         reference_number: authorization_code,
         notes: "Pago automático vía Transbank. Buy Order: #{buy_order}",
         status: 'completed'

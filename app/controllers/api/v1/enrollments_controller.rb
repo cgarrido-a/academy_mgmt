@@ -55,12 +55,14 @@ module Api
         Rails.logger.info "Transbank Config - API Key length: #{TransbankConfig.api_key&.length}"
 
         # Initialize Webpay Plus transaction FIRST to get the token
-        # Create an options object
-        options = Struct.new(:commerce_code, :api_key, :environment, :timeout).new(
-          ::TransbankConfig.commerce_code,
-          ::TransbankConfig.api_key,
-          ::TransbankConfig.environment,
-          15000 # timeout in milliseconds
+        # Create an options object using OpenStruct (same as TransbankController)
+        require 'ostruct'
+
+        options = OpenStruct.new(
+          commerce_code: ::TransbankConfig.commerce_code,
+          api_key: ::TransbankConfig.api_key,
+          environment: ::TransbankConfig.environment,
+          timeout: 15000
         )
 
         tx = Transbank::Webpay::WebpayPlus::Transaction.new(options)

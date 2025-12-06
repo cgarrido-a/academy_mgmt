@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_11_29_222142) do
+ActiveRecord::Schema[7.1].define(version: 2025_12_06_001859) do
   create_table "admin_users", force: :cascade do |t|
     t.string "admin_type"
     t.integer "user_id", null: false
@@ -125,7 +125,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_29_222142) do
   end
 
   create_table "transbank_transactions", force: :cascade do |t|
-    t.integer "enrollment_id", null: false
+    t.integer "enrollment_id"
     t.string "payment_type", null: false
     t.string "token", null: false
     t.string "buy_order", null: false
@@ -140,6 +140,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_11_29_222142) do
     t.text "error_message"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.json "enrollment_data"
     t.index ["buy_order"], name: "index_transbank_transactions_on_buy_order"
     t.index ["enrollment_id"], name: "index_transbank_transactions_on_enrollment_id"
     t.index ["status"], name: "index_transbank_transactions_on_status"

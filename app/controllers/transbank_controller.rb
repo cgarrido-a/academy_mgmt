@@ -38,10 +38,11 @@ class TransbankController < ApplicationController
 
       # Check if transaction was approved
       if response['response_code'] == 0
-        # Transaction approved
+        # Transaction approved - this will create enrollment if it doesn't exist
         payment = transaction_record.mark_as_authorized!(response)
 
         Rails.logger.info "Payment successfully processed: #{payment.id}"
+        Rails.logger.info "Enrollment created: #{transaction_record.enrollment_id}" if transaction_record.enrollment_id.present?
 
         redirect_to_frontend_success(transaction_record)
       else

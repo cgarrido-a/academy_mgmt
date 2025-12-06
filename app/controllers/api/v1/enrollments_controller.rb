@@ -3,27 +3,15 @@ module Api
     class EnrollmentsController < BaseController
       # POST /api/v1/enrollments
       def create
-        creator = EnrollmentCreator.new(enrollment_params)
+        # Initialize Transbank payment WITHOUT creating enrollment
+        # Enrollment will be created after successful payment
+        transbank_data = initialize_transbank_payment_with_data(enrollment_params)
 
-        if creator.call
-          enrollment = creator.enrollment
-
-          # Initialize Transbank payment for enrollment fee
-          transbank_data = initialize_transbank_payment(enrollment)
-
-          render json: {
-            success: true,
-            message: 'Enrollment created successfully',
-            enrollment_id: enrollment.id,
-            data: enrollment_data(enrollment),
-            transbank_payment: transbank_data
-          }, status: :created
-        else
-          render json: {
-            success: false,
-            errors: creator.errors
-          }, status: :unprocessable_entity
-        end
+        render json: {
+          success: true,
+          message: 'Transacción iniciada. Complete el pago para finalizar la inscripción',
+          transbank_payment: transbank_data
+        }, status: :created
       rescue StandardError => e
         Rails.logger.error "Error creating enrollment with Transbank: #{e.message}"
         Rails.logger.error e.backtrace.join("\n")
@@ -52,43 +40,12 @@ module Api
         )
       end
 
-      def enrollment_data(enrollment)
-        {
-          id: enrollment.id,
-          student: {
-            id: enrollment.student.id,
-            name: enrollment.student.user.name,
-            email: enrollment.student.user.email
-          },
-          sections: enrollment.enrollment_sections.map do |enrollment_section|
-            {
-              id: enrollment_section.section.id,
-              course: enrollment_section.section.course.title,
-              weekday: enrollment_section.section.weekday,
-              schedule: enrollment_section.section.schedule,
-              date: enrollment_section.date
-            }
-          end,
-          payment_plan: {
-            id: enrollment.payment_plan.id,
-            plan: enrollment.payment_plan.plan,
-            description: enrollment.payment_plan.description
-          },
-          payment_method: {
-            id: enrollment.payment_method.id,
-            method: enrollment.payment_method.payment_method
-          },
-          enrollment_amount: enrollment.enrollment_amount,
-          payment_date: enrollment.payment_date,
-          total_tuition_fee: enrollment.total_tuition_fee
-        }
-      end
+      def initialize_transbank_payment_with_data(params)
+        puts "Initializing Transbank payment with enrollment data: #{params.inspect}"
 
-
-      def initialize_transbank_payment(enrollment)
-        puts "Initializing Transbank payment for Enrollment ID: #{enrollment.inspect}"
-        # Generate buy order
-        buy_order = TransbankTransaction.generate_buy_order(enrollment.id, 'enrollment_fee')
+        # Use a temporary identifier for buy order (timestamp-based)
+        temp_identifier = Time.now.to_i
+        buy_order = TransbankTransaction.generate_buy_order(temp_identifier, 'enrollment_fee')
 
         # Initialize Webpay Plus transaction FIRST to get the token
         # Create an options object
@@ -104,16 +61,17 @@ module Api
         response = tx.create(
           buy_order,
           SecureRandom.hex(10),
-          enrollment.total_tuition_fee.to_i,
+          params[:total_tuition_fee].to_i,
           transbank_callback_url
         )
 
-        # NOW create Transbank transaction record with the token
-        TransbankTransaction.create!(
-          enrollment: enrollment,
+        # Create Transbank transaction record WITHOUT enrollment, storing enrollment_data instead
+        transaction_record = TransbankTransaction.create!(
+          enrollment_id: nil,
+          enrollment_data: params.to_h,
           payment_type: 'enrollment_fee',
           buy_order: buy_order,
-          amount: enrollment.total_tuition_fee,
+          amount: params[:total_tuition_fee],
           status: 'pending',
           token: response['token']
         )
@@ -124,7 +82,8 @@ module Api
           token: response['token'],
           full_url: "#{response['url']}?token_ws=#{response['token']}",
           buy_order: buy_order,
-          amount: enrollment.total_tuition_fee
+          amount: params[:total_tuition_fee],
+          transaction_id: transaction_record.id
         }
       end
 

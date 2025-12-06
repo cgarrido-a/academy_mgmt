@@ -8,7 +8,6 @@ module Admin
 
     def show
       @enrollments = @payment_method.enrollments.includes(student: :user, sections: :course).limit(10)
-      @tuition_fees = @payment_method.tuition_fees.includes(enrollment: [:student, { sections: :course }]).limit(10)
     end
 
     def new
@@ -37,7 +36,7 @@ module Admin
     end
 
     def destroy
-      if @payment_method.enrollments.exists? || @payment_method.tuition_fees.exists?
+      if @payment_method.enrollments.exists? || @payment_method.salary_payments.exists?
         redirect_to admin_payment_methods_path, alert: 'No se puede eliminar un método de pago con registros asociados.'
       else
         @payment_method.destroy

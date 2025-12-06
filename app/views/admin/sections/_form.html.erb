@@ -34,62 +34,26 @@
   </div>
 
   <div class="form-group">
-    <label>Horarios</label>
-    <div id="schedule-entries">
-      <% if section.schedule.present? && section.schedule.any? %>
-        <% section.schedule.each_with_index do |entry, index| %>
-          <div class="schedule-entry" data-index="<%= index %>">
-            <input type="time" name="section[schedule][][start_time]" value="<%= entry['start_time'] %>" required placeholder="Hora inicio">
-            <input type="time" name="section[schedule][][end_time]" value="<%= entry['end_time'] %>" required placeholder="Hora fin">
-            <button type="button" class="btn btn-danger btn-sm" onclick="removeScheduleEntry(this)">Eliminar</button>
-          </div>
-        <% end %>
-      <% else %>
-        <div class="schedule-entry" data-index="0">
-          <input type="time" name="section[schedule][][start_time]" required placeholder="Hora inicio">
-          <input type="time" name="section[schedule][][end_time]" required placeholder="Hora fin">
-          <button type="button" class="btn btn-danger btn-sm" onclick="removeScheduleEntry(this)">Eliminar</button>
-        </div>
-      <% end %>
+    <label>Horario</label>
+    <div class="schedule-entry">
+      <% schedule_entry = section.schedule&.first || {} %>
+      <input type="time" name="section[schedule][][start_time]" value="<%= schedule_entry['start_time'] %>" required placeholder="Hora inicio">
+      <span>a</span>
+      <input type="time" name="section[schedule][][end_time]" value="<%= schedule_entry['end_time'] %>" required placeholder="Hora fin">
     </div>
-    <button type="button" class="btn btn-secondary btn-sm" onclick="addScheduleEntry()" style="margin-top: 10px;">Agregar Horario</button>
   </div>
-
-  <script>
-    let scheduleIndex = <%= section.schedule&.length || 1 %>;
-
-    function addScheduleEntry() {
-      const container = document.getElementById('schedule-entries');
-      const entry = document.createElement('div');
-      entry.className = 'schedule-entry';
-      entry.dataset.index = scheduleIndex++;
-      entry.innerHTML = `
-        <input type="time" name="section[schedule][][start_time]" required placeholder="Hora inicio">
-        <input type="time" name="section[schedule][][end_time]" required placeholder="Hora fin">
-        <button type="button" class="btn btn-danger btn-sm" onclick="removeScheduleEntry(this)">Eliminar</button>
-      `;
-      container.appendChild(entry);
-    }
-
-    function removeScheduleEntry(button) {
-      const entries = document.querySelectorAll('.schedule-entry');
-      if (entries.length > 1) {
-        button.parentElement.remove();
-      } else {
-        alert('Debe haber al menos un horario');
-      }
-    }
-  </script>
 
   <style>
     .schedule-entry {
       display: flex;
       gap: 10px;
-      margin-bottom: 10px;
       align-items: center;
     }
     .schedule-entry input[type="time"] {
       flex: 1;
+    }
+    .schedule-entry span {
+      color: #666;
     }
   </style>
 

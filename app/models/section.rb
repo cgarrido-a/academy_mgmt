@@ -38,9 +38,8 @@ class Section < ApplicationRecord
   def formatted_schedule
     return "Sin horario definido" if schedule.blank? || schedule.empty?
 
-    schedule.map do |entry|
-      "#{entry['start_time']}-#{entry['end_time']}"
-    end.join(', ')
+    entry = schedule.first
+    "#{entry['start_time']}-#{entry['end_time']}"
   end
 
   private
@@ -54,32 +53,37 @@ class Section < ApplicationRecord
     end
 
     if schedule.empty?
-      errors.add(:schedule, "debe tener al menos un horario")
+      errors.add(:schedule, "debe tener un horario")
       return
     end
 
-    schedule.each_with_index do |entry, index|
-      unless entry.is_a?(Hash)
-        errors.add(:schedule, "entrada #{index + 1} debe ser un objeto")
-        next
-      end
+    if schedule.length > 1
+      errors.add(:schedule, "solo puede tener un horario por sección")
+      return
+    end
 
-      unless entry['start_time'].present?
-        errors.add(:schedule, "entrada #{index + 1} debe tener hora de inicio")
-      end
+    entry = schedule.first
 
-      unless entry['end_time'].present?
-        errors.add(:schedule, "entrada #{index + 1} debe tener hora de fin")
-      end
+    unless entry.is_a?(Hash)
+      errors.add(:schedule, "debe ser un objeto válido")
+      return
+    end
 
-      # Validate time format (HH:MM)
-      if entry['start_time'].present? && !entry['start_time'].match?(/^\d{2}:\d{2}$/)
-        errors.add(:schedule, "entrada #{index + 1}: hora de inicio debe estar en formato HH:MM")
-      end
+    unless entry['start_time'].present?
+      errors.add(:schedule, "debe tener hora de inicio")
+    end
 
-      if entry['end_time'].present? && !entry['end_time'].match?(/^\d{2}:\d{2}$/)
-        errors.add(:schedule, "entrada #{index + 1}: hora de fin debe estar en formato HH:MM")
-      end
+    unless entry['end_time'].present?
+      errors.add(:schedule, "debe tener hora de fin")
+    end
+
+    # Validate time format (HH:MM)
+    if entry['start_time'].present? && !entry['start_time'].match?(/^\d{2}:\d{2}$/)
+      errors.add(:schedule, "hora de inicio debe estar en formato HH:MM")
+    end
+
+    if entry['end_time'].present? && !entry['end_time'].match?(/^\d{2}:\d{2}$/)
+      errors.add(:schedule, "hora de fin debe estar en formato HH:MM")
     end
   end
 end

@@ -43,9 +43,9 @@ module Api
       def initialize_transbank_payment_with_data(params)
         puts "Initializing Transbank payment with enrollment data: #{params.inspect}"
 
-        # Use a temporary identifier for buy order (timestamp-based)
-        temp_identifier = Time.now.to_i
-        buy_order = TransbankTransaction.generate_buy_order(temp_identifier, 'enrollment_fee')
+        # Generate a short buy order for pending enrollment (max 26 chars)
+        # Format: PEND-{timestamp} (e.g., "PEND-1733452718" = 15 chars)
+        buy_order = "PEND-#{Time.now.to_i}"
 
         # Initialize Webpay Plus transaction FIRST to get the token
         # Create an options object

@@ -62,7 +62,16 @@
           <tr>
             <td>#<%= transaction.id %></td>
             <td><%= transaction.created_at.strftime('%d/%m/%Y %H:%M') %></td>
-            <td><%= transaction.enrollment.student.user.name %></td>
+            <td>
+              <% if transaction.enrollment.present? %>
+                <%= transaction.enrollment.student.user.name %>
+              <% elsif transaction.enrollment_data.present? %>
+                <%= transaction.enrollment_data['name'] %>
+                <span style="color: #999; font-size: 0.875rem;">(pendiente)</span>
+              <% else %>
+                <em style="color: #999;">Sin datos</em>
+              <% end %>
+            </td>
             <td>
               <span style="background: #3498db; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem;">Matrícula</span>
             </td>

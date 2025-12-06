@@ -116,20 +116,46 @@
 
   <h3 style="margin-top: 2rem;">Información del Estudiante</h3>
 
-  <div class="form-group">
-    <strong>Nombre:</strong>
-    <p><%= link_to @transaction.enrollment.student.user.name, admin_user_path(@transaction.enrollment.student.user) %></p>
-  </div>
+  <% if @transaction.enrollment.present? %>
+    <div class="form-group">
+      <strong>Nombre:</strong>
+      <p><%= link_to @transaction.enrollment.student.user.name, admin_user_path(@transaction.enrollment.student.user) %></p>
+    </div>
 
-  <div class="form-group">
-    <strong>Email:</strong>
-    <p><%= @transaction.enrollment.student.user.email %></p>
-  </div>
+    <div class="form-group">
+      <strong>Email:</strong>
+      <p><%= @transaction.enrollment.student.user.email %></p>
+    </div>
 
-  <div class="form-group">
-    <strong>Inscripción:</strong>
-    <p><%= link_to "Ver Inscripción ##{@transaction.enrollment.id}", admin_enrollment_path(@transaction.enrollment), class: "btn btn-primary" %></p>
-  </div>
+    <div class="form-group">
+      <strong>Inscripción:</strong>
+      <p><%= link_to "Ver Inscripción ##{@transaction.enrollment.id}", admin_enrollment_path(@transaction.enrollment), class: "btn btn-primary" %></p>
+    </div>
+  <% elsif @transaction.enrollment_data.present? %>
+    <div style="background: #fff3cd; padding: 1rem; border-radius: 4px; border-left: 4px solid #f39c12; margin-bottom: 1rem;">
+      <p style="margin: 0; color: #856404;">
+        <strong>⚠️ Inscripción Pendiente</strong><br>
+        Esta transacción aún no ha sido confirmada. La inscripción se creará cuando el pago sea autorizado.
+      </p>
+    </div>
+
+    <div class="form-group">
+      <strong>Nombre:</strong>
+      <p><%= @transaction.enrollment_data['name'] %></p>
+    </div>
+
+    <div class="form-group">
+      <strong>Email:</strong>
+      <p><%= @transaction.enrollment_data['email'] %></p>
+    </div>
+
+    <div class="form-group">
+      <strong>Teléfono:</strong>
+      <p><%= @transaction.enrollment_data['phone'] %></p>
+    </div>
+  <% else %>
+    <p style="color: #999;"><em>No hay información de estudiante disponible.</em></p>
+  <% end %>
 
   <% if @transaction.raw_response.present? %>
     <h3 style="margin-top: 2rem;">Respuesta Completa de Transbank</h3>

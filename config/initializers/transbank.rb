@@ -22,19 +22,31 @@ module TransbankConfig
   PRODUCTION_BASE_URL = 'https://webpay3g.transbank.cl'
 
   def self.commerce_code
-    Rails.env.production? ? PRODUCTION_COMMERCE_CODE : INTEGRATION_COMMERCE_CODE
+    # TEMPORARY: Force integration credentials for testing
+    # TODO: Remove this and use production credentials when ready
+    INTEGRATION_COMMERCE_CODE
+    # Rails.env.production? ? PRODUCTION_COMMERCE_CODE : INTEGRATION_COMMERCE_CODE
   end
 
   def self.api_key
-    Rails.env.production? ? PRODUCTION_API_KEY : INTEGRATION_API_KEY
+    # TEMPORARY: Force integration credentials for testing
+    # TODO: Remove this and use production credentials when ready
+    INTEGRATION_API_KEY
+    # Rails.env.production? ? PRODUCTION_API_KEY : INTEGRATION_API_KEY
   end
 
   def self.base_url
-    Rails.env.production? ? PRODUCTION_BASE_URL : INTEGRATION_BASE_URL
+    # TEMPORARY: Force integration URL for testing
+    # TODO: Remove this and use production URL when ready
+    INTEGRATION_BASE_URL
+    # Rails.env.production? ? PRODUCTION_BASE_URL : INTEGRATION_BASE_URL
   end
 
   def self.environment
-    Rails.env.production? ? :production : :integration
+    # TEMPORARY: Force integration environment for testing
+    # TODO: Remove this and use production when ready
+    :integration
+    # Rails.env.production? ? :production : :integration
   end
 end
 

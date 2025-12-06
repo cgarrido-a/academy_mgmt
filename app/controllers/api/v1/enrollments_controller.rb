@@ -47,6 +47,13 @@ module Api
         # Format: PEND-{timestamp} (e.g., "PEND-1733452718" = 15 chars)
         buy_order = "PEND-#{Time.now.to_i}"
 
+        # Log Transbank configuration for debugging
+        Rails.logger.info "Transbank Config - Environment: #{TransbankConfig.environment}"
+        Rails.logger.info "Transbank Config - Commerce Code present: #{TransbankConfig.commerce_code.present?}"
+        Rails.logger.info "Transbank Config - API Key present: #{TransbankConfig.api_key.present?}"
+        Rails.logger.info "Transbank Config - Commerce Code length: #{TransbankConfig.commerce_code&.length}"
+        Rails.logger.info "Transbank Config - API Key length: #{TransbankConfig.api_key&.length}"
+
         # Initialize Webpay Plus transaction FIRST to get the token
         # Create an options object
         options = Struct.new(:commerce_code, :api_key, :environment, :timeout).new(

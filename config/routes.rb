@@ -27,6 +27,7 @@ Rails.application.routes.draw do
     resources :courses
     resources :sections
     resources :enrollments
+    resources :enrollment_sections, only: [:edit, :update, :destroy]
     resources :users
     resources :payment_plans
     resources :payment_methods

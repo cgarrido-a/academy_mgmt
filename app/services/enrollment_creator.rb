@@ -71,21 +71,27 @@ class EnrollmentCreator
     payment_plan = PaymentPlan.find(@payment_plan_id)
     number_of_classes = payment_plan.number_of_classes
 
-    # Use start_date if provided, otherwise check section_dates hash for backwards compatibility
-    start_date_to_use = @start_date.presence || @section_dates.values.first
-
-    if start_date_to_use.blank?
-      raise "Debe especificar una fecha de inicio (start_date)"
-    end
-
-    # Parse date if it's a string
-    start_date_to_use = Date.parse(start_date_to_use) if start_date_to_use.is_a?(String)
-
     @section_ids.each do |section_id|
       section = Section.find(section_id)
 
-      # Generate dates for all classes starting from start_date
-      class_dates = generate_class_dates(section, start_date_to_use, number_of_classes)
+      # Determinar qué fechas usar
+      if @section_dates.present? && @section_dates[section_id.to_s].is_a?(Array)
+        # Usar fechas específicas del usuario (nuevo comportamiento)
+        class_dates = validate_and_parse_specific_dates(section, @section_dates[section_id.to_s], number_of_classes)
+      else
+        # Usar lógica automática con start_date (comportamiento actual)
+        start_date_to_use = @start_date.presence || @section_dates.values.first
+
+        if start_date_to_use.blank?
+          raise "Debe especificar una fecha de inicio (start_date) o fechas específicas (section_dates)"
+        end
+
+        # Parse date if it's a string
+        start_date_to_use = Date.parse(start_date_to_use) if start_date_to_use.is_a?(String)
+
+        # Generate dates for all classes starting from start_date
+        class_dates = generate_class_dates(section, start_date_to_use, number_of_classes)
+      end
 
       # Create an enrollment_section for each class date
       class_dates.each do |date|
@@ -124,6 +130,46 @@ class EnrollmentCreator
   def generate_temporary_password
     # Generate a random temporary password
     SecureRandom.hex(8)
+  end
+
+  def validate_and_parse_specific_dates(section, dates_array, expected_count)
+    # Map Spanish weekday names to Ruby's wday (0 = Sunday, 1 = Monday, etc.)
+    weekday_map = {
+      'Domingo' => 0,
+      'Lunes' => 1,
+      'Martes' => 2,
+      'Miércoles' => 3,
+      'Jueves' => 4,
+      'Viernes' => 5,
+      'Sábado' => 6
+    }
+    target_wday = weekday_map[section.weekday]
+
+    # Validar cantidad de fechas
+    if dates_array.length != expected_count
+      raise "Debe proporcionar exactamente #{expected_count} fechas (proporcionó #{dates_array.length})"
+    end
+
+    parsed_dates = dates_array.map do |date_str|
+      date = Date.parse(date_str)
+
+      # Validar día de la semana
+      unless date.wday == target_wday
+        raise "La fecha #{date.strftime('%d/%m/%Y')} no es un #{section.weekday}"
+      end
+
+      # Validar fecha futura
+      if date < Date.today
+        raise "La fecha #{date.strftime('%d/%m/%Y')} ya pasó"
+      end
+
+      # Nota: La validación de cupos disponibles se ejecutará automáticamente
+      # cuando se cree el EnrollmentSection (validación del modelo)
+
+      date
+    end
+
+    parsed_dates
   end
 
   def generate_class_dates(section, start_date, number_of_classes)

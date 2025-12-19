@@ -1,0 +1,373 @@
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2>Editar Fecha de Clase</h2>
+    <div class="actions">
+      <%= link_to "Volver", admin_enrollment_path(@enrollment), class: "btn btn-secondary" %>
+    </div>
+  </div>
+
+  <div style="background: #f8f9fa; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem;">
+    <h3 style="margin-top: 0;">Información de la Clase</h3>
+    <p><strong>Estudiante:</strong> <%= @enrollment.student.user.name %></p>
+    <p><strong>Fecha actual:</strong> <span style="background: #fff3cd; padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: bold;"><%= @enrollment_section.date.strftime('%d/%m/%Y') %></span></p>
+    <p><strong>Sección actual:</strong> <%= @section.course.title %> - <%= @section.weekday %> <%= @section.formatted_schedule %> (<%= @section.teacher.user.name %>)</p>
+  </div>
+
+  <%= form_with(model: [:admin, @enrollment_section], local: true) do |f| %>
+    <% if @enrollment_section.errors.any? %>
+      <div style="background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 1rem; border-radius: 4px; margin-bottom: 1rem;">
+        <h4 style="margin-top: 0;">Error al actualizar:</h4>
+        <ul style="margin-bottom: 0;">
+          <% @enrollment_section.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <div class="form-group">
+      <%= f.label :section_id, "Cambiar Sección (Curso, Día y Horario)" %>
+      <%= f.select :section_id,
+          grouped_options_for_select(
+            @sections.group_by(&:course).map { |course, course_sections|
+              [course.title, course_sections.map { |s|
+                ["#{s.weekday} #{s.formatted_schedule} - #{s.teacher.user.name} (#{s.places} cupos)", s.id]
+              }]
+            },
+            @enrollment_section.section_id
+          ),
+          {},
+          { id: 'section_select', onchange: 'onSectionChange()', 'data-sections': @sections.to_json(only: [:id, :weekday], methods: [:formatted_schedule], include: { course: { only: :title }, teacher: { only: [], methods: [], include: { user: { only: :name } } } }) } %>
+      <small style="color: #666;">Selecciona una nueva sección para cambiar el día y horario de esta clase</small>
+
+      <div id="selected-section-info" style="margin-top: 0.5rem; padding: 0.5rem; background: #e7f3ff; border-left: 4px solid #007bff; border-radius: 4px; display: none;">
+        <strong>📅 Sección seleccionada:</strong> <span id="section-weekday"></span>
+        <br>
+        <small style="color: #666;">El calendario mostrará solo los <strong id="section-weekday-name"></strong> disponibles</small>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <%= f.label :date, "Selecciona una nueva fecha" %>
+      <%= f.hidden_field :date, id: 'selected_date_field', value: @enrollment_section.date.strftime('%Y-%m-%d') %>
+
+      <div style="margin-top: 1rem;">
+        <div id="calendar-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding: 0.5rem; background: #f8f9fa; border-radius: 4px;">
+          <button type="button" id="prev-month" style="padding: 0.5rem 1rem; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">‹ Anterior</button>
+          <h3 id="current-month" style="margin: 0;"></h3>
+          <button type="button" id="next-month" style="padding: 0.5rem 1rem; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Siguiente ›</button>
+        </div>
+
+        <div id="calendar-container" style="border: 1px solid #ddd; border-radius: 4px; padding: 1rem; background: white;">
+          <p style="color: #999;">Cargando calendario...</p>
+        </div>
+
+        <div style="margin-top: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 4px;">
+          <p style="margin: 0; font-size: 0.9rem;"><strong>Leyenda:</strong></p>
+          <div style="display: flex; gap: 1rem; margin-top: 0.5rem; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <div style="width: 20px; height: 20px; background: #fff3cd; border: 2px solid #ffc107; border-radius: 4px;"></div>
+              <span style="font-size: 0.85rem;">Fecha actual</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <div style="width: 20px; height: 20px; background: #d4edda; border: 2px solid #28a745; border-radius: 4px;"></div>
+              <span style="font-size: 0.85rem;">Disponible</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <div style="width: 20px; height: 20px; background: #f8d7da; border: 2px solid #dc3545; border-radius: 4px;"></div>
+              <span style="font-size: 0.85rem;">Sin cupos</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <div style="width: 20px; height: 20px; background: #e9ecef; border-radius: 4px;"></div>
+              <span style="font-size: 0.85rem;">No aplica</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions" style="margin-top: 1.5rem;">
+      <%= f.submit "Actualizar Fecha", class: "btn btn-primary" %>
+      <%= link_to "Cancelar", admin_enrollment_path(@enrollment), class: "btn btn-secondary" %>
+    </div>
+  <% end %>
+
+  <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #ddd;">
+    <%= link_to "Eliminar esta clase",
+        admin_enrollment_section_path(@enrollment_section),
+        method: :delete,
+        data: { confirm: "¿Está seguro de eliminar esta clase? Esta acción no se puede deshacer." },
+        class: "btn btn-danger" %>
+  </div>
+</div>
+
+<script>
+  (function() {
+    let sectionId = <%= @section.id %>;
+    const currentDate = '<%= @enrollment_section.date.strftime('%Y-%m-%d') %>';
+    let currentMonth = new Date();
+    let availableDatesData = {};
+    let isLoading = false;
+    let dataLoaded = false;
+    let calendarContainer, monthTitle, prevBtn, nextBtn;
+    let isInitialized = false;
+
+    // Cargar datos del API (carga 3 meses de una vez para optimizar)
+    async function loadAvailableDates() {
+      if (dataLoaded || isLoading) return; // Evitar múltiples cargas
+
+      isLoading = true;
+      try {
+        const today = new Date();
+        const threeMonthsLater = new Date();
+        threeMonthsLater.setMonth(today.getMonth() + 3);
+
+        const from = today.toISOString().split('T')[0];
+        const to = threeMonthsLater.toISOString().split('T')[0];
+
+        const response = await fetch(`/api/v1/sections/${sectionId}/calendar?from=${from}&to=${to}`);
+
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+        const data = await response.json();
+
+        if (data.success && data.data.dates) {
+          // Convertir array a objeto para búsqueda rápida
+          data.data.dates.forEach(dateInfo => {
+            availableDatesData[dateInfo.date] = dateInfo;
+          });
+          dataLoaded = true;
+        }
+      } catch (error) {
+        console.error('Error loading dates:', error);
+      } finally {
+        isLoading = false;
+      }
+    }
+
+    // Renderizar calendario
+    function renderCalendar(month) {
+      const year = month.getFullYear();
+      const monthNum = month.getMonth();
+
+      // Actualizar título
+      const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                          'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+      monthTitle.textContent = `${monthNames[monthNum]} ${year}`;
+
+      // Crear grid del calendario
+      let html = `
+        <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;">
+          <div style="padding: 8px; text-align: center; font-weight: bold; background: #e9ecef;">Dom</div>
+          <div style="padding: 8px; text-align: center; font-weight: bold; background: #e9ecef;">Lun</div>
+          <div style="padding: 8px; text-align: center; font-weight: bold; background: #e9ecef;">Mar</div>
+          <div style="padding: 8px; text-align: center; font-weight: bold; background: #e9ecef;">Mié</div>
+          <div style="padding: 8px; text-align: center; font-weight: bold; background: #e9ecef;">Jue</div>
+          <div style="padding: 8px; text-align: center; font-weight: bold; background: #e9ecef;">Vie</div>
+          <div style="padding: 8px; text-align: center; font-weight: bold; background: #e9ecef;">Sáb</div>
+      `;
+
+      // Primer día del mes
+      const firstDay = new Date(year, monthNum, 1);
+      const lastDay = new Date(year, monthNum + 1, 0);
+      const startingDayOfWeek = firstDay.getDay();
+
+      // Días vacíos antes del primer día
+      for (let i = 0; i < startingDayOfWeek; i++) {
+        html += '<div style="padding: 8px; background: #f8f9fa;"></div>';
+      }
+
+      // Días del mes
+      for (let day = 1; day <= lastDay.getDate(); day++) {
+        const date = new Date(year, monthNum, day);
+        const dateStr = date.toISOString().split('T')[0];
+        const dateInfo = availableDatesData[dateStr];
+
+        const isCurrentDate = dateStr === currentDate;
+        const hasAvailability = dateInfo && dateInfo.available_places > 0;
+        const isClickable = hasAvailability || isCurrentDate;
+
+        let bgColor = '#e9ecef';
+        let borderColor = '#dee2e6';
+        let cursor = 'not-allowed';
+        let opacity = '0.5';
+
+        if (isCurrentDate) {
+          bgColor = '#fff3cd';
+          borderColor = '#ffc107';
+          cursor = 'pointer';
+          opacity = '1';
+        } else if (hasAvailability) {
+          bgColor = '#d4edda';
+          borderColor = '#28a745';
+          cursor = 'pointer';
+          opacity = '1';
+        } else if (dateInfo && dateInfo.available_places === 0) {
+          bgColor = '#f8d7da';
+          borderColor = '#dc3545';
+        }
+
+        const cuposText = dateInfo
+          ? `<div style="font-size: 0.7rem; color: #666; margin-top: 2px;">${dateInfo.available_places}/${dateInfo.total_places}</div>`
+          : '';
+
+        html += `
+          <div
+            style="
+              padding: 8px;
+              text-align: center;
+              background: ${bgColor};
+              border: 2px solid ${borderColor};
+              border-radius: 4px;
+              cursor: ${cursor};
+              opacity: ${opacity};
+              position: relative;
+              min-height: 60px;
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+              transition: all 0.2s;
+            "
+            ${isClickable ? `onclick="selectDate('${dateStr}')" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'"` : ''}
+          >
+            <div style="font-weight: bold; font-size: 1.1rem;">${day}</div>
+            ${cuposText}
+            ${isCurrentDate ? '<div style="font-size: 0.6rem; background: #ffc107; color: #000; padding: 1px 4px; border-radius: 2px; margin-top: 2px;">ACTUAL</div>' : ''}
+          </div>
+        `;
+      }
+
+      html += '</div>';
+      calendarContainer.innerHTML = html;
+    }
+
+    // Función para seleccionar fecha
+    window.selectDate = function(dateStr) {
+      document.getElementById('selected_date_field').value = dateStr;
+
+      // Resaltar visualmente la fecha seleccionada
+      const allDates = calendarContainer.querySelectorAll('[onclick^="selectDate"]');
+      allDates.forEach(el => {
+        el.style.boxShadow = '';
+      });
+      event.target.closest('div[onclick^="selectDate"]').style.boxShadow = '0 0 0 3px #007bff';
+    };
+
+    // Skeleton loader
+    function showSkeletonLoader() {
+      let html = `
+        <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;">
+          <div style="padding: 8px; text-align: center; font-weight: bold; background: #e9ecef;">Dom</div>
+          <div style="padding: 8px; text-align: center; font-weight: bold; background: #e9ecef;">Lun</div>
+          <div style="padding: 8px; text-align: center; font-weight: bold; background: #e9ecef;">Mar</div>
+          <div style="padding: 8px; text-align: center; font-weight: bold; background: #e9ecef;">Mié</div>
+          <div style="padding: 8px; text-align: center; font-weight: bold; background: #e9ecef;">Jue</div>
+          <div style="padding: 8px; text-align: center; font-weight: bold; background: #e9ecef;">Vie</div>
+          <div style="padding: 8px; text-align: center; font-weight: bold; background: #e9ecef;">Sáb</div>
+      `;
+
+      // 35 skeleton boxes (5 semanas)
+      for (let i = 0; i < 35; i++) {
+        html += `
+          <div style="
+            padding: 8px;
+            min-height: 60px;
+            background: linear-gradient(90deg, #e9ecef 25%, #f8f9fa 50%, #e9ecef 75%);
+            background-size: 200% 100%;
+            animation: skeleton-loading 1.5s infinite;
+            border-radius: 4px;
+          "></div>
+        `;
+      }
+
+      html += '</div>';
+      html += `
+        <style>
+          @keyframes skeleton-loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+          }
+        </style>
+      `;
+
+      calendarContainer.innerHTML = html;
+    }
+
+    // Inicializar
+    async function init() {
+      if (!calendarContainer) {
+        calendarContainer = document.getElementById('calendar-container');
+        monthTitle = document.getElementById('current-month');
+        prevBtn = document.getElementById('prev-month');
+        nextBtn = document.getElementById('next-month');
+
+        if (!calendarContainer || !monthTitle || !prevBtn || !nextBtn) {
+          console.error('Calendar elements not found');
+          setTimeout(init, 100);
+          return;
+        }
+
+        // Setup event listeners solo una vez
+        if (!isInitialized) {
+          prevBtn.addEventListener('click', () => {
+            currentMonth.setMonth(currentMonth.getMonth() - 1);
+            renderCalendar(currentMonth);
+          });
+
+          nextBtn.addEventListener('click', () => {
+            currentMonth.setMonth(currentMonth.getMonth() + 1);
+            renderCalendar(currentMonth);
+          });
+
+          isInitialized = true;
+        }
+      }
+
+      showSkeletonLoader();
+      await loadAvailableDates();
+      renderCalendar(currentMonth);
+    }
+
+    // Función que se llama cuando cambia la sección
+    window.onSectionChange = function() {
+      const sectionSelect = document.getElementById('section_select');
+      sectionId = parseInt(sectionSelect.value);
+
+      console.log('Section changed to:', sectionId);
+
+      // Mostrar info de la sección seleccionada
+      try {
+        const sectionsData = JSON.parse(sectionSelect.getAttribute('data-sections'));
+        const selectedSection = sectionsData.find(s => s.id === sectionId);
+
+        if (selectedSection) {
+          const infoDiv = document.getElementById('selected-section-info');
+          const weekdaySpan = document.getElementById('section-weekday');
+          const weekdayName = document.getElementById('section-weekday-name');
+
+          weekdaySpan.textContent = `${selectedSection.course.title} - ${selectedSection.weekday} ${selectedSection.formatted_schedule}`;
+          weekdayName.textContent = `${selectedSection.weekday}s`;
+          infoDiv.style.display = 'block';
+        }
+      } catch (e) {
+        console.error('Error parsing section data:', e);
+      }
+
+      // Resetear datos y recargar calendario
+      availableDatesData = {};
+      dataLoaded = false;
+      isLoading = false;
+      currentMonth = new Date();
+
+      console.log('Reloading calendar for section:', sectionId);
+      init();
+    };
+
+    // Ejecutar cuando el DOM esté listo
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+</script>

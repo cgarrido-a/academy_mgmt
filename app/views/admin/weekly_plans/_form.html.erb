@@ -1,9 +1,9 @@
-<%= form_with model: [:admin, payment_plan], local: true do |f| %>
-  <% if payment_plan.errors.any? %>
+<%= form_with model: [:admin, weekly_plan], local: true do |f| %>
+  <% if weekly_plan.errors.any? %>
     <div class="alert alert-error">
-      <h3><%= pluralize(payment_plan.errors.count, "error") %> impidieron guardar este plan:</h3>
+      <h3><%= pluralize(weekly_plan.errors.count, "error") %> impidieron guardar este plan:</h3>
       <ul>
-        <% payment_plan.errors.full_messages.each do |message| %>
+        <% weekly_plan.errors.full_messages.each do |message| %>
           <li><%= message %></li>
         <% end %>
       </ul>

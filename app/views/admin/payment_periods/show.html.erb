@@ -22,3 +22,45 @@
     <p><%= @payment_period.description || 'No especificada' %></p>
   </div>
 </div>
+
+<div class="card">
+  <h2>Precios Finales por Plan</h2>
+
+  <% if @weekly_plans.any? %>
+    <table>
+      <thead>
+        <tr>
+          <th>Plan Semanal</th>
+          <th>Precio Mensual</th>
+          <th>Período</th>
+          <th>Subtotal</th>
+          <th>Descuento</th>
+          <th>Total Final</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @weekly_plans.each do |plan| %>
+          <% if plan.price.present? %>
+            <%
+              monthly_price = plan.price
+              months = @payment_period.months
+              subtotal = monthly_price * months
+              discount_amount = subtotal * (@payment_period.discount_percentage / 100.0)
+              total = subtotal - discount_amount
+            %>
+            <tr>
+              <td><%= plan.plan %></td>
+              <td>$<%= number_with_delimiter(monthly_price) %></td>
+              <td><%= months %> <%= months == 1 ? 'mes' : 'meses' %></td>
+              <td>$<%= number_with_delimiter(subtotal) %></td>
+              <td style="color: #27ae60;">-$<%= number_with_delimiter(discount_amount.round) %></td>
+              <td style="font-weight: bold; color: #2c3e50;">$<%= number_with_delimiter(total.round) %></td>
+            </tr>
+          <% end %>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p>No hay planes semanales registrados.</p>
+  <% end %>
+</div>

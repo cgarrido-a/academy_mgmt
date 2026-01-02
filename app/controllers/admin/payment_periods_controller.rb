@@ -7,6 +7,7 @@ module Admin
     end
 
     def show
+      @weekly_plans = WeeklyPlan.all.order(weekly_classes: :asc)
     end
 
     def new

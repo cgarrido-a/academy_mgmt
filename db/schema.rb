@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_12_06_010608) do
+ActiveRecord::Schema[7.1].define(version: 2026_01_02_183931) do
   create_table "admin_users", force: :cascade do |t|
     t.string "admin_type"
     t.integer "user_id", null: false
@@ -64,6 +64,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_12_06_010608) do
     t.datetime "updated_at", null: false
     t.integer "number_of_classes"
     t.integer "price"
+    t.integer "class_price"
   end
 
   create_table "payments", force: :cascade do |t|

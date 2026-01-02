@@ -13,13 +13,13 @@
   </div>
 
   <div class="form-group">
-    <strong>Descripción:</strong>
-    <p><%= @payment_plan.description %></p>
+    <strong>Clases por Semana:</strong>
+    <p><%= @payment_plan.weekly_classes || 'No especificado' %></p>
   </div>
 
   <div class="form-group">
-    <strong>Precio por Clase:</strong>
-    <p>$<%= number_with_delimiter(@payment_plan.class_price || 0) %></p>
+    <strong>Descripción:</strong>
+    <p><%= @payment_plan.description %></p>
   </div>
 </div>
 

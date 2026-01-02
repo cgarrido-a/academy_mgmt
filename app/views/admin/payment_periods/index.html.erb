@@ -1,0 +1,39 @@
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2>Períodos de Pago</h2>
+    <%= link_to "Nuevo Período", new_admin_payment_period_path, class: "btn btn-success" %>
+  </div>
+
+  <% if @payment_periods.any? %>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Meses</th>
+          <th>Descuento (%)</th>
+          <th>Descripción</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @payment_periods.each do |period| %>
+          <tr>
+            <td><%= period.id %></td>
+            <td><%= period.months %> <%= period.months == 1 ? 'mes' : 'meses' %></td>
+            <td><%= period.discount_percentage %>%</td>
+            <td><%= period.description %></td>
+            <td>
+              <div class="actions">
+                <%= link_to "Ver", admin_payment_period_path(period), class: "btn btn-primary" %>
+                <%= link_to "Editar", edit_admin_payment_period_path(period), class: "btn btn-secondary" %>
+                <%= button_to "Eliminar", admin_payment_period_path(period), method: :delete, data: { confirm: "¿Estás seguro?" }, class: "btn btn-danger" %>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p>No hay períodos de pago registrados. <%= link_to "Crear el primero", new_admin_payment_period_path %></p>
+  <% end %>
+</div>

@@ -1,0 +1,24 @@
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2>Período de Pago #<%= @payment_period.id %></h2>
+    <div class="actions">
+      <%= link_to "Editar", edit_admin_payment_period_path(@payment_period), class: "btn btn-secondary" %>
+      <%= link_to "Volver", admin_payment_periods_path, class: "btn btn-primary" %>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <strong>Cantidad de Meses:</strong>
+    <p><%= @payment_period.months %> <%= @payment_period.months == 1 ? 'mes' : 'meses' %></p>
+  </div>
+
+  <div class="form-group">
+    <strong>Descuento:</strong>
+    <p><%= @payment_period.discount_percentage %>%</p>
+  </div>
+
+  <div class="form-group">
+    <strong>Descripción:</strong>
+    <p><%= @payment_period.description || 'No especificada' %></p>
+  </div>
+</div>

@@ -16,6 +16,7 @@ Rails.application.routes.draw do
         end
       end
       resources :payment_plans, only: [:index]
+      resources :payment_periods, only: [:index]
       resources :payment_methods, only: [:index]
       resources :enrollments, only: [:create]
     end
@@ -30,6 +31,7 @@ Rails.application.routes.draw do
     resources :enrollment_sections, only: [:edit, :update, :destroy]
     resources :users
     resources :payment_plans
+    resources :payment_periods
     resources :payment_methods
     resources :payments
     resources :transbank_transactions, only: [:index, :show]

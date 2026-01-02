@@ -5,5 +5,5 @@ class PaymentPlan < ApplicationRecord
   # Validations
   validates :plan, presence: true
   validates :description, presence: true
-  validates :number_of_classes, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
+  validates :weekly_classes, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
 end

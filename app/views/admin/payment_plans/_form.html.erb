@@ -12,19 +12,19 @@
 
   <div class="form-group">
     <%= f.label :plan, "Plan" %>
-    <%= f.text_field :plan, required: true, placeholder: "Ej: Plan A, Plan Mensual, Plan Trimestral" %>
+    <%= f.text_field :plan, required: true, placeholder: "Ej: 1 clase/semana, 2 clases/semana" %>
     <small style="color: #666;">Nombre o identificador del plan de pago</small>
+  </div>
+
+  <div class="form-group">
+    <%= f.label :weekly_classes, "Clases por Semana" %>
+    <%= f.number_field :weekly_classes, min: 1, placeholder: "Ej: 1, 2, 3" %>
+    <small style="color: #666;">Cantidad de clases que el alumno toma por semana</small>
   </div>
 
   <div class="form-group">
     <%= f.label :description, "Descripción" %>
     <%= f.text_area :description, required: true, rows: 3, placeholder: "Ej: Plan de pago en 3 cuotas mensuales sin interés" %>
-  </div>
-
-  <div class="form-group">
-    <%= f.label :class_price, "Precio por Clase" %>
-    <%= f.number_field :class_price, min: 0, placeholder: "Ej: 15000" %>
-    <small style="color: #666;">Precio de cada clase individual</small>
   </div>
 
   <div class="actions">

@@ -8,7 +8,7 @@ class EnrollmentCreator
     @start_date = params[:start_date]
     @section_ids = params[:section_ids] || [params[:section_id]].compact
     @section_dates = params[:section_dates] || {}
-    @payment_plan_id = params[:payment_plan_id]
+    @weekly_plan_id = params[:weekly_plan_id]
     @payment_method_id = params[:payment_method_id]
     @enrollment_amount = params[:enrollment_amount]
     @total_tuition_fee = params[:total_tuition_fee]
@@ -58,7 +58,7 @@ class EnrollmentCreator
   def create_enrollment
     @enrollment = Enrollment.create!(
       student: @student,
-      payment_plan_id: @payment_plan_id,
+      weekly_plan_id: @weekly_plan_id,
       payment_method_id: @payment_method_id,
       enrollment_amount: @enrollment_amount,
       total_tuition_fee: @total_tuition_fee,
@@ -67,9 +67,9 @@ class EnrollmentCreator
   end
 
   def create_enrollment_sections
-    # Get number of classes from payment plan
-    payment_plan = PaymentPlan.find(@payment_plan_id)
-    number_of_classes = payment_plan.number_of_classes
+    # Get number of classes from weekly plan
+    weekly_plan = WeeklyPlan.find(@weekly_plan_id)
+    number_of_classes = weekly_plan.number_of_classes
 
     @section_ids.each do |section_id|
       section = Section.find(section_id)

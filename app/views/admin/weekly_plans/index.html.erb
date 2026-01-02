@@ -1,10 +1,10 @@
 <div class="card">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
     <h2>Planes de Pago</h2>
-    <%= link_to "Nuevo Plan", new_admin_payment_plan_path, class: "btn btn-success" %>
+    <%= link_to "Nuevo Plan", new_admin_weekly_plan_path, class: "btn btn-success" %>
   </div>
 
-  <% if @payment_plans.any? %>
+  <% if @weekly_plans.any? %>
     <table>
       <thead>
         <tr>
@@ -17,7 +17,7 @@
         </tr>
       </thead>
       <tbody>
-        <% @payment_plans.each do |plan| %>
+        <% @weekly_plans.each do |plan| %>
           <tr>
             <td><%= plan.id %></td>
             <td><%= plan.plan %></td>
@@ -26,9 +26,9 @@
             <td><%= plan.enrollments.count %></td>
             <td>
               <div class="actions">
-                <%= link_to "Ver", admin_payment_plan_path(plan), class: "btn btn-primary" %>
-                <%= link_to "Editar", edit_admin_payment_plan_path(plan), class: "btn btn-secondary" %>
-                <%= button_to "Eliminar", admin_payment_plan_path(plan), method: :delete, data: { confirm: "¿Estás seguro?" }, class: "btn btn-danger" %>
+                <%= link_to "Ver", admin_weekly_plan_path(plan), class: "btn btn-primary" %>
+                <%= link_to "Editar", edit_admin_weekly_plan_path(plan), class: "btn btn-secondary" %>
+                <%= button_to "Eliminar", admin_weekly_plan_path(plan), method: :delete, data: { confirm: "¿Estás seguro?" }, class: "btn btn-danger" %>
               </div>
             </td>
           </tr>
@@ -36,6 +36,6 @@
       </tbody>
     </table>
   <% else %>
-    <p>No hay planes de pago registrados. <%= link_to "Crear el primero", new_admin_payment_plan_path %></p>
+    <p>No hay planes de pago registrados. <%= link_to "Crear el primero", new_admin_weekly_plan_path %></p>
   <% end %>
 </div>

@@ -1,20 +1,20 @@
 module Api
   module V1
     class PaymentPeriodsController < BaseController
-      # GET /api/v1/payment_periods?payment_plan_id=1
+      # GET /api/v1/payment_periods?weekly_plan_id=1
       def index
         payment_periods = PaymentPeriod.all.order(months: :asc)
-        payment_plan = params[:payment_plan_id].present? ? PaymentPlan.find_by(id: params[:payment_plan_id]) : nil
+        weekly_plan = params[:weekly_plan_id].present? ? WeeklyPlan.find_by(id: params[:weekly_plan_id]) : nil
 
         render json: {
           success: true,
-          data: payment_periods.map { |period| payment_period_data(period, payment_plan) }
+          data: payment_periods.map { |period| payment_period_data(period, weekly_plan) }
         }
       end
 
       private
 
-      def payment_period_data(period, payment_plan = nil)
+      def payment_period_data(period, weekly_plan = nil)
         data = {
           id: period.id,
           months: period.months,
@@ -23,8 +23,8 @@ module Api
         }
 
         # Si se proporciona un plan, calcular el precio total
-        if payment_plan && payment_plan.price.present?
-          monthly_price = payment_plan.price
+        if weekly_plan && weekly_plan.price.present?
+          monthly_price = weekly_plan.price
           subtotal = monthly_price * period.months
           discount_amount = subtotal * (period.discount_percentage / 100.0)
           total = subtotal - discount_amount

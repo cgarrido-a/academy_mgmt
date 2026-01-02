@@ -15,7 +15,7 @@ Rails.application.routes.draw do
           get 'preview_class_dates', action: :preview_class_dates
         end
       end
-      resources :payment_plans, only: [:index]
+      resources :weekly_plans, only: [:index]
       resources :payment_periods, only: [:index]
       resources :payment_methods, only: [:index]
       resources :enrollments, only: [:create]
@@ -30,7 +30,7 @@ Rails.application.routes.draw do
     resources :enrollments
     resources :enrollment_sections, only: [:edit, :update, :destroy]
     resources :users
-    resources :payment_plans
+    resources :weekly_plans
     resources :payment_periods
     resources :payment_methods
     resources :payments

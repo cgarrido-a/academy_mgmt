@@ -1,19 +1,19 @@
 module Api
   module V1
-    class PaymentPlansController < BaseController
-      # GET /api/v1/payment_plans
+    class WeeklyPlansController < BaseController
+      # GET /api/v1/weekly_plans
       def index
-        payment_plans = PaymentPlan.all
+        weekly_plans = WeeklyPlan.all
 
         render json: {
           success: true,
-          data: payment_plans.map { |plan| payment_plan_data(plan) }
+          data: weekly_plans.map { |plan| weekly_plan_data(plan) }
         }
       end
 
       private
 
-      def payment_plan_data(plan)
+      def weekly_plan_data(plan)
         {
           id: plan.id,
           plan: plan.plan,

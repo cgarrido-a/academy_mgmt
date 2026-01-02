@@ -31,7 +31,7 @@ module Api
           :phone,
           :start_date,
           :section_id,
-          :payment_plan_id,
+          :weekly_plan_id,
           :payment_method_id,
           :enrollment_amount,
           :total_tuition_fee,

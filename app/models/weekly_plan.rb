@@ -1,4 +1,4 @@
-class PaymentPlan < ApplicationRecord
+class WeeklyPlan < ApplicationRecord
   # Associations
   has_many :enrollments
 

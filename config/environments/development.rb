@@ -62,7 +62,7 @@ Rails.application.configure do
   # Suppress logger output for asset requests.
   config.assets.quiet = true
 
-  config.hosts << "decided-east-calling-threatening.trycloudflare.com"
+  config.hosts << "springs-bra-pioneer-bolt.trycloudflare.com"
 
   # Configure default URL options for URL helpers
   config.action_controller.default_url_options = {

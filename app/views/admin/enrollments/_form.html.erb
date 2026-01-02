@@ -138,9 +138,9 @@
   </script>
 
   <div class="form-group">
-    <%= f.label :payment_plan_id, "Plan de Pago" %>
-    <%= f.select :payment_plan_id,
-        options_from_collection_for_select(payment_plans, :id, :description, enrollment.payment_plan_id),
+    <%= f.label :weekly_plan_id, "Plan de Pago" %>
+    <%= f.select :weekly_plan_id,
+        options_from_collection_for_select(payment_plans, :id, :description, enrollment.weekly_plan_id),
         { prompt: "Seleccione un plan de pago" },
         required: true %>
   </div>

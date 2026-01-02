@@ -1,7 +1,7 @@
 class Enrollment < ApplicationRecord
   # Associations
   belongs_to :student
-  belongs_to :payment_plan
+  belongs_to :weekly_plan
   belongs_to :payment_method
   has_many :enrollment_sections, dependent: :destroy
   has_many :sections, through: :enrollment_sections
@@ -10,7 +10,7 @@ class Enrollment < ApplicationRecord
 
   # Validations
   validates :student, presence: true
-  validates :payment_plan, presence: true
+  validates :weekly_plan, presence: true
   validates :payment_method, presence: true
   validates :enrollment_amount, presence: true, numericality: { greater_than: 0 }
 

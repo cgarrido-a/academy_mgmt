@@ -10,9 +10,8 @@
         <tr>
           <th>ID</th>
           <th>Plan</th>
-          <th>Precio</th>
           <th>Descripción</th>
-          <th>Número de Clases</th>
+          <th>Precio por Clase</th>
           <th>Inscripciones</th>
           <th>Acciones</th>
         </tr>
@@ -22,9 +21,8 @@
           <tr>
             <td><%= plan.id %></td>
             <td><%= plan.plan %></td>
-            <td><%= plan.price %></td>
             <td><%= plan.description %></td>
-            <td><%= plan.number_of_classes || '-' %></td>
+            <td>$<%= number_with_delimiter(plan.class_price || 0) %></td>
             <td><%= plan.enrollments.count %></td>
             <td>
               <div class="actions">

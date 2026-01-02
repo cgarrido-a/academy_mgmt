@@ -18,6 +18,7 @@ module Api
           id: plan.id,
           plan: plan.plan,
           description: plan.description,
+          price: plan.price,
           weekly_classes: plan.weekly_classes
         }
       end

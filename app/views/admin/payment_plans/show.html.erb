@@ -18,6 +18,11 @@
   </div>
 
   <div class="form-group">
+    <strong>Precio Mensual:</strong>
+    <p>$<%= number_with_delimiter(@payment_plan.price || 0) %></p>
+  </div>
+
+  <div class="form-group">
     <strong>Descripción:</strong>
     <p><%= @payment_plan.description %></p>
   </div>

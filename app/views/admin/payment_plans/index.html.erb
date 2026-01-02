@@ -11,6 +11,7 @@
           <th>ID</th>
           <th>Plan</th>
           <th>Clases/Semana</th>
+          <th>Precio Mensual</th>
           <th>Inscripciones</th>
           <th>Acciones</th>
         </tr>
@@ -21,6 +22,7 @@
             <td><%= plan.id %></td>
             <td><%= plan.plan %></td>
             <td><%= plan.weekly_classes || '-' %></td>
+            <td>$<%= number_with_delimiter(plan.price || 0) %></td>
             <td><%= plan.enrollments.count %></td>
             <td>
               <div class="actions">

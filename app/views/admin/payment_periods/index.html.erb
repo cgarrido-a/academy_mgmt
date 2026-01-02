@@ -1,7 +1,7 @@
 <div class="card">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-    <h2>Períodos de Pago</h2>
-    <%= link_to "Nuevo Período", new_admin_payment_period_path, class: "btn btn-success" %>
+    <h2>Descuentos por Período</h2>
+    <%= link_to "Nuevo Descuento", new_admin_payment_period_path, class: "btn btn-success" %>
   </div>
 
   <% if @payment_periods.any? %>
@@ -34,6 +34,6 @@
       </tbody>
     </table>
   <% else %>
-    <p>No hay períodos de pago registrados. <%= link_to "Crear el primero", new_admin_payment_period_path %></p>
+    <p>No hay descuentos por período registrados. <%= link_to "Crear el primero", new_admin_payment_period_path %></p>
   <% end %>
 </div>

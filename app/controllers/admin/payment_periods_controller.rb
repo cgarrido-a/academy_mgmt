@@ -17,7 +17,7 @@ module Admin
       @payment_period = PaymentPeriod.new(payment_period_params)
 
       if @payment_period.save
-        redirect_to admin_payment_periods_path, notice: 'Período de pago creado exitosamente.'
+        redirect_to admin_payment_periods_path, notice: 'Descuento por período creado exitosamente.'
       else
         render :new, status: :unprocessable_entity
       end
@@ -28,7 +28,7 @@ module Admin
 
     def update
       if @payment_period.update(payment_period_params)
-        redirect_to admin_payment_periods_path, notice: 'Período de pago actualizado exitosamente.'
+        redirect_to admin_payment_periods_path, notice: 'Descuento por período actualizado exitosamente.'
       else
         render :edit, status: :unprocessable_entity
       end
@@ -36,7 +36,7 @@ module Admin
 
     def destroy
       @payment_period.destroy
-      redirect_to admin_payment_periods_path, notice: 'Período de pago eliminado exitosamente.'
+      redirect_to admin_payment_periods_path, notice: 'Descuento por período eliminado exitosamente.'
     end
 
     private

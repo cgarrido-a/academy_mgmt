@@ -1,6 +1,6 @@
 <div class="card">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-    <h2>Plan de Pago #<%= @weekly_plan.id %></h2>
+    <h2>Plan Semanal #<%= @weekly_plan.id %></h2>
     <div class="actions">
       <%= link_to "Editar", edit_admin_weekly_plan_path(@weekly_plan), class: "btn btn-secondary" %>
       <%= link_to "Volver", admin_weekly_plans_path, class: "btn btn-primary" %>
@@ -59,6 +59,6 @@
       </tbody>
     </table>
   <% else %>
-    <p>No hay inscripciones con este plan de pago.</p>
+    <p>No hay inscripciones con este plan semanal.</p>
   <% end %>
 </div>

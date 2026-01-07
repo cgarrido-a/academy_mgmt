@@ -68,7 +68,7 @@
               <div>
                 <h3 style="margin-bottom: 0.5rem;">Matrícula - Inscripción #<%= enrollment.id %></h3>
                 <p><strong>Cursos:</strong> <%= enrollment.sections.map { |s| s.course.title }.uniq.join(', ') %></p>
-                <p><strong>Plan:</strong> <%= enrollment.payment_plan.description %></p>
+                <p><strong>Plan:</strong> <%= enrollment.weekly_plan.description %></p>
                 <p class="payment-amount">$<%= number_with_delimiter(enrollment.enrollment_amount) %></p>
               </div>
               <div>

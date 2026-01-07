@@ -5,15 +5,11 @@ module Students
 
     # GET /student/payments
     def index
-      @enrollments = @student.enrollments.includes(:sections, :payment_plan, :payment_method, :tuition_fee)
+      @enrollments = @student.enrollments.includes(:sections, :weekly_plan, :payment_method)
       @pending_enrollment_fees = @enrollments.reject(&:enrollment_fee_paid?)
 
-      # Get all pending installments
-      @pending_installments = Installment.joins(tuition_fee: :enrollment)
-                                        .where(enrollments: { student_id: @student.id })
-                                        .where.not(status: 'paid')
-                                        .includes(tuition_fee: { enrollment: [:student, :sections] })
-                                        .order(:due_date)
+      # Note: installments and tuition_fees tables no longer exist
+      @pending_installments = []
     end
 
     # POST /student/payments/pay_enrollment_fee/:enrollment_id

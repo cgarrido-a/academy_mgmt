@@ -26,7 +26,7 @@
             <td><%= enrollment.student.user.name %></td>
             <td><%= enrollment.sections.map { |s| s.course.title }.uniq.join(', ') %></td>
             <td><%= enrollment.sections.map { |s| s.formatted_schedule }.join(', ') %></td>
-            <td><%= enrollment.payment_plan.description %></td>
+            <td><%= enrollment.weekly_plan.description %></td>
             <td><%= enrollment.payment_method.payment_method %></td>
             <td>$<%= number_with_delimiter(enrollment.total_tuition_fee) %></td>
             <td><%= enrollment.created_at.strftime('%d/%m/%Y') %></td>

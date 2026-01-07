@@ -140,7 +140,7 @@
   <div class="form-group">
     <%= f.label :weekly_plan_id, "Plan de Pago" %>
     <%= f.select :weekly_plan_id,
-        options_from_collection_for_select(payment_plans, :id, :description, enrollment.weekly_plan_id),
+        options_from_collection_for_select(weekly_plans, :id, :description, enrollment.weekly_plan_id),
         { prompt: "Seleccione un plan de pago" },
         required: true %>
   </div>

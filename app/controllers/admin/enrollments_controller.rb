@@ -3,7 +3,7 @@ module Admin
     before_action :set_enrollment, only: [:show, :edit, :update, :destroy]
 
     def index
-      @enrollments = Enrollment.includes(student: :user, sections: :course, payment_plan: [], payment_method: [])
+      @enrollments = Enrollment.includes(student: :user, sections: :course, weekly_plan: [], payment_method: [])
                                .order(created_at: :desc)
     end
 
@@ -37,8 +37,8 @@ module Admin
           start_date = enrollment_params[:date].presence || Date.today
           start_date = Date.parse(start_date) if start_date.is_a?(String)
 
-          # Get number of classes from payment plan
-          number_of_classes = @enrollment.payment_plan.number_of_classes
+          # Get number of classes from weekly plan
+          number_of_classes = @enrollment.weekly_plan.number_of_classes
 
           section_ids.each do |section_id|
             section = Section.find(section_id)
@@ -110,8 +110,8 @@ module Admin
           start_date = enrollment_params[:section_date].presence || Date.today
           start_date = Date.parse(start_date) if start_date.is_a?(String)
 
-          # Get number of classes from payment plan
-          number_of_classes = @enrollment.payment_plan.number_of_classes
+          # Get number of classes from weekly plan
+          number_of_classes = @enrollment.weekly_plan.number_of_classes
 
           @enrollment.enrollment_sections.destroy_all
           section_ids.each do |section_id|
@@ -155,12 +155,17 @@ module Admin
     def load_form_data
       @students = Student.includes(:user).all
       @sections = Section.includes(:course, teacher: :user).all
-      @payment_plans = PaymentPlan.all
+      @weekly_plans = WeeklyPlan.all
       @payment_methods = PaymentMethod.all
+
+      # Check if there are any weekly plans
+      if @weekly_plans.empty?
+        flash.now[:alert] = "No existen planes semanales registrados. Por favor, cree al menos un plan antes de crear una inscripción."
+      end
     end
 
     def enrollment_params
-      permitted = params.require(:enrollment).permit(:student_id, :section_id, :payment_plan_id, :payment_method_id, :enrollment_amount, :total_tuition_fee, :payment_date, :date, section_ids: [])
+      permitted = params.require(:enrollment).permit(:student_id, :section_id, :weekly_plan_id, :payment_method_id, :enrollment_amount, :total_tuition_fee, :payment_date, :date, section_ids: [])
 
       # Convert section_id to section_ids array for compatibility
       if permitted[:section_id].present? && permitted[:section_ids].blank?

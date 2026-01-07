@@ -51,19 +51,19 @@ module Api
       end
 
       # GET /api/v1/sections/:id/preview_class_dates
-      # Params: start_date (YYYY-MM-DD), payment_plan_id (integer)
+      # Params: start_date (YYYY-MM-DD), weekly_plan_id (integer)
       # Returns the dates that would be assigned for an enrollment
       def preview_class_dates
         puts "Params received: #{params.inspect}"
         section = Section.find(params[:id])
         start_date = Date.parse(params[:start_date])
-        payment_plan = PaymentPlan.find(params[:payment_plan_id])
-        number_of_classes = payment_plan.number_of_classes
+        weekly_plan = WeeklyPlan.find(params[:weekly_plan_id])
+        number_of_classes = weekly_plan.number_of_classes
 
         if number_of_classes <= 0
           return render json: {
             success: false,
-            error: 'El plan de pago debe tener al menos 1 clase'
+            error: 'El plan semanal debe tener al menos 1 clase'
           }, status: :bad_request
         end
 
@@ -103,11 +103,11 @@ module Api
             weekday: section.weekday,
             schedule: section.schedule,
             teacher_name: section.teacher.user.name,
-            payment_plan: {
-              id: payment_plan.id,
-              description: payment_plan.description,
+            weekly_plan: {
+              id: weekly_plan.id,
+              description: weekly_plan.description,
               number_of_classes: number_of_classes,
-              price: payment_plan.price
+              price: weekly_plan.price
             },
             start_date: start_date,
             assigned_dates: assigned_dates_data,

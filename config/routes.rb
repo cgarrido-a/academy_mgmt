@@ -27,7 +27,11 @@ Rails.application.routes.draw do
     root "dashboard#index"
     resources :courses
     resources :sections
-    resources :enrollments
+    resources :enrollments do
+      collection do
+        get 'sections_by_course', action: :sections_by_course
+      end
+    end
     resources :enrollment_sections, only: [:edit, :update, :destroy]
     resources :users
     resources :weekly_plans

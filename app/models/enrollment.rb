@@ -13,6 +13,7 @@ class Enrollment < ApplicationRecord
   validates :weekly_plan, presence: true
   validates :payment_method, presence: true
   validates :enrollment_amount, presence: true, numericality: { greater_than: 0 }
+  validates :total_tuition_fee, presence: true, numericality: { greater_than: 0 }
 
   # Helper methods for payments
   def enrollment_fee_payment

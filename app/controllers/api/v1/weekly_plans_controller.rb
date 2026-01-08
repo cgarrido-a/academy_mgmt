@@ -19,7 +19,9 @@ module Api
           plan: plan.plan,
           description: plan.description,
           price: plan.price,
-          weekly_classes: plan.weekly_classes
+          enrollment_fee: plan.enrollment_fee,
+          weekly_classes: plan.weekly_classes,
+          number_of_classes: plan.number_of_classes
         }
       end
     end

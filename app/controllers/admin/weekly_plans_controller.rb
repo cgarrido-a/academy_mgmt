@@ -3,7 +3,7 @@ module Admin
     before_action :set_weekly_plan, only: [:show, :edit, :update, :destroy]
 
     def index
-      @weekly_plans = WeeklyPlan.all.order(plan: :asc)
+      @weekly_plans = WeeklyPlan.all.order('weekly_classes ASC NULLS LAST, plan ASC')
     end
 
     def show

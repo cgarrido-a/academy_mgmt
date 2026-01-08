@@ -654,7 +654,7 @@
                     </select>
                   </div>
                   <div style="flex: 1; text-align: right; margin-left: 10px;">
-                    <span style="color: #27ae60; font-size: 0.9em; font-weight: bold;">${dateInfo.available_places} cupos</span>
+                    <span class="section-places-info" style="color: #27ae60; font-size: 0.9em; font-weight: bold;">${dateInfo.available_places} cupos</span>
                   </div>
                 </div>
               `;
@@ -697,6 +697,15 @@
       function updateClassDate(index, newDate) {
         selectedClassDates[index] = newDate;
         updateClassDatesHiddenFields();
+
+        // Update available places display for the selected date
+        const dateInfo = availableDatesForSection.find(d => d.date === newDate);
+        if (dateInfo) {
+          const placesSpan = document.querySelector(`#class_date_${index}`).closest('div').parentElement.querySelector('.section-places-info');
+          if (placesSpan) {
+            placesSpan.textContent = `${dateInfo.available_places} cupos`;
+          }
+        }
       }
 
       function updateClassDatesHiddenFields() {
@@ -980,7 +989,7 @@
         displayExistingClassDates();
       }
 
-      function displayExistingClassDates() {
+      async function displayExistingClassDates() {
         if (enrollmentData.class_dates.length === 0) {
           return;
         }
@@ -991,40 +1000,68 @@
         const weeklyPlan = weeklyPlans.find(p => p.id === enrollmentData.weekly_plan_id);
         const weeklyClasses = weeklyPlan ? (weeklyPlan.number_of_classes || 1) : 1;
 
-        let html = `
-          <p style="margin-top: 0; font-weight: bold; color: #333;">
-            Plan: ${weeklyPlan ? weeklyPlan.plan : 'N/A'}
-          </p>
-          <p style="margin: 5px 0; color: #666; font-size: 0.95em;">
-            Total: ${enrollmentData.class_dates.length} clases programadas
-          </p>
-          <div style="margin: 10px 0;">
-        `;
+        // Load available dates from the calendar for the section
+        const sectionId = Array.from(selectedSectionIds)[0];
+        if (!sectionId) {
+          generatedDatesContainer.innerHTML = '<p style="color: #e74c3c;">Error: No se pudo cargar las fechas disponibles</p>';
+          return;
+        }
 
-        enrollmentData.class_dates.forEach((dateStr, index) => {
-          const dateObj = new Date(dateStr + 'T00:00:00');
-          const formattedDate = dateObj.toLocaleDateString('es-ES', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
+        try {
+          generatedDatesContainer.innerHTML = '<p style="color: #999;">Cargando fechas disponibles...</p>';
+
+          const calendarResponse = await fetch(`/api/v1/sections/${sectionId}/calendar`);
+          const calendarData = await calendarResponse.json();
+
+          if (!calendarData.success) {
+            generatedDatesContainer.innerHTML = '<p style="color: #e74c3c;">Error al cargar las fechas disponibles</p>';
+            return;
+          }
+
+          availableDatesForSection = calendarData.data.dates.filter(d => d.available_places > 0);
+
+          let html = `
+            <p style="margin-top: 0; font-weight: bold; color: #333;">
+              Plan: ${weeklyPlan ? weeklyPlan.plan : 'N/A'}
+            </p>
+            <p style="margin: 5px 0; color: #666; font-size: 0.95em;">
+              Total: ${enrollmentData.class_dates.length} clases programadas
+            </p>
+            <div style="margin: 10px 0;">
+          `;
+
+          enrollmentData.class_dates.forEach((dateStr, index) => {
+            // Find the selected date info to show available places
+            const selectedDateInfo = calendarData.data.dates.find(d => d.date === dateStr);
+            const availablePlaces = selectedDateInfo ? selectedDateInfo.available_places : '?';
+
+            html += `
+              <div style="display: flex; align-items: center; margin-bottom: 10px; padding: 10px; background: #f9f9f9; border-radius: 4px;">
+                <div style="flex: 1;">
+                  <strong>Clase ${index + 1}:</strong>
+                </div>
+                <div style="flex: 3;">
+                  <select
+                    id="class_date_${index}"
+                    onchange="updateClassDate(${index}, this.value)"
+                    style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.95em;">
+                    ${generateDateOptions(dateStr, availableDatesForSection)}
+                  </select>
+                </div>
+                <div style="flex: 1; text-align: right; margin-left: 10px;">
+                  <span class="section-places-info" style="color: #27ae60; font-size: 0.9em; font-weight: bold;">${availablePlaces} cupos</span>
+                </div>
+              </div>
+            `;
           });
 
-          html += `
-            <div style="display: flex; align-items: center; margin-bottom: 10px; padding: 10px; background: #f9f9f9; border-radius: 4px;">
-              <div style="flex: 1;">
-                <strong>Clase ${index + 1}:</strong>
-              </div>
-              <div style="flex: 3;">
-                <input type="text" value="${formattedDate}" readonly style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; background: #e9ecef; font-size: 0.95em;">
-              </div>
-            </div>
-          `;
-        });
-
-        html += '</div>';
-        generatedDatesContainer.innerHTML = html;
-        updateClassDatesHiddenFields();
+          html += '</div>';
+          generatedDatesContainer.innerHTML = html;
+          updateClassDatesHiddenFields();
+        } catch (error) {
+          console.error('Error al cargar fechas disponibles:', error);
+          generatedDatesContainer.innerHTML = '<p style="color: #e74c3c;">Error al cargar las fechas disponibles</p>';
+        }
       }
 
       // On page load, if editing and course is pre-selected, load calendar

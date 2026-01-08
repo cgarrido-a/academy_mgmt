@@ -3,9 +3,9 @@ module Api
     class EnrollmentsController < BaseController
       # POST /api/v1/enrollments
       def create
-        # Initialize Transbank payment WITHOUT creating enrollment
-        # Enrollment will be created after successful payment
-        transbank_data = initialize_transbank_payment_with_data(enrollment_params)
+        # Initialize Transbank payment WITHOUT creating enrollments
+        # Enrollments will be created after successful payment
+        transbank_data = initialize_transbank_payment_with_data(enrollments_params)
 
         render json: {
           success: true,
@@ -24,35 +24,44 @@ module Api
 
       private
 
-      def enrollment_params
-        params.require(:enrollment).permit(
-          :name,
-          :email,
-          :phone,
-          :start_date,
-          :section_id,
-          :weekly_plan_id,
-          :payment_method_id,
-          :payment_period_id,
-          section_ids: [],
-          section_dates: {}
-        )
+      def enrollments_params
+        # Accept an array of enrollments
+        params.require(:enrollments).map do |enrollment|
+          enrollment.permit(
+            :name,
+            :email,
+            :phone,
+            :start_date,
+            :section_id,
+            :weekly_plan_id,
+            :payment_method_id,
+            :payment_period_id,
+            section_ids: [],
+            section_dates: {}
+          )
+        end
       end
 
-      def initialize_transbank_payment_with_data(params)
-        puts "Initializing Transbank payment with enrollment data: #{params.inspect}"
+      def initialize_transbank_payment_with_data(enrollments_array)
+        puts "Initializing Transbank payment with enrollments data: #{enrollments_array.inspect}"
 
-        # Calculate total_tuition_fee from WeeklyPlan
-        weekly_plan = WeeklyPlan.find(params[:weekly_plan_id])
+        # Calculate total amount by summing all enrollments
+        total_amount = 0
 
-        if params[:payment_period_id].present?
-          payment_period = PaymentPeriod.find(params[:payment_period_id])
-          total_tuition_fee = weekly_plan.calculate_final_price(payment_period)
-        else
-          total_tuition_fee = weekly_plan.price
+        enrollments_array.each do |enrollment_params|
+          weekly_plan = WeeklyPlan.find(enrollment_params[:weekly_plan_id])
+
+          if enrollment_params[:payment_period_id].present?
+            payment_period = PaymentPeriod.find(enrollment_params[:payment_period_id])
+            enrollment_total = weekly_plan.calculate_final_price(payment_period)
+          else
+            enrollment_total = weekly_plan.price
+          end
+
+          total_amount += enrollment_total
         end
 
-        # Generate a short buy order for pending enrollment (max 26 chars)
+        # Generate a short buy order for pending enrollments (max 26 chars)
         # Format: PEND-{timestamp} (e.g., "PEND-1733452718" = 15 chars)
         buy_order = "PEND-#{Time.now.to_i}"
 
@@ -79,17 +88,17 @@ module Api
         response = tx.create(
           buy_order,
           SecureRandom.hex(10),
-          total_tuition_fee.to_i,
+          total_amount.to_i,
           transbank_callback_url
         )
 
-        # Create Transbank transaction record WITHOUT enrollment, storing enrollment_data instead
+        # Create Transbank transaction record WITHOUT enrollment, storing enrollments_array as enrollment_data
         transaction_record = TransbankTransaction.create!(
           enrollment_id: nil,
-          enrollment_data: params.to_h,
+          enrollment_data: { enrollments: enrollments_array.map(&:to_h) },
           payment_type: 'enrollment_fee',
           buy_order: buy_order,
-          amount: total_tuition_fee,
+          amount: total_amount,
           status: 'pending',
           token: response['token']
         )
@@ -100,7 +109,7 @@ module Api
           token: response['token'],
           full_url: "#{response['url']}?token_ws=#{response['token']}",
           buy_order: buy_order,
-          amount: total_tuition_fee,
+          amount: total_amount,
           transaction_id: transaction_record.id
         }
       end

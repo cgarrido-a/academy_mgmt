@@ -38,13 +38,19 @@ class TransbankController < ApplicationController
 
       # Check if transaction was approved
       if response['response_code'] == 0
-        # Transaction approved - this will create enrollment if it doesn't exist
-        payment = transaction_record.mark_as_authorized!(response)
+        # Transaction approved - this will create enrollment(s) if they don't exist
+        payments = transaction_record.mark_as_authorized!(response)
 
-        Rails.logger.info "Payment successfully processed: #{payment.id}"
-        Rails.logger.info "Enrollment created: #{transaction_record.enrollment_id}" if transaction_record.enrollment_id.present?
+        # Log payment info (handle both single and multiple payments)
+        if payments.is_a?(Array)
+          Rails.logger.info "Payments successfully processed: #{payments.map(&:id).join(', ')}"
+          Rails.logger.info "Enrollments created: #{payments.map { |p| p.enrollment_id }.join(', ')}"
+        else
+          Rails.logger.info "Payment successfully processed: #{payments.id}"
+          Rails.logger.info "Enrollment created: #{transaction_record.enrollment_id}" if transaction_record.enrollment_id.present?
+        end
 
-        redirect_to_frontend_success(transaction_record)
+        redirect_to_frontend_success(transaction_record, payments)
       else
         # Transaction rejected
         transaction_record.mark_as_failed!("Código de respuesta: #{response['response_code']}")
@@ -83,18 +89,28 @@ class TransbankController < ApplicationController
 
   def redirect_to_result(transaction_record)
     if transaction_record.authorized?
-      redirect_to_frontend_success(transaction_record)
+      # Get payments to extract enrollment IDs
+      payments = transaction_record.enrollment.payments.where(reference_number: transaction_record.authorization_code)
+      redirect_to_frontend_success(transaction_record, payments)
     else
       redirect_to_frontend_failure(transaction_record)
     end
   end
 
-  def redirect_to_frontend_success(transaction_record)
+  def redirect_to_frontend_success(transaction_record, payments = nil)
     # Build frontend success URL with transaction details
     frontend_url = ENV['FRONTEND_URL'] || 'http://localhost:5173'
 
+    # Extract enrollment IDs from payments
+    enrollment_ids = if payments.present?
+                       payments_array = payments.is_a?(Array) ? payments : [payments]
+                       payments_array.map(&:enrollment_id).uniq
+                     else
+                       [transaction_record.enrollment_id].compact
+                     end
+
     redirect_url = "#{frontend_url}/payment/success?" + {
-      enrollment_id: transaction_record.enrollment_id,
+      enrollment_ids: enrollment_ids.join(','),
       transaction_id: transaction_record.id,
       buy_order: transaction_record.buy_order,
       amount: transaction_record.amount,

@@ -39,30 +39,69 @@ class TransbankTransaction < ApplicationRecord
     "ENR#{identifier}-FEE-#{timestamp}"
   end
 
-  # Create enrollment from stored enrollment_data
+  # Create enrollment(s) from stored enrollment_data
   def create_enrollment_from_data!
     raise 'Enrollment already exists' if enrollment_id.present?
     raise 'No enrollment data present' if enrollment_data.blank?
 
     data = enrollment_data.with_indifferent_access
 
+    # Check if we have multiple enrollments or a single enrollment
+    if data[:enrollments].present?
+      # Multiple enrollments case
+      create_multiple_enrollments!(data[:enrollments])
+    else
+      # Single enrollment case (backwards compatibility)
+      create_single_enrollment!(data)
+    end
+  end
+
+  private
+
+  def create_single_enrollment!(data)
     # Use EnrollmentCreator to create the enrollment
     creator = EnrollmentCreator.new(data)
 
     if creator.call
       # Update this transaction with the created enrollment
       update!(enrollment: creator.enrollment)
-      creator.enrollment
+      [creator.enrollment] # Return as array for consistency
     else
       raise "Failed to create enrollment: #{creator.errors.join(', ')}"
     end
   end
 
-  # Mark transaction as authorized and create payment record
+  def create_multiple_enrollments!(enrollments_data)
+    created_enrollments = []
+    errors = []
+
+    enrollments_data.each_with_index do |enrollment_data, index|
+      creator = EnrollmentCreator.new(enrollment_data.with_indifferent_access)
+
+      if creator.call
+        created_enrollments << creator.enrollment
+      else
+        errors << "Enrollment #{index + 1}: #{creator.errors.join(', ')}"
+      end
+    end
+
+    if errors.any?
+      raise "Failed to create some enrollments: #{errors.join('; ')}"
+    end
+
+    # Update this transaction with the first enrollment as reference
+    update!(enrollment: created_enrollments.first) if created_enrollments.any?
+
+    created_enrollments
+  end
+
+  public
+
+  # Mark transaction as authorized and create payment record(s)
   def mark_as_authorized!(transbank_response)
     transaction do
-      # Create enrollment if it doesn't exist yet (from pending enrollment_data)
-      create_enrollment_from_data! if enrollment_id.blank? && enrollment_data.present?
+      # Create enrollment(s) if it doesn't exist yet (from pending enrollment_data)
+      created_enrollments = create_enrollment_from_data! if enrollment_id.blank? && enrollment_data.present?
 
       # Extract card number (last 4 digits) from card_detail
       card_number = if transbank_response['card_detail'].is_a?(Hash)
@@ -92,19 +131,25 @@ class TransbankTransaction < ApplicationRecord
         raw_response: transbank_response.to_json
       )
 
-      # Create Payment record using the enrollment's payment method
-      payment = Payment.create!(
-        enrollment: enrollment,
-        payment_type: payment_type,
-        amount: amount,
-        payment_date: Date.today,
-        payment_method: enrollment.payment_method,
-        reference_number: authorization_code,
-        notes: "Pago automático vía Transbank. Buy Order: #{buy_order}",
-        status: 'completed'
-      )
+      # Create Payment record(s) - one for each enrollment
+      payments = []
+      enrollments_to_process = created_enrollments || [enrollment]
 
-      payment
+      enrollments_to_process.each do |enr|
+        payment = Payment.create!(
+          enrollment: enr,
+          payment_type: payment_type,
+          amount: enr.total_tuition_fee,
+          payment_date: Date.today,
+          payment_method: enr.payment_method,
+          reference_number: authorization_code,
+          notes: "Pago automático vía Transbank. Buy Order: #{buy_order}",
+          status: 'completed'
+        )
+        payments << payment
+      end
+
+      payments.size == 1 ? payments.first : payments
     end
   end
 

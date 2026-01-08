@@ -329,44 +329,48 @@
   </style>
 
   <script>
-    // Global variables for calendar functionality
-    let currentCalendarMonth = new Date();
-    let availableDatesData = [];
-    let selectedSectionIds = new Set(<%= enrollment.section_ids.to_json.html_safe %>);
-    let allSections = [];
-    let weeklyPlans = <%= weekly_plans.to_json(only: [:id, :plan, :number_of_classes, :price, :enrollment_fee]).html_safe %>;
-    let paymentPeriods = <%= payment_periods.to_json(only: [:id, :months, :discount_percentage, :description]).html_safe %>;
+    (function() {
+      'use strict';
 
-    // Enrollment data for edit mode
-    let enrollmentData = {
-      id: <%= enrollment.id || 'null' %>,
-      weekly_plan_id: <%= enrollment.weekly_plan_id || 'null' %>,
-      enrollment_amount: <%= enrollment.enrollment_amount || 0 %>,
-      total_tuition_fee: <%= enrollment.total_tuition_fee || 0 %>,
-      class_dates: <%= enrollment.enrollment_sections.order(:date).pluck(:date).to_json.html_safe %>
-    };
+      // Global variables for calendar functionality (scoped to this IIFE)
+      let currentCalendarMonth = new Date();
+      let availableDatesData = [];
+      let selectedSectionIds = new Set(<%= enrollment.section_ids.to_json.html_safe %>);
+      let allSections = [];
+      let weeklyPlans = <%= weekly_plans.to_json(only: [:id, :plan, :number_of_classes, :price, :enrollment_fee]).html_safe %>;
+      let paymentPeriods = <%= payment_periods.to_json(only: [:id, :months, :discount_percentage, :description]).html_safe %>;
 
-    document.addEventListener('DOMContentLoaded', function() {
-      // Wait a tick to ensure all elements are rendered
-      setTimeout(function() {
-        const courseSelect = document.getElementById('course_select');
-        const calendarContainer = document.getElementById('calendar-container');
-        const calendarPickerContainer = document.getElementById('calendar-picker-container');
-        const hiddenFieldsContainer = document.getElementById('hidden-section-fields');
-        const startDateField = document.getElementById('start_date_field');
-        const weeklyPlanSelect = document.getElementById('weekly_plan_select');
-        const paymentPeriodSelect = document.getElementById('payment_period_select');
-        const priceCalculationDiv = document.getElementById('price_calculation');
-        const enrollmentAmountField = document.getElementById('enrollment_amount_field');
-        const totalTuitionFeeField = document.getElementById('total_tuition_fee_field');
-        const generatedDatesSection = document.getElementById('generated-dates-section');
-        const generatedDatesContainer = document.getElementById('generated-dates-container');
+      // Enrollment data for edit mode
+      let enrollmentData = {
+        id: <%= enrollment.id || 'null' %>,
+        weekly_plan_id: <%= enrollment.weekly_plan_id || 'null' %>,
+        enrollment_amount: <%= enrollment.enrollment_amount || 0 %>,
+        total_tuition_fee: <%= enrollment.total_tuition_fee || 0 %>,
+        class_dates: <%= enrollment.enrollment_sections.order(:date).pluck(:date).to_json.html_safe %>
+      };
 
-        // Verify all required elements are present
-        if (!courseSelect || !calendarContainer || !calendarPickerContainer || !hiddenFieldsContainer) {
-          console.error('Required form elements not found. Form initialization aborted.');
-          return;
-        }
+      // Use turbo:load instead of DOMContentLoaded for Turbo compatibility
+      document.addEventListener('turbo:load', function enrollmentFormInit() {
+        // Wait a tick to ensure all elements are rendered
+        setTimeout(function() {
+          const courseSelect = document.getElementById('course_select');
+          const calendarContainer = document.getElementById('calendar-container');
+          const calendarPickerContainer = document.getElementById('calendar-picker-container');
+          const hiddenFieldsContainer = document.getElementById('hidden-section-fields');
+          const startDateField = document.getElementById('start_date_field');
+          const weeklyPlanSelect = document.getElementById('weekly_plan_select');
+          const paymentPeriodSelect = document.getElementById('payment_period_select');
+          const priceCalculationDiv = document.getElementById('price_calculation');
+          const enrollmentAmountField = document.getElementById('enrollment_amount_field');
+          const totalTuitionFeeField = document.getElementById('total_tuition_fee_field');
+          const generatedDatesSection = document.getElementById('generated-dates-section');
+          const generatedDatesContainer = document.getElementById('generated-dates-container');
+
+          // Verify all required elements are present - if not, we're probably not on the enrollments form page
+          if (!courseSelect || !calendarContainer || !calendarPickerContainer || !hiddenFieldsContainer) {
+            // Not on the enrollments form page, skip initialization
+            return;
+          }
 
         const weekdays = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
@@ -1123,7 +1127,8 @@
       // Call initialization function
       initializeFormOnLoad();
       }, 0); // End of setTimeout
-    });
+      }); // End of turbo:load event listener
+    })(); // End of IIFE
   </script>
 
   <div class="form-group">

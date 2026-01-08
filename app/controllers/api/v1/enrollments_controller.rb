@@ -33,8 +33,7 @@ module Api
           :section_id,
           :weekly_plan_id,
           :payment_method_id,
-          :enrollment_amount,
-          :total_tuition_fee,
+          :payment_period_id,
           section_ids: [],
           section_dates: {}
         )
@@ -42,6 +41,16 @@ module Api
 
       def initialize_transbank_payment_with_data(params)
         puts "Initializing Transbank payment with enrollment data: #{params.inspect}"
+
+        # Calculate total_tuition_fee from WeeklyPlan
+        weekly_plan = WeeklyPlan.find(params[:weekly_plan_id])
+
+        if params[:payment_period_id].present?
+          payment_period = PaymentPeriod.find(params[:payment_period_id])
+          total_tuition_fee = weekly_plan.calculate_final_price(payment_period)
+        else
+          total_tuition_fee = weekly_plan.price
+        end
 
         # Generate a short buy order for pending enrollment (max 26 chars)
         # Format: PEND-{timestamp} (e.g., "PEND-1733452718" = 15 chars)
@@ -70,7 +79,7 @@ module Api
         response = tx.create(
           buy_order,
           SecureRandom.hex(10),
-          params[:total_tuition_fee].to_i,
+          total_tuition_fee.to_i,
           transbank_callback_url
         )
 
@@ -80,7 +89,7 @@ module Api
           enrollment_data: params.to_h,
           payment_type: 'enrollment_fee',
           buy_order: buy_order,
-          amount: params[:total_tuition_fee],
+          amount: total_tuition_fee,
           status: 'pending',
           token: response['token']
         )
@@ -91,7 +100,7 @@ module Api
           token: response['token'],
           full_url: "#{response['url']}?token_ws=#{response['token']}",
           buy_order: buy_order,
-          amount: params[:total_tuition_fee],
+          amount: total_tuition_fee,
           transaction_id: transaction_record.id
         }
       end

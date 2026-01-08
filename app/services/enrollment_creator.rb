@@ -10,10 +10,12 @@ class EnrollmentCreator
     @section_dates = params[:section_dates] || {}
     @weekly_plan_id = params[:weekly_plan_id]
     @payment_method_id = params[:payment_method_id]
-    @enrollment_amount = params[:enrollment_amount]
-    @total_tuition_fee = params[:total_tuition_fee]
+    @payment_period_id = params[:payment_period_id]
     @errors = []
     @enrollment = nil
+
+    # Calculate amounts from WeeklyPlan
+    calculate_amounts_from_weekly_plan
   end
 
   def call
@@ -213,5 +215,24 @@ class EnrollmentCreator
     end
 
     dates
+  end
+
+  def calculate_amounts_from_weekly_plan
+    return unless @weekly_plan_id.present?
+
+    weekly_plan = WeeklyPlan.find_by(id: @weekly_plan_id)
+    return unless weekly_plan
+
+    # Set enrollment amount from weekly_plan.enrollment_fee
+    @enrollment_amount = weekly_plan.enrollment_fee || 0
+
+    # Calculate total tuition fee
+    if @payment_period_id.present?
+      payment_period = PaymentPeriod.find_by(id: @payment_period_id)
+      @total_tuition_fee = weekly_plan.calculate_final_price(payment_period)
+    else
+      # If no payment period, use base price
+      @total_tuition_fee = weekly_plan.price || 0
+    end
   end
 end

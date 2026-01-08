@@ -40,13 +40,13 @@
   <div class="form-group">
     <%= f.label :start_date, "Fecha de Inicio" %>
 
-    <div id="available-dates-container">
-      <p style="color: #666; font-style: italic;">Selecciona una sección primero para ver las fechas disponibles</p>
+    <div id="calendar-picker-container" style="max-width: 500px; margin-top: 10px;">
+      <p style="color: #666; font-style: italic;">Selecciona una sección primero para ver el calendario de fechas disponibles</p>
     </div>
 
     <%= f.hidden_field :start_date, id: 'start_date_field', value: enrollment.enrollment_sections.first&.date %>
 
-    <small style="color: #666;">Selecciona la fecha de inicio de las clases</small>
+    <small style="color: #666;">Las fechas resaltadas tienen cupos disponibles</small>
   </div>
 
   <div class="form-group">
@@ -163,13 +163,184 @@
     .selected-sections-info.visible {
       display: block;
     }
+
+    /* Calendar Picker Styles */
+    .calendar-picker {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: white;
+      overflow: hidden;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .calendar-picker-header {
+      background: #2c3e50;
+      color: white;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .calendar-picker-header h3 {
+      margin: 0;
+      font-size: 1.1em;
+      font-weight: 600;
+    }
+
+    .calendar-picker-nav {
+      display: flex;
+      gap: 10px;
+    }
+
+    .calendar-picker-nav button {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      padding: 5px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1.2em;
+      transition: background 0.2s;
+    }
+
+    .calendar-picker-nav button:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .calendar-picker-weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      background: #ecf0f1;
+      padding: 10px 5px;
+      gap: 2px;
+    }
+
+    .calendar-picker-weekday {
+      text-align: center;
+      font-weight: bold;
+      font-size: 0.85em;
+      color: #555;
+      padding: 5px;
+    }
+
+    .calendar-picker-days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+      padding: 10px;
+    }
+
+    .calendar-picker-day {
+      aspect-ratio: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: white;
+      position: relative;
+      min-height: 60px;
+    }
+
+    .calendar-picker-day.other-month {
+      opacity: 0.3;
+      cursor: not-allowed;
+      background: #fafafa;
+    }
+
+    .calendar-picker-day.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      background: #f5f5f5;
+      color: #999;
+    }
+
+    .calendar-picker-day.available {
+      background: #e8f5e9;
+      border-color: #66bb6a;
+      cursor: pointer;
+    }
+
+    .calendar-picker-day.available:hover {
+      background: #c8e6c9;
+      border-color: #4caf50;
+      transform: scale(1.05);
+    }
+
+    .calendar-picker-day.selected {
+      background: #4caf50;
+      border-color: #388e3c;
+      color: white;
+      font-weight: bold;
+      box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.3);
+    }
+
+    .calendar-picker-day.today {
+      border-color: #2196f3;
+      font-weight: bold;
+    }
+
+    .calendar-day-number {
+      font-size: 1.1em;
+      margin-bottom: 2px;
+    }
+
+    .calendar-day-spots {
+      font-size: 0.7em;
+      color: #666;
+      margin-top: 2px;
+    }
+
+    .calendar-picker-day.available .calendar-day-spots {
+      color: #2e7d32;
+      font-weight: bold;
+    }
+
+    .calendar-picker-day.selected .calendar-day-spots {
+      color: white;
+    }
+
+    .calendar-picker-legend {
+      padding: 10px 15px;
+      background: #f9f9f9;
+      border-top: 1px solid #ddd;
+      font-size: 0.85em;
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .calendar-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .calendar-legend-color {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      border: 2px solid;
+    }
   </style>
 
   <script>
+    // Global variables for calendar functionality
+    let currentCalendarMonth = new Date();
+    let availableDatesData = [];
+    let selectedSectionIds = new Set(<%= enrollment.section_ids.to_json.html_safe %>);
+    let allSections = [];
+    let weeklyPlans = <%= weekly_plans.to_json(only: [:id, :plan, :number_of_classes, :price, :enrollment_fee]).html_safe %>;
+    let paymentPeriods = <%= payment_periods.to_json(only: [:id, :months, :discount_percentage, :description]).html_safe %>;
+
     document.addEventListener('DOMContentLoaded', function() {
       const courseSelect = document.getElementById('course_select');
       const calendarContainer = document.getElementById('calendar-container');
-      const datesContainer = document.getElementById('available-dates-container');
+      const calendarPickerContainer = document.getElementById('calendar-picker-container');
       const hiddenFieldsContainer = document.getElementById('hidden-section-fields');
       const startDateField = document.getElementById('start_date_field');
       const weeklyPlanSelect = document.getElementById('weekly_plan_select');
@@ -179,11 +350,6 @@
       const totalTuitionFeeField = document.getElementById('total_tuition_fee_field');
       const generatedDatesSection = document.getElementById('generated-dates-section');
       const generatedDatesContainer = document.getElementById('generated-dates-container');
-
-      let selectedSectionIds = new Set(<%= enrollment.section_ids.to_json.html_safe %>);
-      let allSections = [];
-      let weeklyPlans = <%= weekly_plans.to_json(only: [:id, :plan, :number_of_classes, :price, :enrollment_fee]).html_safe %>;
-      let paymentPeriods = <%= payment_periods.to_json(only: [:id, :months, :discount_percentage, :description]).html_safe %>;
 
       const weekdays = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
       const hours = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00'];
@@ -215,84 +381,179 @@
         if (selectedSectionIds.size > 0) {
           loadAvailableStartDates(Array.from(selectedSectionIds)[0]);
         } else {
-          datesContainer.innerHTML = '<p style="color: #666; font-style: italic;">Selecciona una sección primero para ver las fechas disponibles</p>';
+          calendarPickerContainer.innerHTML = '<p style="color: #666; font-style: italic;">Selecciona una sección primero para ver las fechas disponibles</p>';
           generatedDatesSection.style.display = 'none';
         }
       }
 
       async function loadAvailableStartDates(sectionId) {
         try {
-          datesContainer.innerHTML = '<p style="color: #999;">Cargando fechas disponibles...</p>';
+          calendarPickerContainer.innerHTML = '<p style="color: #999;">Cargando calendario...</p>';
 
           const response = await fetch(`/api/v1/sections/${sectionId}/calendar`);
           const data = await response.json();
 
           if (data.success && data.data.dates.length > 0) {
-            let html = `
-              <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
-                <p style="margin-top: 0; font-weight: bold; color: #333;">
-                  ${data.data.course} - ${data.data.weekday} ${data.data.schedule[0]}
-                </p>
-            `;
+            availableDatesData = data.data.dates;
 
-            data.data.dates.forEach((dateInfo) => {
-              const dateObj = new Date(dateInfo.date + 'T00:00:00');
-              const formattedDate = dateObj.toLocaleDateString('es-ES', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              });
-
-              const isAvailable = dateInfo.available_places > 0;
-              const isChecked = startDateField.value === dateInfo.date;
-
-              html += `
-                <div style="margin-bottom: 8px; padding: 8px; background: ${isAvailable ? '#f9f9f9' : '#ffe6e6'}; border-radius: 4px; ${!isAvailable ? 'opacity: 0.6;' : ''}">
-                  <label style="display: flex; align-items: center; cursor: ${isAvailable ? 'pointer' : 'not-allowed'};">
-                    <input
-                      type="radio"
-                      name="start_date_radio"
-                      value="${dateInfo.date}"
-                      ${!isAvailable ? 'disabled' : ''}
-                      ${isChecked ? 'checked' : ''}
-                      style="margin-right: 10px; width: 18px; height: 18px; cursor: ${isAvailable ? 'pointer' : 'not-allowed'};"
-                      onchange="selectStartDate('${dateInfo.date}')"
-                    />
-                    <span style="flex: 1;">
-                      <strong>${formattedDate}</strong>
-                      <br>
-                      <span style="color: ${isAvailable ? '#27ae60' : '#e74c3c'}; font-weight: bold; font-size: 0.9em;">
-                        ${dateInfo.available_places}/${dateInfo.total_places} cupos
-                      </span>
-                    </span>
-                  </label>
-                </div>
-              `;
-            });
-
-            html += '</div>';
-
-            if (selectedSectionIds.size > 1) {
-              html += `
-                <p style="margin-top: 10px; color: #f39c12; font-size: 0.9em;">
-                  ⚠️ Nota: Seleccionaste múltiples secciones. La fecha elegida se aplicará a todas.
-                </p>
-              `;
+            // Start with first available date's month or current month
+            if (availableDatesData.length > 0) {
+              const firstDate = new Date(availableDatesData[0].date + 'T00:00:00');
+              currentCalendarMonth = new Date(firstDate.getFullYear(), firstDate.getMonth(), 1);
             }
 
-            datesContainer.innerHTML = html;
+            renderCalendarPicker(data.data);
           } else {
-            datesContainer.innerHTML = '<p style="color: #e74c3c;">No hay fechas disponibles para esta sección.</p>';
+            calendarPickerContainer.innerHTML = '<p style="color: #e74c3c;">No hay fechas disponibles para esta sección.</p>';
           }
         } catch (error) {
           console.error('Error al cargar fechas:', error);
-          datesContainer.innerHTML = '<p style="color: #e74c3c;">Error al cargar las fechas disponibles. Intenta de nuevo.</p>';
+          calendarPickerContainer.innerHTML = '<p style="color: #e74c3c;">Error al cargar las fechas disponibles. Intenta de nuevo.</p>';
         }
       }
 
+      function renderCalendarPicker(sectionData) {
+        const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                           'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        const weekdayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+        const year = currentCalendarMonth.getFullYear();
+        const month = currentCalendarMonth.getMonth();
+
+        // Get first and last day of month
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const firstDayOfWeek = firstDay.getDay();
+        const daysInMonth = lastDay.getDate();
+
+        // Create dates map for quick lookup
+        const datesMap = {};
+        availableDatesData.forEach(d => {
+          datesMap[d.date] = d;
+        });
+
+        let html = `
+          <div class="calendar-picker">
+            <div class="calendar-picker-header">
+              <h3>${monthNames[month]} ${year}</h3>
+              <div class="calendar-picker-nav">
+                <button type="button" onclick="changeCalendarMonth(-1)">◀</button>
+                <button type="button" onclick="changeCalendarMonth(1)">▶</button>
+              </div>
+            </div>
+            <div class="calendar-picker-weekdays">
+              ${weekdayNames.map(day => `<div class="calendar-picker-weekday">${day}</div>`).join('')}
+            </div>
+            <div class="calendar-picker-days">
+        `;
+
+        // Add empty cells for days before first day of month
+        for (let i = 0; i < firstDayOfWeek; i++) {
+          html += '<div class="calendar-picker-day other-month"></div>';
+        }
+
+        // Add days of month
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const selectedDate = startDateField.value;
+
+        for (let day = 1; day <= daysInMonth; day++) {
+          const dateObj = new Date(year, month, day);
+          const dateStr = dateObj.toISOString().split('T')[0];
+          const dateData = datesMap[dateStr];
+
+          const isToday = dateObj.getTime() === today.getTime();
+          const isSelected = dateStr === selectedDate;
+          const isAvailable = dateData && dateData.available_places > 0;
+
+          let classes = ['calendar-picker-day'];
+          if (isToday) classes.push('today');
+          if (isSelected) classes.push('selected');
+          if (isAvailable) classes.push('available');
+          else if (!dateData) classes.push('disabled');
+          else classes.push('disabled');
+
+          const spots = dateData ? `${dateData.available_places}/${dateData.total_places}` : '';
+          const onclick = isAvailable ? `onclick="selectStartDate('${dateStr}')"` : '';
+
+          html += `
+            <div class="${classes.join(' ')}" ${onclick}>
+              <div class="calendar-day-number">${day}</div>
+              ${spots ? `<div class="calendar-day-spots">${spots}</div>` : ''}
+            </div>
+          `;
+        }
+
+        html += `
+            </div>
+            <div class="calendar-picker-legend">
+              <div class="calendar-legend-item">
+                <div class="calendar-legend-color" style="background: #e8f5e9; border-color: #66bb6a;"></div>
+                <span>Disponible</span>
+              </div>
+              <div class="calendar-legend-item">
+                <div class="calendar-legend-color" style="background: #4caf50; border-color: #388e3c;"></div>
+                <span>Seleccionado</span>
+              </div>
+              <div class="calendar-legend-item">
+                <div class="calendar-legend-color" style="background: #f5f5f5; border-color: #e0e0e0;"></div>
+                <span>No disponible</span>
+              </div>
+            </div>
+          </div>
+          <p style="margin-top: 10px; color: #555; font-size: 0.9em;">
+            <strong>${sectionData.course}</strong> - ${sectionData.weekday} ${sectionData.schedule[0]}
+          </p>
+        `;
+
+        if (selectedSectionIds.size > 1) {
+          html += `
+            <p style="margin-top: 10px; color: #f39c12; font-size: 0.9em;">
+              ⚠️ Nota: Seleccionaste múltiples secciones. La fecha elegida se aplicará a todas.
+            </p>
+          `;
+        }
+
+        calendarPickerContainer.innerHTML = html;
+      }
+
+      // Make function globally accessible
+      window.renderCalendarPicker = renderCalendarPicker;
+
+      function changeCalendarMonth(direction) {
+        currentCalendarMonth.setMonth(currentCalendarMonth.getMonth() + direction);
+
+        // Re-render with stored section data
+        if (selectedSectionIds.size > 0) {
+          const sectionId = Array.from(selectedSectionIds)[0];
+          const response = fetch(`/api/v1/sections/${sectionId}/calendar`)
+            .then(res => res.json())
+            .then(data => {
+              if (data.success) {
+                renderCalendarPicker(data.data);
+              }
+            });
+        }
+      }
+
+      // Make function globally accessible
+      window.changeCalendarMonth = changeCalendarMonth;
+
       function selectStartDate(date) {
         startDateField.value = date;
+
+        // Re-render calendar to show new selection
+        if (selectedSectionIds.size > 0) {
+          const sectionId = Array.from(selectedSectionIds)[0];
+          fetch(`/api/v1/sections/${sectionId}/calendar`)
+            .then(res => res.json())
+            .then(data => {
+              if (data.success) {
+                renderCalendarPicker(data.data);
+              }
+            });
+        }
+
         // If a plan and payment period are selected, regenerate the class dates
         if (weeklyPlanSelect.value && paymentPeriodSelect.value) {
           const selectedPeriodId = parseInt(paymentPeriodSelect.value);
@@ -302,6 +563,9 @@
           }
         }
       }
+
+      // Make function globally accessible
+      window.selectStartDate = selectStartDate;
 
       let selectedClassDates = []; // Store final selected dates
       let availableDatesForSection = []; // Store all available dates from calendar
@@ -515,7 +779,7 @@
           const courseId = this.value;
 
           calendarContainer.innerHTML = '<p style="color: #999; text-align: center; padding: 40px;">Cargando horario...</p>';
-          datesContainer.innerHTML = '<p style="color: #666; font-style: italic;">Selecciona una sección primero para ver las fechas disponibles</p>';
+          calendarPickerContainer.innerHTML = '<p style="color: #666; font-style: italic;">Selecciona una sección primero para ver las fechas disponibles</p>';
           generatedDatesSection.style.display = 'none';
           selectedSectionIds.clear();
           startDateField.value = '';

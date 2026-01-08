@@ -337,6 +337,15 @@
     let weeklyPlans = <%= weekly_plans.to_json(only: [:id, :plan, :number_of_classes, :price, :enrollment_fee]).html_safe %>;
     let paymentPeriods = <%= payment_periods.to_json(only: [:id, :months, :discount_percentage, :description]).html_safe %>;
 
+    // Enrollment data for edit mode
+    let enrollmentData = {
+      id: <%= enrollment.id || 'null' %>,
+      weekly_plan_id: <%= enrollment.weekly_plan_id || 'null' %>,
+      enrollment_amount: <%= enrollment.enrollment_amount || 0 %>,
+      total_tuition_fee: <%= enrollment.total_tuition_fee || 0 %>,
+      class_dates: <%= enrollment.enrollment_sections.order(:date).pluck(:date).to_json.html_safe %>
+    };
+
     document.addEventListener('DOMContentLoaded', function() {
       const courseSelect = document.getElementById('course_select');
       const calendarContainer = document.getElementById('calendar-container');
@@ -915,6 +924,109 @@
         return '$' + amount.toLocaleString('es-CL');
       }
 
+      // Initialize edit mode if enrollment data exists
+      function initializeEditMode() {
+        if (!enrollmentData.id || !enrollmentData.weekly_plan_id) {
+          return; // Not in edit mode
+        }
+
+        const weeklyPlan = weeklyPlans.find(p => p.id === enrollmentData.weekly_plan_id);
+        if (!weeklyPlan || enrollmentData.class_dates.length === 0) {
+          return;
+        }
+
+        // Populate payment period selector
+        paymentPeriodSelect.innerHTML = '<option value="">Seleccione un periodo de pago</option>';
+        paymentPeriods.forEach(period => {
+          const option = document.createElement('option');
+          option.value = period.id;
+          const description = period.description ? ` - ${period.description}` : '';
+          option.textContent = `${period.months} ${period.months === 1 ? 'mes' : 'meses'}${description}`;
+          paymentPeriodSelect.appendChild(option);
+        });
+        paymentPeriodSelect.disabled = false;
+
+        // Find matching payment period by calculating which one produces the same total_tuition_fee
+        let matchingPeriod = null;
+        const monthlyPrice = weeklyPlan.price || 0;
+        const savedTuitionFee = enrollmentData.total_tuition_fee;
+
+        for (const period of paymentPeriods) {
+          const subtotal = monthlyPrice * period.months;
+          const discountAmount = subtotal * ((period.discount_percentage || 0) / 100);
+          const calculatedTotal = Math.round(subtotal - discountAmount);
+
+          if (calculatedTotal === savedTuitionFee) {
+            matchingPeriod = period;
+            break;
+          }
+        }
+
+        // If no exact match, try to match by number of classes
+        if (!matchingPeriod) {
+          const totalClasses = enrollmentData.class_dates.length;
+          const weeklyClasses = weeklyPlan.number_of_classes || 1;
+          const totalWeeks = Math.ceil(totalClasses / weeklyClasses);
+          const calculatedMonths = Math.ceil(totalWeeks / 4);
+          matchingPeriod = paymentPeriods.find(p => p.months === calculatedMonths);
+        }
+
+        if (matchingPeriod) {
+          paymentPeriodSelect.value = matchingPeriod.id;
+          calculateAndDisplayPricing(weeklyPlan, matchingPeriod);
+        }
+
+        // Display existing class dates
+        displayExistingClassDates();
+      }
+
+      function displayExistingClassDates() {
+        if (enrollmentData.class_dates.length === 0) {
+          return;
+        }
+
+        selectedClassDates = enrollmentData.class_dates;
+        generatedDatesSection.style.display = 'block';
+
+        const weeklyPlan = weeklyPlans.find(p => p.id === enrollmentData.weekly_plan_id);
+        const weeklyClasses = weeklyPlan ? (weeklyPlan.number_of_classes || 1) : 1;
+
+        let html = `
+          <p style="margin-top: 0; font-weight: bold; color: #333;">
+            Plan: ${weeklyPlan ? weeklyPlan.plan : 'N/A'}
+          </p>
+          <p style="margin: 5px 0; color: #666; font-size: 0.95em;">
+            Total: ${enrollmentData.class_dates.length} clases programadas
+          </p>
+          <div style="margin: 10px 0;">
+        `;
+
+        enrollmentData.class_dates.forEach((dateStr, index) => {
+          const dateObj = new Date(dateStr + 'T00:00:00');
+          const formattedDate = dateObj.toLocaleDateString('es-ES', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          });
+
+          html += `
+            <div style="display: flex; align-items: center; margin-bottom: 10px; padding: 10px; background: #f9f9f9; border-radius: 4px;">
+              <div style="flex: 1;">
+                <strong>Clase ${index + 1}:</strong>
+              </div>
+              <div style="flex: 3;">
+                <input type="text" value="${formattedDate}" readonly style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; background: #e9ecef; font-size: 0.95em;">
+              </div>
+            </div>
+          `;
+        });
+
+        html += '</div>';
+        generatedDatesContainer.innerHTML = html;
+        updateClassDatesHiddenFields();
+      }
+
       // On page load, if editing and course is pre-selected, load calendar
       if (courseSelect && courseSelect.value) {
         const courseId = courseSelect.value;
@@ -928,10 +1040,10 @@
               // If sections are pre-selected, load start dates
               if (selectedSectionIds.size > 0) {
                 loadAvailableStartDates(Array.from(selectedSectionIds)[0]);
-
-                // Note: Class dates will be generated after selecting payment period
-                // No automatic generation on page load
               }
+
+              // Initialize edit mode data
+              initializeEditMode();
             }
           })
           .catch(error => {

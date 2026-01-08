@@ -17,9 +17,9 @@ module Admin
     end
 
     def create
-      params_for_enrollment = enrollment_params.except(:section_id, :section_ids, :start_date)
+      params_for_enrollment = enrollment_params.except(:section_id, :section_ids, :start_date, :class_dates)
       section_ids = (enrollment_params[:section_ids] || []).reject(&:blank?)
-      start_date = enrollment_params[:start_date]
+      class_dates = (enrollment_params[:class_dates] || []).reject(&:blank?)
       @enrollment = Enrollment.new(params_for_enrollment)
       success = false
 
@@ -31,9 +31,9 @@ module Admin
         return
       end
 
-      # Validate start date is selected
-      if start_date.blank?
-        @enrollment.errors.add(:base, "Debe seleccionar una fecha de inicio")
+      # Validate class dates are provided
+      if class_dates.empty?
+        @enrollment.errors.add(:base, "Debe generar las fechas de clase")
         load_form_data
         render :new, status: :unprocessable_entity
         return
@@ -41,18 +41,11 @@ module Admin
 
       ActiveRecord::Base.transaction do
         if @enrollment.save
-          # Create enrollment sections using auto-generated dates
-          start_date_parsed = Date.parse(start_date)
-          number_of_classes = @enrollment.weekly_plan.number_of_classes
-
+          # Create enrollment sections using the selected/edited dates
           section_ids.each do |section_id|
-            section = Section.find(section_id)
-
-            # Generate dates for all classes
-            class_dates = generate_class_dates(section, start_date_parsed, number_of_classes)
-
             # Create an enrollment_section for each class date
-            class_dates.each do |date|
+            class_dates.each do |date_str|
+              date = Date.parse(date_str)
               EnrollmentSection.create!(
                 enrollment: @enrollment,
                 section_id: section_id,
@@ -74,7 +67,7 @@ module Admin
           end
 
           # Create tuition fee and installments (always)
-          # create_tuition_fee_and_installments # Removed: tuition_fees table no longer exists
+          # create_tuition_fee_and_installments # Removed: tuition_fees table no longer exist
           success = true
         end
       end
@@ -96,9 +89,9 @@ module Admin
     end
 
     def update
-      params_for_enrollment = enrollment_params.except(:section_id, :section_ids, :start_date)
+      params_for_enrollment = enrollment_params.except(:section_id, :section_ids, :start_date, :class_dates)
       section_ids = (enrollment_params[:section_ids] || []).reject(&:blank?)
-      start_date = enrollment_params[:start_date]
+      class_dates = (enrollment_params[:class_dates] || []).reject(&:blank?)
 
       # Validate at least one section is selected
       if section_ids.empty?
@@ -108,9 +101,9 @@ module Admin
         return
       end
 
-      # Validate start date is selected
-      if start_date.blank?
-        @enrollment.errors.add(:base, "Debe seleccionar una fecha de inicio")
+      # Validate class dates are provided
+      if class_dates.empty?
+        @enrollment.errors.add(:base, "Debe generar las fechas de clase")
         load_form_data
         render :edit, status: :unprocessable_entity
         return
@@ -118,20 +111,13 @@ module Admin
 
       ActiveRecord::Base.transaction do
         if @enrollment.update(params_for_enrollment)
-          # Update enrollment sections using auto-generated dates
-          start_date_parsed = Date.parse(start_date)
-          number_of_classes = @enrollment.weekly_plan.number_of_classes
-
+          # Update enrollment sections using the selected/edited dates
           @enrollment.enrollment_sections.destroy_all
 
           section_ids.each do |section_id|
-            section = Section.find(section_id)
-
-            # Generate dates for all classes
-            class_dates = generate_class_dates(section, start_date_parsed, number_of_classes)
-
             # Create an enrollment_section for each class date
-            class_dates.each do |date|
+            class_dates.each do |date_str|
+              date = Date.parse(date_str)
               EnrollmentSection.create!(
                 enrollment: @enrollment,
                 section_id: section_id,
@@ -196,7 +182,7 @@ module Admin
     end
 
     def enrollment_params
-      permitted = params.require(:enrollment).permit(:student_id, :section_id, :weekly_plan_id, :payment_method_id, :enrollment_amount, :total_tuition_fee, :payment_date, :start_date, section_ids: [])
+      permitted = params.require(:enrollment).permit(:student_id, :section_id, :weekly_plan_id, :payment_method_id, :enrollment_amount, :total_tuition_fee, :payment_date, :start_date, section_ids: [], class_dates: [])
 
       # Convert section_id to section_ids array for compatibility
       if permitted[:section_id].present? && permitted[:section_ids].blank?

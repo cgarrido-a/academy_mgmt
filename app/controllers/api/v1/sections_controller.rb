@@ -112,6 +112,7 @@ module Api
             teacher_name: section.teacher.user.name,
             weekly_plan: {
               id: weekly_plan.id,
+              plan: weekly_plan.plan,
               description: weekly_plan.description,
               number_of_classes: number_of_classes,
               price: weekly_plan.price

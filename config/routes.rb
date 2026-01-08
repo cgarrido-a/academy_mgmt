@@ -25,6 +25,7 @@ Rails.application.routes.draw do
   # Admin routes
   namespace :admin do
     root "dashboard#index"
+    get 'export', to: 'dashboard#export', as: :export_financial_report
     resources :courses
     resources :sections
     resources :enrollments do
@@ -37,7 +38,11 @@ Rails.application.routes.draw do
     resources :weekly_plans
     resources :payment_periods
     resources :payment_methods
-    resources :payments
+    resources :payments do
+      collection do
+        get 'export', action: :export
+      end
+    end
     resources :transbank_transactions, only: [:index, :show]
   end
 

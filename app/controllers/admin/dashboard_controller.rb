@@ -9,5 +9,17 @@ module Admin
                                        .order(created_at: :desc)
                                        .limit(10)
     end
+
+    def export
+      csv_data = FinancialReportCsvExporter.call
+
+      respond_to do |format|
+        format.csv do
+          send_data csv_data,
+                    filename: "reporte_financiero_#{Date.today.strftime('%Y%m%d')}.csv",
+                    type: 'text/csv; charset=utf-8'
+        end
+      end
+    end
   end
 end

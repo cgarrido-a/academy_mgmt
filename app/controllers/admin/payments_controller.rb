@@ -8,6 +8,18 @@ module Admin
                         .page(params[:page]).per(50)
     end
 
+    def export
+      csv_data = FinancialReportCsvExporter.call
+
+      respond_to do |format|
+        format.csv do
+          send_data csv_data,
+                    filename: "reporte_financiero_#{Date.today.strftime('%Y%m%d')}.csv",
+                    type: 'text/csv; charset=utf-8'
+        end
+      end
+    end
+
     def show
     end
 

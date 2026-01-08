@@ -1,7 +1,10 @@
 <div class="card">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
     <h2>Pagos</h2>
-    <%= link_to "Registrar Pago", new_admin_payment_path, class: "btn btn-success" %>
+    <div style="display: flex; gap: 0.5rem;">
+      <%= link_to "Exportar Reporte CSV", export_admin_payments_path(format: :csv), class: "btn btn-secondary" %>
+      <%= link_to "Registrar Pago", new_admin_payment_path, class: "btn btn-success" %>
+    </div>
   </div>
 
   <% if @payments.any? %>

@@ -1,4 +1,7 @@
-<h1>Dashboard</h1>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+  <h1>Dashboard</h1>
+  <%= link_to "Exportar Reporte Financiero CSV", admin_export_financial_report_path(format: :csv), class: "btn btn-primary" %>
+</div>
 
 <div class="stats-grid">
   <div class="stat-card">

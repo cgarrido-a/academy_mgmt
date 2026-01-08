@@ -347,20 +347,28 @@
     };
 
     document.addEventListener('DOMContentLoaded', function() {
-      const courseSelect = document.getElementById('course_select');
-      const calendarContainer = document.getElementById('calendar-container');
-      const calendarPickerContainer = document.getElementById('calendar-picker-container');
-      const hiddenFieldsContainer = document.getElementById('hidden-section-fields');
-      const startDateField = document.getElementById('start_date_field');
-      const weeklyPlanSelect = document.getElementById('weekly_plan_select');
-      const paymentPeriodSelect = document.getElementById('payment_period_select');
-      const priceCalculationDiv = document.getElementById('price_calculation');
-      const enrollmentAmountField = document.getElementById('enrollment_amount_field');
-      const totalTuitionFeeField = document.getElementById('total_tuition_fee_field');
-      const generatedDatesSection = document.getElementById('generated-dates-section');
-      const generatedDatesContainer = document.getElementById('generated-dates-container');
+      // Wait a tick to ensure all elements are rendered
+      setTimeout(function() {
+        const courseSelect = document.getElementById('course_select');
+        const calendarContainer = document.getElementById('calendar-container');
+        const calendarPickerContainer = document.getElementById('calendar-picker-container');
+        const hiddenFieldsContainer = document.getElementById('hidden-section-fields');
+        const startDateField = document.getElementById('start_date_field');
+        const weeklyPlanSelect = document.getElementById('weekly_plan_select');
+        const paymentPeriodSelect = document.getElementById('payment_period_select');
+        const priceCalculationDiv = document.getElementById('price_calculation');
+        const enrollmentAmountField = document.getElementById('enrollment_amount_field');
+        const totalTuitionFeeField = document.getElementById('total_tuition_fee_field');
+        const generatedDatesSection = document.getElementById('generated-dates-section');
+        const generatedDatesContainer = document.getElementById('generated-dates-container');
 
-      const weekdays = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+        // Verify all required elements are present
+        if (!courseSelect || !calendarContainer || !calendarPickerContainer || !hiddenFieldsContainer) {
+          console.error('Required form elements not found. Form initialization aborted.');
+          return;
+        }
+
+        const weekdays = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
       function updateHiddenFields() {
         hiddenFieldsContainer.innerHTML = '';
@@ -934,7 +942,7 @@
       }
 
       // Initialize edit mode if enrollment data exists
-      function initializeEditMode() {
+      async function initializeEditMode() {
         if (!enrollmentData.id || !enrollmentData.weekly_plan_id) {
           return; // Not in edit mode
         }
@@ -985,8 +993,8 @@
           calculateAndDisplayPricing(weeklyPlan, matchingPeriod);
         }
 
-        // Display existing class dates
-        displayExistingClassDates();
+        // Display existing class dates (await to ensure it completes)
+        await displayExistingClassDates();
       }
 
       async function displayExistingClassDates() {
@@ -1065,28 +1073,56 @@
       }
 
       // On page load, if editing and course is pre-selected, load calendar
-      if (courseSelect && courseSelect.value) {
+      async function initializeFormOnLoad() {
+        if (!courseSelect || !courseSelect.value) {
+          console.log('Form initialization skipped: no course selected');
+          return;
+        }
+
         const courseId = courseSelect.value;
+        console.log('Initializing form for course:', courseId);
 
-        fetch(`/admin/enrollments/sections_by_course?course_id=${courseId}`)
-          .then(response => response.json())
-          .then(data => {
-            if (data.sections && data.sections.length > 0) {
-              createCalendar(data.sections);
+        try {
+          // Show loading indicator
+          if (calendarContainer) {
+            calendarContainer.innerHTML = '<p style="color: #999; text-align: center; padding: 40px;">Cargando horario...</p>';
+          }
 
-              // If sections are pre-selected, load start dates
-              if (selectedSectionIds.size > 0) {
-                loadAvailableStartDates(Array.from(selectedSectionIds)[0]);
-              }
+          const response = await fetch(`/admin/enrollments/sections_by_course?course_id=${courseId}`);
+          const data = await response.json();
 
-              // Initialize edit mode data
-              initializeEditMode();
+          if (data.sections && data.sections.length > 0) {
+            console.log('Creating calendar with', data.sections.length, 'sections');
+            createCalendar(data.sections);
+
+            // If sections are pre-selected, load start dates (await to ensure it completes)
+            if (selectedSectionIds.size > 0) {
+              console.log('Loading available start dates for section:', Array.from(selectedSectionIds)[0]);
+              await loadAvailableStartDates(Array.from(selectedSectionIds)[0]);
             }
-          })
-          .catch(error => {
-            console.error('Error al cargar secciones en edición:', error);
-          });
+
+            // Initialize edit mode data (await to ensure it completes)
+            if (enrollmentData.id) {
+              console.log('Initializing edit mode for enrollment:', enrollmentData.id);
+              await initializeEditMode();
+            }
+
+            console.log('Form initialization completed successfully');
+          } else {
+            console.warn('No sections found for course:', courseId);
+            calendarContainer.innerHTML = '<p style="color: #e74c3c; text-align: center; padding: 40px;">No hay secciones disponibles para este curso</p>';
+          }
+        } catch (error) {
+          console.error('Error al cargar secciones en edición:', error);
+          if (calendarContainer) {
+            calendarContainer.innerHTML = '<p style="color: #e74c3c; text-align: center; padding: 40px;">Error al cargar el horario. Por favor, recarga la página.</p>';
+          }
+        }
       }
+
+      // Call initialization function
+      initializeFormOnLoad();
+      }, 0); // End of setTimeout
     });
   </script>
 

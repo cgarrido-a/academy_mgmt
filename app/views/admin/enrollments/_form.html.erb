@@ -352,7 +352,6 @@
       const generatedDatesContainer = document.getElementById('generated-dates-container');
 
       const weekdays = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-      const hours = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00'];
 
       function updateHiddenFields() {
         hiddenFieldsContainer.innerHTML = '';
@@ -724,6 +723,20 @@
 
       function createCalendar(sections) {
         allSections = sections;
+
+        // Generate unique hours from sections dynamically
+        const hourSet = new Set();
+        sections.forEach(s => {
+          if (s.start_time) {
+            hourSet.add(s.start_time.substring(0, 5));
+          }
+        });
+        const hours = Array.from(hourSet).sort();
+
+        // If no hours found, use default range
+        if (hours.length === 0) {
+          hours.push(...['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00']);
+        }
 
         let html = '<div class="weekly-calendar">';
 

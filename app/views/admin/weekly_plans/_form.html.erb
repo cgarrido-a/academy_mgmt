@@ -35,6 +35,12 @@
   </div>
 
   <div class="form-group">
+    <%= f.label :enrollment_fee, "Monto Matrícula" %>
+    <%= f.number_field :enrollment_fee, min: 0, placeholder: "Ej: 5000" %>
+    <small style="color: #666;">Monto fijo de matrícula/inscripción para este plan</small>
+  </div>
+
+  <div class="form-group">
     <%= f.label :description, "Descripción" %>
     <%= f.text_area :description, required: true, rows: 3, placeholder: "Ej: Plan ideal para estudiantes que asisten 2 veces por semana" %>
   </div>

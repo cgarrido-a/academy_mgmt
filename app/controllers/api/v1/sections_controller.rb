@@ -51,14 +51,24 @@ module Api
       end
 
       # GET /api/v1/sections/:id/preview_class_dates
-      # Params: start_date (YYYY-MM-DD), weekly_plan_id (integer)
+      # Params: start_date (YYYY-MM-DD), weekly_plan_id (integer), months (integer, optional)
       # Returns the dates that would be assigned for an enrollment
       def preview_class_dates
         puts "Params received: #{params.inspect}"
         section = Section.find(params[:id])
         start_date = Date.parse(params[:start_date])
         weekly_plan = WeeklyPlan.find(params[:weekly_plan_id])
-        number_of_classes = weekly_plan.number_of_classes
+
+        # If months parameter is provided, calculate number_of_classes based on period
+        if params[:months].present?
+          months = params[:months].to_i
+          weekly_classes = weekly_plan.weekly_classes || 1
+          # Calculate total classes: weekly_classes × weeks_in_period (months × 4)
+          number_of_classes = weekly_classes * (months * 4)
+        else
+          # Fallback to plan's number_of_classes
+          number_of_classes = weekly_plan.number_of_classes
+        end
 
         if number_of_classes.nil?
           return render json: {
@@ -115,6 +125,7 @@ module Api
               plan: weekly_plan.plan,
               description: weekly_plan.description,
               number_of_classes: number_of_classes,
+              weekly_classes: weekly_plan.weekly_classes,
               price: weekly_plan.price
             },
             start_date: start_date,

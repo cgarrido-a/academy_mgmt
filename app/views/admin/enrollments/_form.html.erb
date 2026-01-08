@@ -57,12 +57,20 @@
         { required: true, id: 'weekly_plan_select' } %>
   </div>
 
+  <div class="form-group">
+    <%= f.label :payment_period_id, "Periodo de Pago" %>
+    <select id="payment_period_select" class="form-control" disabled>
+      <option value="">Seleccione primero un plan de pago</option>
+    </select>
+    <small style="color: #666;">Seleccione el periodo de pago para calcular el precio total</small>
+  </div>
+
   <div class="form-group" id="generated-dates-section" style="display: none;">
     <label>Fechas de Clases Generadas</label>
     <div id="generated-dates-container" style="padding: 10px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px;">
-      <p style="color: #666; font-style: italic;">Selecciona un plan de pago para ver las fechas generadas</p>
+      <p style="color: #666; font-style: italic;">Selecciona un periodo de pago para generar las fechas automáticamente</p>
     </div>
-    <small style="color: #666;">Estas fechas se asignarán automáticamente según el plan seleccionado</small>
+    <small style="color: #666;">Las fechas se generarán según el periodo de pago seleccionado (clases por semana × número de meses)</small>
   </div>
 
   <style>
@@ -165,12 +173,17 @@
       const hiddenFieldsContainer = document.getElementById('hidden-section-fields');
       const startDateField = document.getElementById('start_date_field');
       const weeklyPlanSelect = document.getElementById('weekly_plan_select');
+      const paymentPeriodSelect = document.getElementById('payment_period_select');
+      const priceCalculationDiv = document.getElementById('price_calculation');
+      const enrollmentAmountField = document.getElementById('enrollment_amount_field');
+      const totalTuitionFeeField = document.getElementById('total_tuition_fee_field');
       const generatedDatesSection = document.getElementById('generated-dates-section');
       const generatedDatesContainer = document.getElementById('generated-dates-container');
 
       let selectedSectionIds = new Set(<%= enrollment.section_ids.to_json.html_safe %>);
       let allSections = [];
-      let weeklyPlans = <%= weekly_plans.to_json(only: [:id, :plan, :number_of_classes]).html_safe %>;
+      let weeklyPlans = <%= weekly_plans.to_json(only: [:id, :plan, :number_of_classes, :price, :enrollment_fee]).html_safe %>;
+      let paymentPeriods = <%= payment_periods.to_json(only: [:id, :months, :discount_percentage, :description]).html_safe %>;
 
       const weekdays = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
       const hours = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00'];
@@ -280,16 +293,20 @@
 
       function selectStartDate(date) {
         startDateField.value = date;
-        // If a plan is selected, regenerate the class dates
-        if (weeklyPlanSelect.value) {
-          generateClassDatesPreview();
+        // If a plan and payment period are selected, regenerate the class dates
+        if (weeklyPlanSelect.value && paymentPeriodSelect.value) {
+          const selectedPeriodId = parseInt(paymentPeriodSelect.value);
+          const paymentPeriod = paymentPeriods.find(p => p.id === selectedPeriodId);
+          if (paymentPeriod) {
+            generateClassDatesPreview(paymentPeriod.months);
+          }
         }
       }
 
       let selectedClassDates = []; // Store final selected dates
       let availableDatesForSection = []; // Store all available dates from calendar
 
-      async function generateClassDatesPreview() {
+      async function generateClassDatesPreview(months = null) {
         const startDate = startDateField.value;
         const weeklyPlanId = weeklyPlanSelect.value;
         const sectionId = Array.from(selectedSectionIds)[0];
@@ -299,13 +316,22 @@
           return;
         }
 
+        // If months is not provided, don't generate dates (wait for payment period selection)
+        if (months === null) {
+          generatedDatesSection.style.display = 'none';
+          return;
+        }
+
         try {
           generatedDatesContainer.innerHTML = '<p style="color: #999;">Generando fechas...</p>';
           generatedDatesSection.style.display = 'block';
 
+          // Build URL with months parameter
+          const previewUrl = `/api/v1/sections/${sectionId}/preview_class_dates?start_date=${startDate}&weekly_plan_id=${weeklyPlanId}&months=${months}`;
+
           // Fetch both the preview dates and all available dates from calendar
           const [previewResponse, calendarResponse] = await Promise.all([
-            fetch(`/api/v1/sections/${sectionId}/preview_class_dates?start_date=${startDate}&weekly_plan_id=${weeklyPlanId}`),
+            fetch(previewUrl),
             fetch(`/api/v1/sections/${sectionId}/calendar`)
           ]);
 
@@ -319,9 +345,16 @@
             // Initialize selected dates with the auto-generated ones
             selectedClassDates = previewData.data.assigned_dates.map(d => d.date);
 
+            const weeklyClasses = previewData.data.weekly_plan.weekly_classes || 1;
+            const monthsText = months === 1 ? '1 mes' : `${months} meses`;
+            const totalClasses = previewData.data.assigned_dates.length;
+
             let html = `
               <p style="margin-top: 0; font-weight: bold; color: #333;">
-                Plan: ${previewData.data.weekly_plan.plan} (${previewData.data.weekly_plan.number_of_classes} clases)
+                Plan: ${previewData.data.weekly_plan.plan}
+              </p>
+              <p style="margin: 5px 0; color: #666; font-size: 0.95em;">
+                ${weeklyClasses} ${weeklyClasses === 1 ? 'clase' : 'clases'} por semana × ${monthsText} = ${totalClasses} clases
               </p>
               <div style="margin: 10px 0;">
             `;
@@ -512,10 +545,97 @@
       // Handle weekly plan selection change
       if (weeklyPlanSelect) {
         weeklyPlanSelect.addEventListener('change', function() {
-          if (startDateField.value && selectedSectionIds.size > 0) {
-            generateClassDatesPreview();
+          const selectedPlanId = parseInt(this.value);
+
+          if (selectedPlanId) {
+            // Populate payment period selector
+            paymentPeriodSelect.innerHTML = '<option value="">Seleccione un periodo de pago</option>';
+            paymentPeriods.forEach(period => {
+              const option = document.createElement('option');
+              option.value = period.id;
+              const description = period.description ? ` - ${period.description}` : '';
+              option.textContent = `${period.months} ${period.months === 1 ? 'mes' : 'meses'}${description}`;
+              paymentPeriodSelect.appendChild(option);
+            });
+            paymentPeriodSelect.disabled = false;
+
+            // Reset price calculation and dates
+            priceCalculationDiv.style.display = 'none';
+            enrollmentAmountField.value = '';
+            totalTuitionFeeField.value = '';
+            generatedDatesSection.style.display = 'none';
+            generatedDatesContainer.innerHTML = '<p style="color: #666; font-style: italic;">Selecciona un periodo de pago para generar las fechas</p>';
+          } else {
+            // Reset if no plan selected
+            paymentPeriodSelect.innerHTML = '<option value="">Seleccione primero un plan de pago</option>';
+            paymentPeriodSelect.disabled = true;
+            priceCalculationDiv.style.display = 'none';
+            enrollmentAmountField.value = '';
+            totalTuitionFeeField.value = '';
+            generatedDatesSection.style.display = 'none';
           }
         });
+      }
+
+      // Handle payment period selection change
+      if (paymentPeriodSelect) {
+        paymentPeriodSelect.addEventListener('change', function() {
+          const selectedPlanId = parseInt(weeklyPlanSelect.value);
+          const selectedPeriodId = parseInt(this.value);
+
+          if (selectedPlanId && selectedPeriodId) {
+            const weeklyPlan = weeklyPlans.find(p => p.id === selectedPlanId);
+            const paymentPeriod = paymentPeriods.find(p => p.id === selectedPeriodId);
+
+            if (weeklyPlan && paymentPeriod) {
+              calculateAndDisplayPricing(weeklyPlan, paymentPeriod);
+
+              // Generate class dates after selecting payment period
+              if (startDateField.value && selectedSectionIds.size > 0) {
+                generateClassDatesPreview(paymentPeriod.months);
+              }
+            }
+          } else {
+            // Hide calculation and dates if no period selected
+            priceCalculationDiv.style.display = 'none';
+            enrollmentAmountField.value = '';
+            totalTuitionFeeField.value = '';
+            generatedDatesSection.style.display = 'none';
+          }
+        });
+      }
+
+      // Function to calculate and display pricing
+      function calculateAndDisplayPricing(weeklyPlan, paymentPeriod) {
+        const monthlyPrice = weeklyPlan.price || 0;
+        const enrollmentFee = weeklyPlan.enrollment_fee || 0;
+        const months = paymentPeriod.months;
+        const discountPct = paymentPeriod.discount_percentage || 0;
+
+        const subtotal = monthlyPrice * months;
+        const discountAmount = subtotal * (discountPct / 100);
+        const totalTuition = Math.round(subtotal - discountAmount);
+
+        // Update display elements
+        document.getElementById('monthly_price_display').textContent = formatCurrency(monthlyPrice);
+        document.getElementById('months_display').textContent = months;
+        document.getElementById('subtotal_display').textContent = formatCurrency(subtotal);
+        document.getElementById('discount_pct_display').textContent = discountPct;
+        document.getElementById('discount_display').textContent = '-' + formatCurrency(discountAmount);
+        document.getElementById('enrollment_fee_display').textContent = formatCurrency(enrollmentFee);
+        document.getElementById('total_display').textContent = formatCurrency(totalTuition);
+
+        // Update form fields
+        enrollmentAmountField.value = enrollmentFee;
+        totalTuitionFeeField.value = totalTuition;
+
+        // Show calculation section
+        priceCalculationDiv.style.display = 'block';
+      }
+
+      // Helper function to format currency
+      function formatCurrency(amount) {
+        return '$' + amount.toLocaleString('es-CL');
       }
 
       // On page load, if editing and course is pre-selected, load calendar
@@ -532,10 +652,8 @@
               if (selectedSectionIds.size > 0) {
                 loadAvailableStartDates(Array.from(selectedSectionIds)[0]);
 
-                // If there's also a start date and plan selected, show preview
-                if (startDateField.value && weeklyPlanSelect.value) {
-                  generateClassDatesPreview();
-                }
+                // Note: Class dates will be generated after selecting payment period
+                // No automatic generation on page load
               }
             }
           })
@@ -554,16 +672,28 @@
         required: true %>
   </div>
 
+  <div id="price_calculation" style="display: none;" class="card mb-3">
+    <div class="card-body" style="background: #f8f9fa; padding: 15px; border: 1px solid #dee2e6; border-radius: 4px;">
+      <h6 style="margin-bottom: 10px; color: #495057;">Cálculo de Precio</h6>
+      <p style="margin-bottom: 5px; color: #6c757d;">Precio mensual: <strong id="monthly_price_display" style="color: #212529;">$0</strong></p>
+      <p style="margin-bottom: 5px; color: #6c757d;">Subtotal (<span id="months_display">0</span> meses): <strong id="subtotal_display" style="color: #212529;">$0</strong></p>
+      <p style="margin-bottom: 10px; color: #6c757d;">Descuento (<span id="discount_pct_display">0</span>%): <strong id="discount_display" style="color: #dc3545;">-$0</strong></p>
+      <hr style="margin: 10px 0;">
+      <p style="margin-bottom: 5px; font-size: 1.1em;"><strong>Matrícula: <span id="enrollment_fee_display" style="color: #28a745;">$0</span></strong></p>
+      <p style="margin-bottom: 0; font-size: 1.1em;"><strong>Total Arancel: <span id="total_display" style="color: #007bff;">$0</span></strong></p>
+    </div>
+  </div>
+
   <div class="form-group">
     <%= f.label :enrollment_amount, "Monto Matrícula" %>
-    <%= f.number_field :enrollment_amount, required: true, min: 0, step: 0.01, placeholder: "Ej: 500", id: 'enrollment_amount_field' %>
-    <small style="color: #666;">Pago inicial de inscripción/matrícula</small>
+    <%= f.number_field :enrollment_amount, required: true, readonly: true, min: 0, step: 0.01, placeholder: "Se calculará automáticamente", id: 'enrollment_amount_field', style: 'background-color: #e9ecef;' %>
+    <small style="color: #666;">Se calcula automáticamente según el plan seleccionado</small>
   </div>
 
   <div class="form-group">
     <%= f.label :total_tuition_fee, "Arancel Total" %>
-    <%= f.number_field :total_tuition_fee, required: true, min: 0, step: 0.01, placeholder: "Ej: 10000" %>
-    <small style="color: #666;">Monto total del arancel (obligatorio)</small>
+    <%= f.number_field :total_tuition_fee, required: true, readonly: true, min: 0, step: 0.01, placeholder: "Se calculará automáticamente", id: 'total_tuition_fee_field', style: 'background-color: #e9ecef;' %>
+    <small style="color: #666;">Se calcula automáticamente según el plan y periodo seleccionados</small>
   </div>
 
   <div class="form-group">

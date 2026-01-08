@@ -10,7 +10,10 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_01_02_193924) do
+ActiveRecord::Schema[7.1].define(version: 2026_01_08_013335) do
+  # These are extensions that must be enabled in order to support this database
+  enable_extension "plpgsql"
+
   create_table "admin_users", force: :cascade do |t|
     t.string "admin_type"
     t.integer "user_id", null: false
@@ -27,8 +30,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_02_193924) do
   end
 
   create_table "enrollment_sections", force: :cascade do |t|
-    t.integer "enrollment_id", null: false
-    t.integer "section_id", null: false
+    t.bigint "enrollment_id", null: false
+    t.bigint "section_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.date "date"
@@ -66,14 +69,14 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_02_193924) do
   end
 
   create_table "payments", force: :cascade do |t|
-    t.integer "enrollment_id", null: false
+    t.bigint "enrollment_id", null: false
     t.string "payment_type", null: false
     t.decimal "amount", precision: 10, scale: 2, null: false
     t.date "payment_date", null: false
-    t.integer "payment_method_id", null: false
+    t.bigint "payment_method_id", null: false
     t.string "reference_number"
     t.text "notes"
-    t.integer "processed_by_id"
+    t.bigint "processed_by_id"
     t.string "status", default: "completed", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
@@ -124,7 +127,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_02_193924) do
   end
 
   create_table "transbank_transactions", force: :cascade do |t|
-    t.integer "enrollment_id"
+    t.bigint "enrollment_id"
     t.string "payment_type", null: false
     t.string "token", null: false
     t.string "buy_order", null: false
@@ -139,7 +142,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_02_193924) do
     t.text "error_message"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.json "enrollment_data"
+    t.jsonb "enrollment_data"
     t.index ["buy_order"], name: "index_transbank_transactions_on_buy_order"
     t.index ["enrollment_id"], name: "index_transbank_transactions_on_enrollment_id"
     t.index ["status"], name: "index_transbank_transactions_on_status"
@@ -163,6 +166,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_02_193924) do
     t.integer "number_of_classes"
     t.integer "price"
     t.integer "weekly_classes"
+    t.integer "enrollment_fee"
   end
 
   add_foreign_key "admin_users", "users"

@@ -50,12 +50,14 @@ module Api
 
         enrollments_array.each do |enrollment_params|
           weekly_plan = WeeklyPlan.find(enrollment_params[:weekly_plan_id])
+          section_ids = enrollment_params[:section_ids] || [enrollment_params[:section_id]].compact
 
           if enrollment_params[:payment_period_id].present?
             payment_period = PaymentPeriod.find(enrollment_params[:payment_period_id])
-            enrollment_total = weekly_plan.calculate_final_price(payment_period)
+            enrollment_total = weekly_plan.calculate_final_price(payment_period, section_ids: section_ids)
           else
-            enrollment_total = weekly_plan.price
+            # Use base price (with Saturday pricing if applicable)
+            enrollment_total = weekly_plan.send(:determine_base_price, section_ids) || weekly_plan.price
           end
 
           total_amount += enrollment_total

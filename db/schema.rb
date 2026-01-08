@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_01_08_013335) do
+ActiveRecord::Schema[7.1].define(version: 2026_01_08_175153) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -167,6 +167,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_08_013335) do
     t.integer "price"
     t.integer "weekly_classes"
     t.integer "enrollment_fee"
+    t.integer "saturday_price"
   end
 
   add_foreign_key "admin_users", "users"

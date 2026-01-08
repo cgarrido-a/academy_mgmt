@@ -229,10 +229,11 @@ class EnrollmentCreator
     # Calculate total tuition fee
     if @payment_period_id.present?
       payment_period = PaymentPeriod.find_by(id: @payment_period_id)
-      @total_tuition_fee = weekly_plan.calculate_final_price(payment_period)
+      @total_tuition_fee = weekly_plan.calculate_final_price(payment_period, section_ids: @section_ids)
     else
-      # If no payment period, use base price
-      @total_tuition_fee = weekly_plan.price || 0
+      # If no payment period, use base price (with Saturday pricing if applicable)
+      base_price = weekly_plan.send(:determine_base_price, @section_ids)
+      @total_tuition_fee = base_price || 0
     end
   end
 end

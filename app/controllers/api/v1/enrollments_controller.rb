@@ -56,8 +56,8 @@ module Api
             payment_period = PaymentPeriod.find(enrollment_params[:payment_period_id])
             enrollment_total = weekly_plan.calculate_final_price(payment_period, section_ids: section_ids)
           else
-            # Use base price (with Saturday pricing if applicable)
-            enrollment_total = weekly_plan.send(:determine_base_price, section_ids) || weekly_plan.price
+            # Use base price (Saturday price if sections are on Saturday)
+            enrollment_total = weekly_plan.determine_base_price(section_ids)
           end
 
           total_amount += enrollment_total

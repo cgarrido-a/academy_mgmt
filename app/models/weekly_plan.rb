@@ -13,9 +13,9 @@ class WeeklyPlan < ApplicationRecord
 
   # Calculate final price with discount applied
   # @param payment_period [PaymentPeriod] The payment period to apply discount from
-  # @param section_ids [Array<Integer>] Optional array of section IDs to check for Saturday pricing
+  # @param section_ids [Array<Integer>] Array of section IDs to check for Saturday pricing
   # @return [Integer] The final price with discount applied
-  def calculate_final_price(payment_period, section_ids: nil)
+  def calculate_final_price(payment_period, section_ids: [])
     base_price = determine_base_price(section_ids)
     return base_price if payment_period.nil? || base_price.nil?
 
@@ -23,22 +23,20 @@ class WeeklyPlan < ApplicationRecord
     (base_price * discount_multiplier).round
   end
 
-  private
-
   # Determine the base price based on whether sections are on Saturday
-  # @param section_ids [Array<Integer>] Optional array of section IDs
-  # @return [Integer] The base price (saturday_price if applicable, otherwise price)
+  # @param section_ids [Array<Integer>] Array of section IDs
+  # @return [Integer] The base price (saturday_price if sections are on Saturday, otherwise price)
   def determine_base_price(section_ids)
-    # If no sections provided, use regular price
+    # If no sections provided, cannot determine price by day, return regular price as default
     return price if section_ids.blank?
 
     # Check if any section is on Saturday
     sections = Section.where(id: section_ids)
     has_saturday_section = sections.any? { |section| section.weekday == 'Sábado' }
 
-    # Use saturday_price if available and sections are on Saturday, otherwise use regular price
-    if has_saturday_section && saturday_price.present?
-      saturday_price
+    # Use saturday_price if sections are on Saturday, otherwise use regular price
+    if has_saturday_section
+      saturday_price || price # Fallback to price if saturday_price not set
     else
       price
     end

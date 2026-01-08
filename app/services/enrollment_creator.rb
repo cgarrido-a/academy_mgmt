@@ -226,14 +226,13 @@ class EnrollmentCreator
     # Set enrollment amount from weekly_plan.enrollment_fee
     @enrollment_amount = weekly_plan.enrollment_fee || 0
 
-    # Calculate total tuition fee
+    # Calculate total tuition fee (automatically uses Saturday pricing if applicable)
     if @payment_period_id.present?
       payment_period = PaymentPeriod.find_by(id: @payment_period_id)
       @total_tuition_fee = weekly_plan.calculate_final_price(payment_period, section_ids: @section_ids)
     else
-      # If no payment period, use base price (with Saturday pricing if applicable)
-      base_price = weekly_plan.send(:determine_base_price, @section_ids)
-      @total_tuition_fee = base_price || 0
+      # If no payment period, use base price (Saturday price if sections are on Saturday)
+      @total_tuition_fee = weekly_plan.determine_base_price(@section_ids)
     end
   end
 end

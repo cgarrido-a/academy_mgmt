@@ -38,15 +38,31 @@
   </div>
 
   <div class="form-group">
-    <%= f.label :section_date, "Fechas de las clases" %>
+    <%= f.label :start_date, "Fecha de Inicio" %>
 
     <div id="available-dates-container">
       <p style="color: #666; font-style: italic;">Selecciona una sección primero para ver las fechas disponibles</p>
     </div>
 
-    <div id="hidden-date-fields"></div>
+    <%= f.hidden_field :start_date, id: 'start_date_field', value: enrollment.enrollment_sections.first&.date %>
 
-    <small style="color: #666;">Selecciona una o más fechas disponibles (se aplicarán a todas las secciones seleccionadas)</small>
+    <small style="color: #666;">Selecciona la fecha de inicio de las clases</small>
+  </div>
+
+  <div class="form-group">
+    <%= f.label :weekly_plan_id, "Plan de Pago" %>
+    <%= f.select :weekly_plan_id,
+        options_from_collection_for_select(weekly_plans, :id, :description, enrollment.weekly_plan_id),
+        { prompt: "Seleccione un plan de pago" },
+        { required: true, id: 'weekly_plan_select' } %>
+  </div>
+
+  <div class="form-group" id="generated-dates-section" style="display: none;">
+    <label>Fechas de Clases Generadas</label>
+    <div id="generated-dates-container" style="padding: 10px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px;">
+      <p style="color: #666; font-style: italic;">Selecciona un plan de pago para ver las fechas generadas</p>
+    </div>
+    <small style="color: #666;">Estas fechas se asignarán automáticamente según el plan seleccionado</small>
   </div>
 
   <style>
@@ -147,34 +163,17 @@
       const calendarContainer = document.getElementById('calendar-container');
       const datesContainer = document.getElementById('available-dates-container');
       const hiddenFieldsContainer = document.getElementById('hidden-section-fields');
-      const hiddenDateFieldsContainer = document.getElementById('hidden-date-fields');
+      const startDateField = document.getElementById('start_date_field');
+      const weeklyPlanSelect = document.getElementById('weekly_plan_select');
+      const generatedDatesSection = document.getElementById('generated-dates-section');
+      const generatedDatesContainer = document.getElementById('generated-dates-container');
 
       let selectedSectionIds = new Set(<%= enrollment.section_ids.to_json.html_safe %>);
-      let selectedDates = new Set(<%= enrollment.enrollment_sections.pluck(:date).map(&:to_s).uniq.to_json.html_safe %>);
       let allSections = [];
+      let weeklyPlans = <%= weekly_plans.to_json(only: [:id, :description, :number_of_classes]).html_safe %>;
 
       const weekdays = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
       const hours = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00'];
-
-      function updateDateHiddenFields() {
-        hiddenDateFieldsContainer.innerHTML = '';
-        selectedDates.forEach(date => {
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = 'enrollment[dates][]';
-          input.value = date;
-          hiddenDateFieldsContainer.appendChild(input);
-        });
-      }
-
-      function toggleDate(date) {
-        if (selectedDates.has(date)) {
-          selectedDates.delete(date);
-        } else {
-          selectedDates.add(date);
-        }
-        updateDateHiddenFields();
-      }
 
       function updateHiddenFields() {
         hiddenFieldsContainer.innerHTML = '';
@@ -199,15 +198,16 @@
           }
         }
 
-        // Load dates if sections are selected
+        // Load available start dates if sections are selected
         if (selectedSectionIds.size > 0) {
-          loadDatesForSection(Array.from(selectedSectionIds)[0]);
+          loadAvailableStartDates(Array.from(selectedSectionIds)[0]);
         } else {
           datesContainer.innerHTML = '<p style="color: #666; font-style: italic;">Selecciona una sección primero para ver las fechas disponibles</p>';
+          generatedDatesSection.style.display = 'none';
         }
       }
 
-      async function loadDatesForSection(sectionId) {
+      async function loadAvailableStartDates(sectionId) {
         try {
           datesContainer.innerHTML = '<p style="color: #999;">Cargando fechas disponibles...</p>';
 
@@ -232,11 +232,20 @@
               });
 
               const isAvailable = dateInfo.available_places > 0;
-              const isChecked = selectedDates.has(dateInfo.date);
+              const isChecked = startDateField.value === dateInfo.date;
 
               html += `
                 <div style="margin-bottom: 8px; padding: 8px; background: ${isAvailable ? '#f9f9f9' : '#ffe6e6'}; border-radius: 4px; ${!isAvailable ? 'opacity: 0.6;' : ''}">
-                  <label style="display: flex; align-items: center; justify-content: space-between; cursor: ${isAvailable ? 'pointer' : 'not-allowed'};">
+                  <label style="display: flex; align-items: center; cursor: ${isAvailable ? 'pointer' : 'not-allowed'};">
+                    <input
+                      type="radio"
+                      name="start_date_radio"
+                      value="${dateInfo.date}"
+                      ${!isAvailable ? 'disabled' : ''}
+                      ${isChecked ? 'checked' : ''}
+                      style="margin-right: 10px; width: 18px; height: 18px; cursor: ${isAvailable ? 'pointer' : 'not-allowed'};"
+                      onchange="selectStartDate('${dateInfo.date}')"
+                    />
                     <span style="flex: 1;">
                       <strong>${formattedDate}</strong>
                       <br>
@@ -244,14 +253,6 @@
                         ${dateInfo.available_places}/${dateInfo.total_places} cupos
                       </span>
                     </span>
-                    <input
-                      type="checkbox"
-                      value="${dateInfo.date}"
-                      ${!isAvailable ? 'disabled' : ''}
-                      ${isChecked ? 'checked' : ''}
-                      style="margin-left: 10px; width: 20px; height: 20px; cursor: ${isAvailable ? 'pointer' : 'not-allowed'};"
-                      onchange="toggleDate('${dateInfo.date}')"
-                    />
                   </label>
                 </div>
               `;
@@ -262,7 +263,7 @@
             if (selectedSectionIds.size > 1) {
               html += `
                 <p style="margin-top: 10px; color: #f39c12; font-size: 0.9em;">
-                  ⚠️ Nota: Seleccionaste múltiples secciones. Las fechas elegidas se aplicarán a todas.
+                  ⚠️ Nota: Seleccionaste múltiples secciones. La fecha elegida se aplicará a todas.
                 </p>
               `;
             }
@@ -274,6 +275,68 @@
         } catch (error) {
           console.error('Error al cargar fechas:', error);
           datesContainer.innerHTML = '<p style="color: #e74c3c;">Error al cargar las fechas disponibles. Intenta de nuevo.</p>';
+        }
+      }
+
+      function selectStartDate(date) {
+        startDateField.value = date;
+        // If a plan is selected, regenerate the class dates
+        if (weeklyPlanSelect.value) {
+          generateClassDatesPreview();
+        }
+      }
+
+      async function generateClassDatesPreview() {
+        const startDate = startDateField.value;
+        const weeklyPlanId = weeklyPlanSelect.value;
+        const sectionId = Array.from(selectedSectionIds)[0];
+
+        if (!startDate || !weeklyPlanId || !sectionId) {
+          generatedDatesSection.style.display = 'none';
+          return;
+        }
+
+        try {
+          generatedDatesContainer.innerHTML = '<p style="color: #999;">Generando fechas...</p>';
+          generatedDatesSection.style.display = 'block';
+
+          const response = await fetch(`/api/v1/sections/${sectionId}/preview_class_dates?start_date=${startDate}&weekly_plan_id=${weeklyPlanId}`);
+          const data = await response.json();
+
+          if (data.success && data.data.assigned_dates.length > 0) {
+            let html = `
+              <p style="margin-top: 0; font-weight: bold; color: #333;">
+                Plan: ${data.data.weekly_plan.description} (${data.data.weekly_plan.number_of_classes} clases)
+              </p>
+              <ul style="margin: 10px 0; padding-left: 20px;">
+            `;
+
+            data.data.assigned_dates.forEach((dateInfo) => {
+              const dateObj = new Date(dateInfo.date + 'T00:00:00');
+              const formattedDate = dateObj.toLocaleDateString('es-ES', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              });
+
+              html += `<li style="margin-bottom: 5px;">${formattedDate} <span style="color: #27ae60; font-size: 0.9em;">(${dateInfo.available_places} cupos)</span></li>`;
+            });
+
+            html += '</ul>';
+
+            if (data.data.skipped_dates.length > 0) {
+              html += `<p style="color: #e67e22; font-size: 0.9em; margin-top: 10px;">Se omitieron ${data.data.skipped_dates.length} fecha(s) sin cupos disponibles</p>`;
+            }
+
+            generatedDatesContainer.innerHTML = html;
+          } else {
+            const errorMsg = data.error || 'No se pudieron generar las fechas. Intenta con otra fecha de inicio.';
+            generatedDatesContainer.innerHTML = `<p style="color: #e74c3c;">${errorMsg}</p>`;
+          }
+        } catch (error) {
+          console.error('Error al generar fechas:', error);
+          generatedDatesContainer.innerHTML = `<p style="color: #e74c3c;">Error al generar las fechas: ${error.message}</p>`;
         }
       }
 
@@ -341,7 +404,7 @@
 
       // Make functions available globally
       window.toggleSection = toggleSection;
-      window.toggleDate = toggleDate;
+      window.selectStartDate = selectStartDate;
 
       // Handle course selection change
       if (courseSelect) {
@@ -350,10 +413,10 @@
 
           calendarContainer.innerHTML = '<p style="color: #999; text-align: center; padding: 40px;">Cargando horario...</p>';
           datesContainer.innerHTML = '<p style="color: #666; font-style: italic;">Selecciona una sección primero para ver las fechas disponibles</p>';
+          generatedDatesSection.style.display = 'none';
           selectedSectionIds.clear();
-          selectedDates.clear();
+          startDateField.value = '';
           updateHiddenFields();
-          updateDateHiddenFields();
 
           if (!courseId) {
             calendarContainer.innerHTML = '<p style="color: #666; font-style: italic; text-align: center; padding: 40px;">Primero seleccione un curso para ver el horario de secciones disponibles</p>';
@@ -376,12 +439,18 @@
         });
       }
 
+      // Handle weekly plan selection change
+      if (weeklyPlanSelect) {
+        weeklyPlanSelect.addEventListener('change', function() {
+          if (startDateField.value && selectedSectionIds.size > 0) {
+            generateClassDatesPreview();
+          }
+        });
+      }
+
       // On page load, if editing and course is pre-selected, load calendar
       if (courseSelect && courseSelect.value) {
         const courseId = courseSelect.value;
-
-        // Initialize hidden date fields
-        updateDateHiddenFields();
 
         fetch(`/admin/enrollments/sections_by_course?course_id=${courseId}`)
           .then(response => response.json())
@@ -389,9 +458,14 @@
             if (data.sections && data.sections.length > 0) {
               createCalendar(data.sections);
 
-              // If sections are pre-selected, load dates
+              // If sections are pre-selected, load start dates
               if (selectedSectionIds.size > 0) {
-                loadDatesForSection(Array.from(selectedSectionIds)[0]);
+                loadAvailableStartDates(Array.from(selectedSectionIds)[0]);
+
+                // If there's also a start date and plan selected, show preview
+                if (startDateField.value && weeklyPlanSelect.value) {
+                  generateClassDatesPreview();
+                }
               }
             }
           })
@@ -401,14 +475,6 @@
       }
     });
   </script>
-
-  <div class="form-group">
-    <%= f.label :weekly_plan_id, "Plan de Pago" %>
-    <%= f.select :weekly_plan_id,
-        options_from_collection_for_select(weekly_plans, :id, :description, enrollment.weekly_plan_id),
-        { prompt: "Seleccione un plan de pago" },
-        required: true %>
-  </div>
 
   <div class="form-group">
     <%= f.label :payment_method_id, "Método de Pago" %>

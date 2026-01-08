@@ -23,6 +23,12 @@
   </div>
 
   <div class="form-group">
+    <%= f.label :number_of_classes, "Número Total de Clases" %>
+    <%= f.number_field :number_of_classes, required: true, min: 1, placeholder: "Ej: 4, 8, 12" %>
+    <small style="color: #666;">Total de clases incluidas en este plan (obligatorio)</small>
+  </div>
+
+  <div class="form-group">
     <%= f.label :price, "Precio Mensual" %>
     <%= f.number_field :price, min: 0, placeholder: "Ej: 50000" %>
     <small style="color: #666;">Precio mensual del plan</small>

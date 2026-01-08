@@ -17,9 +17,9 @@ module Admin
     end
 
     def create
-      params_for_enrollment = enrollment_params.except(:section_id, :section_ids, :dates)
+      params_for_enrollment = enrollment_params.except(:section_id, :section_ids, :start_date)
       section_ids = (enrollment_params[:section_ids] || []).reject(&:blank?)
-      dates = (enrollment_params[:dates] || []).reject(&:blank?)
+      start_date = enrollment_params[:start_date]
       @enrollment = Enrollment.new(params_for_enrollment)
       success = false
 
@@ -31,9 +31,9 @@ module Admin
         return
       end
 
-      # Validate at least one date is selected
-      if dates.empty?
-        @enrollment.errors.add(:base, "Debe seleccionar al menos una fecha")
+      # Validate start date is selected
+      if start_date.blank?
+        @enrollment.errors.add(:base, "Debe seleccionar una fecha de inicio")
         load_form_data
         render :new, status: :unprocessable_entity
         return
@@ -41,25 +41,18 @@ module Admin
 
       ActiveRecord::Base.transaction do
         if @enrollment.save
-          # Create enrollment sections for the selected dates
+          # Create enrollment sections using auto-generated dates
+          start_date_parsed = Date.parse(start_date)
+          number_of_classes = @enrollment.weekly_plan.number_of_classes
+
           section_ids.each do |section_id|
             section = Section.find(section_id)
 
-            # Create an enrollment_section for each selected date
-            dates.each do |date_str|
-              date = Date.parse(date_str)
+            # Generate dates for all classes
+            class_dates = generate_class_dates(section, start_date_parsed, number_of_classes)
 
-              # Validate that the date matches the section's weekday
-              weekday_map = {
-                'Domingo' => 0, 'Lunes' => 1, 'Martes' => 2, 'Miércoles' => 3,
-                'Jueves' => 4, 'Viernes' => 5, 'Sábado' => 6
-              }
-              target_wday = weekday_map[section.weekday]
-
-              unless date.wday == target_wday
-                raise "La fecha #{date.strftime('%d/%m/%Y')} no es un #{section.weekday}"
-              end
-
+            # Create an enrollment_section for each class date
+            class_dates.each do |date|
               EnrollmentSection.create!(
                 enrollment: @enrollment,
                 section_id: section_id,
@@ -103,9 +96,9 @@ module Admin
     end
 
     def update
-      params_for_enrollment = enrollment_params.except(:section_id, :section_ids, :dates)
+      params_for_enrollment = enrollment_params.except(:section_id, :section_ids, :start_date)
       section_ids = (enrollment_params[:section_ids] || []).reject(&:blank?)
-      dates = (enrollment_params[:dates] || []).reject(&:blank?)
+      start_date = enrollment_params[:start_date]
 
       # Validate at least one section is selected
       if section_ids.empty?
@@ -115,9 +108,9 @@ module Admin
         return
       end
 
-      # Validate at least one date is selected
-      if dates.empty?
-        @enrollment.errors.add(:base, "Debe seleccionar al menos una fecha")
+      # Validate start date is selected
+      if start_date.blank?
+        @enrollment.errors.add(:base, "Debe seleccionar una fecha de inicio")
         load_form_data
         render :edit, status: :unprocessable_entity
         return
@@ -125,27 +118,20 @@ module Admin
 
       ActiveRecord::Base.transaction do
         if @enrollment.update(params_for_enrollment)
-          # Update enrollment sections with selected dates
+          # Update enrollment sections using auto-generated dates
+          start_date_parsed = Date.parse(start_date)
+          number_of_classes = @enrollment.weekly_plan.number_of_classes
+
           @enrollment.enrollment_sections.destroy_all
 
           section_ids.each do |section_id|
             section = Section.find(section_id)
 
-            # Create an enrollment_section for each selected date
-            dates.each do |date_str|
-              date = Date.parse(date_str)
+            # Generate dates for all classes
+            class_dates = generate_class_dates(section, start_date_parsed, number_of_classes)
 
-              # Validate that the date matches the section's weekday
-              weekday_map = {
-                'Domingo' => 0, 'Lunes' => 1, 'Martes' => 2, 'Miércoles' => 3,
-                'Jueves' => 4, 'Viernes' => 5, 'Sábado' => 6
-              }
-              target_wday = weekday_map[section.weekday]
-
-              unless date.wday == target_wday
-                raise "La fecha #{date.strftime('%d/%m/%Y')} no es un #{section.weekday}"
-              end
-
+            # Create an enrollment_section for each class date
+            class_dates.each do |date|
               EnrollmentSection.create!(
                 enrollment: @enrollment,
                 section_id: section_id,
@@ -210,7 +196,7 @@ module Admin
     end
 
     def enrollment_params
-      permitted = params.require(:enrollment).permit(:student_id, :section_id, :weekly_plan_id, :payment_method_id, :enrollment_amount, :total_tuition_fee, :payment_date, :date, section_ids: [], dates: [])
+      permitted = params.require(:enrollment).permit(:student_id, :section_id, :weekly_plan_id, :payment_method_id, :enrollment_amount, :total_tuition_fee, :payment_date, :start_date, section_ids: [])
 
       # Convert section_id to section_ids array for compatibility
       if permitted[:section_id].present? && permitted[:section_ids].blank?

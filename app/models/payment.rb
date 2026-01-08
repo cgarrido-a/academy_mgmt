@@ -18,7 +18,7 @@ class Payment < ApplicationRecord
   # Validations
   validates :enrollment, presence: true
   validates :payment_type, presence: true
-  validates :amount, presence: true, numericality: { greater_than: 0 }
+  validates :amount, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :payment_date, presence: true
   validates :payment_method, presence: true
   validates :status, presence: true

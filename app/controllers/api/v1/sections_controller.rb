@@ -60,6 +60,13 @@ module Api
         weekly_plan = WeeklyPlan.find(params[:weekly_plan_id])
         number_of_classes = weekly_plan.number_of_classes
 
+        if number_of_classes.nil?
+          return render json: {
+            success: false,
+            error: 'El plan semanal no tiene número de clases configurado'
+          }, status: :bad_request
+        end
+
         if number_of_classes <= 0
           return render json: {
             success: false,
@@ -127,6 +134,8 @@ module Api
           error: "Invalid parameters. #{e.message}"
         }, status: :bad_request
       rescue StandardError => e
+        Rails.logger.error "Error en preview_class_dates: #{e.class} - #{e.message}"
+        Rails.logger.error e.backtrace.join("\n")
         render json: {
           success: false,
           error: e.message

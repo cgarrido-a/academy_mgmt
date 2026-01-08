@@ -18,6 +18,11 @@
   </div>
 
   <div class="form-group">
+    <strong>Número Total de Clases:</strong>
+    <p><%= @weekly_plan.number_of_classes || '<span style="color: #e74c3c;">Sin configurar</span>'.html_safe %></p>
+  </div>
+
+  <div class="form-group">
     <strong>Precio Mensual:</strong>
     <p>$<%= number_with_delimiter(@weekly_plan.price || 0) %></p>
   </div>

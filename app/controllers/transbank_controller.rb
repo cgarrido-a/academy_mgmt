@@ -14,6 +14,11 @@ class TransbankController < ApplicationController
     Rails.logger.info "Todos los params: #{params.inspect}"
     Rails.logger.info "=" * 80
 
+    # Handle user cancellation or timeout
+    if params[:TBK_ORDEN_COMPRA].present? && params[:token_ws].blank?
+      return handle_cancelled_transaction(params[:TBK_ORDEN_COMPRA], params[:TBK_ID_SESION])
+    end
+
     token = params[:token_ws] || params[:TBK_TOKEN]
 
     unless token
@@ -95,6 +100,23 @@ class TransbankController < ApplicationController
 
   def render_error(message)
     render plain: message, status: :bad_request
+  end
+
+  def handle_cancelled_transaction(buy_order, session_id)
+    Rails.logger.info "Transacción cancelada por el usuario. Buy Order: #{buy_order}, Session ID: #{session_id}"
+
+    transaction_record = TransbankTransaction.find_by(buy_order: buy_order)
+
+    unless transaction_record
+      return render_error('Transacción no encontrada')
+    end
+
+    # Mark as failed with cancellation message
+    transaction_record.mark_as_failed!('Usuario canceló el pago en Transbank')
+
+    Rails.logger.warn "Payment cancelled by user: Buy Order #{buy_order}"
+
+    redirect_to_frontend_failure(transaction_record)
   end
 
   def redirect_to_result(transaction_record)

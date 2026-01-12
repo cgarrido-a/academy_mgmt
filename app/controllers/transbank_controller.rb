@@ -4,6 +4,16 @@ class TransbankController < ApplicationController
   # GET/POST /transbank/callback
   # This is called by Transbank after payment
   def callback
+    # Log all parameters received from Transbank
+    Rails.logger.info "=" * 80
+    Rails.logger.info "Transbank Callback - Parámetros recibidos:"
+    Rails.logger.info "token_ws: #{params[:token_ws]}"
+    Rails.logger.info "TBK_TOKEN: #{params[:TBK_TOKEN]}"
+    Rails.logger.info "TBK_ID_SESION: #{params[:TBK_ID_SESION]}"
+    Rails.logger.info "TBK_ORDEN_COMPRA: #{params[:TBK_ORDEN_COMPRA]}"
+    Rails.logger.info "Todos los params: #{params.inspect}"
+    Rails.logger.info "=" * 80
+
     token = params[:token_ws] || params[:TBK_TOKEN]
 
     unless token

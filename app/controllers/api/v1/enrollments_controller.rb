@@ -105,6 +105,14 @@ module Api
           token: response['token']
         )
 
+        # Log token for Transbank integration testing
+        Rails.logger.info "=" * 80
+        Rails.logger.info "TRANSBANK TOKEN GENERADO (API):"
+        Rails.logger.info "Token: #{response['token']}"
+        Rails.logger.info "Buy Order: #{buy_order}"
+        Rails.logger.info "Amount: #{total_amount}"
+        Rails.logger.info "=" * 80
+
         # Return Transbank payment data
         {
           url: response['url'],

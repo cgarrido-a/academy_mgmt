@@ -50,6 +50,14 @@ module Students
       # Update transaction with token
       transaction_record.update!(token: response['token'])
 
+      # Log token for Transbank integration testing
+      Rails.logger.info "=" * 80
+      Rails.logger.info "TRANSBANK TOKEN GENERADO:"
+      Rails.logger.info "Token: #{response['token']}"
+      Rails.logger.info "Buy Order: #{buy_order}"
+      Rails.logger.info "Amount: #{@enrollment.total_tuition_fee}"
+      Rails.logger.info "=" * 80
+
       # Return Transbank URL as JSON
       render json: {
         url: response['url'],

@@ -11,6 +11,8 @@ Rails.application.config.middleware.insert_before 0, Rack::Cors do
       'http://localhost:5173',   # Vite
       'http://localhost:4200',   # Angular
       'http://localhost:8080',   # Vue CLI
+      'https://www.gustarte.cl', # Producción
+      'https://gustarte.cl',     # Producción (sin www)
       ENV['FRONTEND_URL']        # Variable de entorno para producción
     ].compact  # Elimina valores nil
 

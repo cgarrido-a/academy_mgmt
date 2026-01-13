@@ -47,6 +47,12 @@
   </div>
 
   <div class="form-group">
+    <%= f.label :event_type, "Tipo de Evento" %>
+    <%= f.select :event_type, WeeklyPlan.event_types.map { |key, _| [key.titleize, key] }, { include_blank: "Ninguno" } %>
+    <small style="color: #666;">Tipo especial de evento (opcional)</small>
+  </div>
+
+  <div class="form-group">
     <%= f.label :description, "Descripción" %>
     <%= f.text_area :description, required: true, rows: 3, placeholder: "Ej: Plan ideal para estudiantes que asisten 2 veces por semana" %>
   </div>

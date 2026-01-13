@@ -15,6 +15,7 @@
           <th>Precio Mensual</th>
           <th>Precio Sábado</th>
           <th>Matrícula</th>
+          <th>Tipo Evento</th>
           <th>Inscripciones</th>
           <th>Acciones</th>
         </tr>
@@ -29,6 +30,7 @@
             <td>$<%= number_with_delimiter(plan.price || 0) %></td>
             <td>$<%= number_with_delimiter(plan.saturday_price || 0) %></td>
             <td>$<%= number_with_delimiter(plan.enrollment_fee || 0) %></td>
+            <td><%= plan.event_type&.titleize || '-' %></td>
             <td><%= plan.enrollments.count %></td>
             <td>
               <div class="actions">

@@ -2,6 +2,9 @@ class WeeklyPlan < ApplicationRecord
   # Associations
   has_many :enrollments
 
+  # Enums
+  enum event_type: { trial: 0, special_event: 1 }
+
   # Validations
   validates :plan, presence: true
   validates :description, presence: true

@@ -38,6 +38,9 @@ gem "jbuilder"
 # Authentication
 gem "devise"
 
+# Authorization
+gem "cancancan"
+
 # Use Rack CORS for handling Cross-Origin Resource Sharing (CORS)
 gem "rack-cors"
 

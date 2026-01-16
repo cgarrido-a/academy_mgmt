@@ -1,20 +1,19 @@
 module Admin
   class ApplicationController < ::ApplicationController
     before_action :authenticate_user!
-    before_action :verify_admin_or_teacher!
+    before_action :check_admin_or_teacher_access!
     layout 'admin'
+
+    # CanCanCan exception handling
+    rescue_from CanCan::AccessDenied do |exception|
+      redirect_to unauthorized_path, alert: exception.message
+    end
 
     private
 
-    def verify_admin_or_teacher!
+    def check_admin_or_teacher_access!
       unless current_user.admin_user.present? || current_user.teacher.present?
         redirect_to unauthorized_path, alert: "No tienes permisos para acceder a esta sección."
-      end
-    end
-
-    def verify_admin_only!
-      unless current_user.admin_user.present?
-        redirect_to unauthorized_path, alert: "Solo los administradores pueden acceder a esta sección."
       end
     end
 

@@ -1,5 +1,6 @@
 module Admin
   class SectionsController < Admin::ApplicationController
+    load_and_authorize_resource
     before_action :set_section, only: [:show, :edit, :update, :destroy]
 
     def index

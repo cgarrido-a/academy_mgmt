@@ -1,5 +1,7 @@
 module Admin
   class DashboardController < Admin::ApplicationController
+    authorize_resource class: false
+
     def index
       @total_courses = Course.count
       @total_sections = Section.count

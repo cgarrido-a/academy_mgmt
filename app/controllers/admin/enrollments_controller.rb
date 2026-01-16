@@ -1,6 +1,6 @@
 module Admin
   class EnrollmentsController < Admin::ApplicationController
-    before_action :verify_admin_only!
+    load_and_authorize_resource
     before_action :set_enrollment, only: [:show, :edit, :update, :destroy]
 
     def index

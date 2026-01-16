@@ -78,35 +78,53 @@
   <div class="navbar">
     <h1>🎓 Gustarte Admin</h1>
     <nav>
-      <%= link_to "Dashboard", admin_root_path %>
+      <% if can? :read, :dashboard %>
+        <%= link_to "Dashboard", admin_root_path %>
+      <% end %>
 
-      <div class="dropdown">
-        <a>Cursos ▾</a>
-        <div class="dropdown-content">
-          <%= link_to "Cursos", admin_courses_path %>
-          <%= link_to "Secciones", admin_sections_path %>
+      <% if can? :read, Course %>
+        <div class="dropdown">
+          <a>Cursos ▾</a>
+          <div class="dropdown-content">
+            <%= link_to "Cursos", admin_courses_path %>
+            <% if can? :read, Section %>
+              <%= link_to "Secciones", admin_sections_path %>
+            <% end %>
+          </div>
         </div>
-      </div>
+      <% end %>
 
-      <% if current_admin? %>
+      <% if can? :manage, Enrollment %>
         <div class="dropdown">
           <a>Inscripciones ▾</a>
           <div class="dropdown-content">
             <%= link_to "Inscripciones", admin_enrollments_path %>
-            <%= link_to "Pagos", admin_payments_path %>
-            <%= link_to "Transbank", admin_transbank_transactions_path %>
-            <%= link_to "Métodos de Pago", admin_payment_methods_path %>
+            <% if can? :manage, Payment %>
+              <%= link_to "Pagos", admin_payments_path %>
+            <% end %>
+            <% if can? :manage, TransbankTransaction %>
+              <%= link_to "Transbank", admin_transbank_transactions_path %>
+            <% end %>
+            <% if can? :manage, PaymentMethod %>
+              <%= link_to "Métodos de Pago", admin_payment_methods_path %>
+            <% end %>
           </div>
         </div>
+      <% end %>
 
+      <% if can? :manage, WeeklyPlan %>
         <div class="dropdown">
           <a>Planes de Pago ▾</a>
           <div class="dropdown-content">
             <%= link_to "Planes Semanales", admin_weekly_plans_path %>
-            <%= link_to "Descuentos", admin_payment_periods_path %>
+            <% if can? :manage, PaymentPeriod %>
+              <%= link_to "Descuentos", admin_payment_periods_path %>
+            <% end %>
           </div>
         </div>
+      <% end %>
 
+      <% if can? :manage, User %>
         <%= link_to "Usuarios", admin_users_path %>
       <% end %>
 

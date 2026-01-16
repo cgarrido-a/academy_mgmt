@@ -1,5 +1,6 @@
 module Admin
   class CoursesController < Admin::ApplicationController
+    load_and_authorize_resource
     before_action :set_course, only: [:show, :edit, :update, :destroy]
 
     def index

@@ -1,5 +1,6 @@
 module Admin
   class PaymentsController < Admin::ApplicationController
+    before_action :verify_admin_only!
     before_action :set_payment, only: [:show, :edit, :update, :destroy]
 
     def index

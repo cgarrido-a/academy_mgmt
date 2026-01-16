@@ -1,5 +1,6 @@
 module Admin
   class TransbankTransactionsController < Admin::ApplicationController
+    before_action :verify_admin_only!
     before_action :set_transaction, only: [:show]
 
     def index

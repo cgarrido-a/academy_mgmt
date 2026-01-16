@@ -1,5 +1,6 @@
 module Admin
   class UsersController < Admin::ApplicationController
+    before_action :verify_admin_only!
     before_action :set_user, only: [:show, :edit, :update, :destroy]
 
     def index

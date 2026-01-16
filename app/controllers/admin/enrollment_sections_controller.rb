@@ -1,5 +1,6 @@
 module Admin
   class EnrollmentSectionsController < Admin::ApplicationController
+    before_action :verify_admin_only!
     before_action :set_enrollment_section, only: [:edit, :update, :destroy]
 
     def edit

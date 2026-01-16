@@ -1,4 +1,10 @@
 class User < ApplicationRecord
+  # Include default devise modules. Others available are:
+  # :confirmable, :lockable, :timeoutable, :trackable and :omniauthable
+  # :registerable removed - only admins can create users
+  devise :database_authenticatable,
+         :recoverable, :rememberable, :validatable
+
   # Associations
   has_one :student, dependent: :destroy
   has_one :teacher, dependent: :destroy
@@ -6,6 +12,4 @@ class User < ApplicationRecord
 
   # Validations
   validates :name, presence: true
-  validates :email, presence: true, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }
-  # Note: Password validation removed. Consider implementing has_secure_password for proper authentication
 end

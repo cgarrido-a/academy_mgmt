@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Admin - Academy Management</title>
+  <title>Admin - Gustarte</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <%= csrf_meta_tags %>
   <%= csp_meta_tag %>
@@ -16,8 +16,17 @@
     /* Navbar */
     .navbar { background: #2c3e50; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     .navbar h1 { font-size: 1.5rem; }
-    .navbar nav a { color: white; text-decoration: none; margin-left: 2rem; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s; }
-    .navbar nav a:hover { background: rgba(255,255,255,0.1); }
+    .navbar nav { display: flex; align-items: center; gap: 1rem; }
+    .navbar nav > a, .navbar nav .dropdown > a { color: white; text-decoration: none; padding: 0.5rem 1rem; border-radius: 4px; transition: background 0.2s; white-space: nowrap; }
+    .navbar nav > a:hover, .navbar nav .dropdown > a:hover { background: rgba(255,255,255,0.1); }
+
+    /* Dropdown */
+    .dropdown { position: relative; display: inline-block; }
+    .dropdown > a { cursor: pointer; }
+    .dropdown-content { display: none; position: absolute; background: #34495e; min-width: 200px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); border-radius: 4px; margin-top: 0.5rem; z-index: 1000; }
+    .dropdown-content a { color: white; padding: 0.75rem 1rem; text-decoration: none; display: block; border-radius: 0; }
+    .dropdown-content a:hover { background: rgba(255,255,255,0.1); }
+    .dropdown:hover .dropdown-content { display: block; }
 
     /* Container */
     .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
@@ -67,18 +76,46 @@
 
 <body>
   <div class="navbar">
-    <h1>🎓 Academy Admin</h1>
+    <h1>🎓 Gustarte Admin</h1>
     <nav>
       <%= link_to "Dashboard", admin_root_path %>
-      <%= link_to "Cursos", admin_courses_path %>
-      <%= link_to "Secciones", admin_sections_path %>
-      <%= link_to "Inscripciones", admin_enrollments_path %>
-      <%= link_to "Pagos", admin_payments_path %>
-      <%= link_to "Transbank", admin_transbank_transactions_path %>
-      <%= link_to "Usuarios", admin_users_path %>
-      <%= link_to "Planes Semanales", admin_weekly_plans_path %>
-      <%= link_to "Descuentos", admin_payment_periods_path %>
-      <%= link_to "Métodos de Pago", admin_payment_methods_path %>
+
+      <div class="dropdown">
+        <a>Cursos ▾</a>
+        <div class="dropdown-content">
+          <%= link_to "Cursos", admin_courses_path %>
+          <%= link_to "Secciones", admin_sections_path %>
+        </div>
+      </div>
+
+      <% if current_admin? %>
+        <div class="dropdown">
+          <a>Inscripciones ▾</a>
+          <div class="dropdown-content">
+            <%= link_to "Inscripciones", admin_enrollments_path %>
+            <%= link_to "Pagos", admin_payments_path %>
+            <%= link_to "Transbank", admin_transbank_transactions_path %>
+            <%= link_to "Métodos de Pago", admin_payment_methods_path %>
+          </div>
+        </div>
+
+        <div class="dropdown">
+          <a>Planes de Pago ▾</a>
+          <div class="dropdown-content">
+            <%= link_to "Planes Semanales", admin_weekly_plans_path %>
+            <%= link_to "Descuentos", admin_payment_periods_path %>
+          </div>
+        </div>
+
+        <%= link_to "Usuarios", admin_users_path %>
+      <% end %>
+
+      <% if user_signed_in? %>
+        <span style="margin-left: 1rem; color: rgba(255,255,255,0.7);">
+          <%= current_user.email %>
+        </span>
+        <%= button_to "Cerrar Sesión", destroy_user_session_path, method: :delete, class: "btn btn-secondary", style: "display: inline-block; padding: 0.3rem 0.8rem;" %>
+      <% end %>
     </nav>
   </div>
 

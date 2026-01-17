@@ -15,27 +15,54 @@
 </div>
 
 <div class="card">
-  <h2>Mi Calendario Semanal</h2>
+  <div class="calendar-header">
+    <h2>Mi Calendario</h2>
+    <div class="calendar-nav">
+      <%= link_to admin_root_path(month: @prev_month.month, year: @prev_month.year, course_id: @selected_course_id), class: "btn btn-secondary" do %>
+        &larr; <%= I18n.l(@prev_month, format: '%B') %>
+      <% end %>
+      <span class="calendar-current-month">
+        <%= I18n.l(@calendar_date, format: '%B %Y').capitalize %>
+      </span>
+      <%= link_to admin_root_path(month: @next_month.month, year: @next_month.year, course_id: @selected_course_id), class: "btn btn-secondary" do %>
+        <%= I18n.l(@next_month, format: '%B') %> &rarr;
+      <% end %>
+    </div>
+  </div>
 
-  <div class="weekly-calendar">
-    <% @sections_by_weekday.each do |weekday, sections| %>
-      <div class="calendar-day">
-        <div class="day-header"><%= weekday %></div>
-        <div class="day-sections">
-          <% if sections.any? %>
-            <% sections.each do |section| %>
-              <%= link_to admin_section_path(section), class: "section-card" do %>
-                <div class="section-course"><%= section.course.title %></div>
-                <div class="section-time"><%= section.formatted_schedule %></div>
-                <div class="section-students"><%= section.enrollments.count %> alumnos</div>
-              <% end %>
-            <% end %>
-          <% else %>
-            <div class="no-sections">Sin clases</div>
-          <% end %>
-        </div>
-      </div>
+  <div class="course-filters">
+    <span class="filter-label">Filtrar por curso:</span>
+    <%= link_to "Todos", admin_root_path(month: @month, year: @year), class: "filter-btn #{@selected_course_id.nil? ? 'active' : ''}" %>
+    <% @teacher_courses.each do |course| %>
+      <%= link_to course.title, admin_root_path(month: @month, year: @year, course_id: course.id), class: "filter-btn #{@selected_course_id == course.id ? 'active' : ''}" %>
     <% end %>
   </div>
-</div>
 
+  <div class="monthly-calendar">
+    <div class="calendar-weekdays">
+      <% %w[Lun Mar Mie Jue Vie Sab Dom].each do |day| %>
+        <div class="weekday-header"><%= day %></div>
+      <% end %>
+    </div>
+
+    <div class="calendar-body">
+      <% @calendar_weeks.each do |week| %>
+        <% week.each do |day| %>
+          <div class="calendar-cell <%= 'other-month' unless day[:in_month] %> <%= 'today' if day[:is_today] %>">
+            <div class="cell-date"><%= day[:date].day %></div>
+            <div class="cell-sections">
+              <% day[:sections].each do |section| %>
+                <% student_count = @students_by_section_date[[section.id, day[:date]]] || 0 %>
+                <%= link_to admin_section_path(section, date: day[:date]), class: "calendar-section" do %>
+                  <span class="section-name"><%= truncate(section.course.title, length: 15) %></span>
+                  <span class="section-schedule"><%= section.formatted_schedule %></span>
+                  <span class="section-students"><%= student_count %> alumnos</span>
+                <% end %>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+</div>

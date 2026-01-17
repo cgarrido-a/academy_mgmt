@@ -72,23 +72,86 @@
     /* Actions */
     .actions { display: flex; gap: 0.5rem; }
 
-    /* Weekly Calendar */
-    .weekly-calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem; margin-top: 1rem; }
-    .calendar-day { background: #f8f9fa; border-radius: 8px; min-height: 150px; overflow: hidden; }
-    .day-header { background: #2c3e50; color: white; padding: 0.75rem; text-align: center; font-weight: 600; font-size: 0.9rem; }
-    .day-sections { padding: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem; }
-    .section-card { display: block; background: #3498db; color: white; padding: 0.75rem; border-radius: 6px; text-decoration: none; transition: all 0.2s; }
-    .section-card:hover { background: #2980b9; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
-    .section-course { font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem; }
-    .section-time { font-size: 0.8rem; opacity: 0.9; }
-    .section-students { font-size: 0.75rem; opacity: 0.8; margin-top: 0.25rem; }
-    .no-sections { color: #95a5a6; font-size: 0.85rem; padding: 0.5rem; text-align: center; }
+    /* Monthly Calendar */
+    .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem; }
+    .calendar-nav { display: flex; align-items: center; gap: 1rem; }
+    .calendar-current-month { font-size: 1.1rem; font-weight: 600; color: #2c3e50; min-width: 150px; text-align: center; }
 
-    @media (max-width: 900px) {
-      .weekly-calendar { grid-template-columns: repeat(3, 1fr); }
+    .monthly-calendar { border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; }
+    .calendar-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); background: #2c3e50; }
+    .weekday-header { padding: 0.75rem; text-align: center; color: white; font-weight: 600; font-size: 0.85rem; }
+
+    .calendar-body { display: grid; grid-template-columns: repeat(7, 1fr); }
+    .calendar-cell { min-height: 100px; border: 1px solid #dee2e6; padding: 0.5rem; background: white; }
+    .calendar-cell.other-month { background: #f8f9fa; }
+    .calendar-cell.other-month .cell-date { color: #adb5bd; }
+    .calendar-cell.today { background: #e8f4fd; }
+    .calendar-cell.today .cell-date { background: #3498db; color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
+
+    .cell-date { font-weight: 600; color: #2c3e50; margin-bottom: 0.5rem; font-size: 0.9rem; }
+    .cell-sections { display: flex; flex-direction: column; gap: 0.25rem; }
+
+    .calendar-section { display: block; background: #3498db; color: white; padding: 0.35rem 0.5rem; border-radius: 4px; text-decoration: none; font-size: 0.75rem; transition: all 0.2s; }
+    .calendar-section:hover { background: #2980b9; transform: scale(1.02); }
+    .section-name { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .section-schedule { display: block; opacity: 0.9; font-size: 0.7rem; }
+    .section-students { display: block; opacity: 0.85; font-size: 0.65rem; margin-top: 0.15rem; }
+
+    /* Course Filters */
+    .course-filters { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 1rem; padding: 0.75rem; background: #f8f9fa; border-radius: 6px; }
+    .filter-label { font-weight: 500; color: #2c3e50; font-size: 0.9rem; margin-right: 0.5rem; }
+    .filter-btn { display: inline-block; padding: 0.4rem 0.8rem; border-radius: 20px; text-decoration: none; font-size: 0.85rem; background: white; color: #2c3e50; border: 1px solid #dee2e6; transition: all 0.2s; }
+    .filter-btn:hover { background: #e9ecef; border-color: #adb5bd; }
+    .filter-btn.active { background: #3498db; color: white; border-color: #3498db; }
+
+    /* Section Info Grid */
+    .section-info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; }
+    .section-info-grid .form-group { margin-bottom: 0; }
+
+    /* Section Content Layout */
+    .section-content { display: grid; grid-template-columns: 280px 1fr; gap: 1.5rem; align-items: start; }
+    .mini-calendar-container .card { padding: 1rem; }
+    .students-list-container .card { min-height: 300px; }
+
+    /* Mini Calendar */
+    .mini-calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .cal-nav { color: #3498db; text-decoration: none; font-size: 1.2rem; padding: 0.25rem 0.5rem; border-radius: 4px; }
+    .cal-nav:hover { background: #e8f4fd; }
+    .cal-month { font-weight: 600; color: #2c3e50; font-size: 0.95rem; }
+
+    .mini-calendar { border: 1px solid #dee2e6; border-radius: 6px; overflow: hidden; }
+    .mini-cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); background: #2c3e50; }
+    .mini-cal-weekday { padding: 0.4rem; text-align: center; color: white; font-size: 0.7rem; font-weight: 600; }
+    .mini-cal-body { display: grid; grid-template-columns: repeat(7, 1fr); }
+    .mini-cal-day { padding: 0.5rem 0.25rem; text-align: center; font-size: 0.8rem; color: #2c3e50; border: 1px solid #f0f0f0; }
+    .mini-cal-day.other-month { color: #ccc; }
+    .mini-cal-day.today { background: #fff3cd; font-weight: bold; }
+    .mini-cal-day.has-class { background: #d4edda; color: #155724; font-weight: 600; cursor: pointer; text-decoration: none; display: block; }
+    .mini-cal-day.has-class:hover { background: #c3e6cb; }
+    .mini-cal-day.has-class.selected { background: #3498db; color: white; }
+    .mini-cal-day.has-class.today { background: #27ae60; color: white; }
+    .mini-cal-day.has-class.selected.today { background: #27ae60; }
+
+    .calendar-legend { display: flex; gap: 1rem; margin-top: 0.75rem; justify-content: center; }
+    .legend-item { display: flex; align-items: center; gap: 0.25rem; font-size: 0.75rem; color: #7f8c8d; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 2px; }
+    .legend-dot.has-class { background: #d4edda; border: 1px solid #c3e6cb; }
+    .legend-dot.today { background: #fff3cd; border: 1px solid #ffc107; }
+
+    .selected-date-info { margin-bottom: 1rem; padding: 0.75rem 1rem; background: #e8f4fd; border-radius: 6px; border-left: 4px solid #3498db; }
+    .selected-date-info strong { color: #2c3e50; }
+    .student-count { color: #7f8c8d; margin-left: 0.5rem; }
+    .no-students { color: #7f8c8d; font-style: italic; padding: 1rem; text-align: center; }
+
+    @media (max-width: 700px) {
+      .section-content { grid-template-columns: 1fr; }
     }
-    @media (max-width: 600px) {
-      .weekly-calendar { grid-template-columns: 1fr; }
+
+    @media (max-width: 768px) {
+      .calendar-cell { min-height: 80px; padding: 0.25rem; }
+      .cell-date { font-size: 0.8rem; }
+      .calendar-section { padding: 0.25rem; font-size: 0.65rem; }
+      .section-schedule, .section-students { display: none; }
     }
   </style>
 </head>

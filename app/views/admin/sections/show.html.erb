@@ -1,6 +1,6 @@
 <div class="card">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-    <h2>Sección #<%= @section.id %></h2>
+    <h2>Seccion #<%= @section.id %></h2>
     <div class="actions">
       <% if can? :update, @section %>
         <%= link_to "Editar", edit_admin_section_path(@section), class: "btn btn-secondary" %>
@@ -9,74 +9,118 @@
     </div>
   </div>
 
-  <div class="form-group">
-    <strong>Curso:</strong>
-    <p><%= link_to @section.course.title, admin_course_path(@section.course) %></p>
-  </div>
+  <div class="section-info-grid">
+    <div class="form-group">
+      <strong>Curso:</strong>
+      <p><%= link_to @section.course.title, admin_course_path(@section.course) %></p>
+    </div>
 
-  <div class="form-group">
-    <strong>Profesor:</strong>
-    <p><%= @section.teacher.user.name %></p>
-  </div>
+    <div class="form-group">
+      <strong>Profesor:</strong>
+      <p><%= @section.teacher.user.name %></p>
+    </div>
 
-  <div class="form-group">
-    <strong>Horario:</strong>
-    <p><%= @section.formatted_schedule %></p>
-  </div>
+    <div class="form-group">
+      <strong>Horario:</strong>
+      <p><%= @section.formatted_schedule %></p>
+    </div>
 
-  <div class="form-group">
-    <strong>Día de la semana:</strong>
-    <p><%= @section.weekday %></p>
-  </div>
+    <div class="form-group">
+      <strong>Dia:</strong>
+      <p><%= @section.weekday %></p>
+    </div>
 
-  <div class="form-group">
-    <strong>Cupos Totales:</strong>
-    <p><%= @section.places %></p>
-  </div>
-
-  <div class="form-group">
-    <strong>Cupos Disponibles:</strong>
-    <p><%= @section.available_places %></p>
+    <div class="form-group">
+      <strong>Cupos:</strong>
+      <p><%= @section.places %></p>
+    </div>
   </div>
 </div>
 
-<div class="card">
-  <h2>Alumnos (<%= @enrollments.count %>)</h2>
-
-  <% if @enrollments.any? %>
-    <table>
-      <thead>
-        <tr>
-          <th>Estudiante</th>
-          <th>Email</th>
-          <% if can? :manage, Enrollment %>
-            <th>Monto</th>
-          <% end %>
-          <th>Fecha Inscripción</th>
-          <% if can? :manage, Enrollment %>
-            <th>Acciones</th>
-          <% end %>
-        </tr>
-      </thead>
-      <tbody>
-        <% @enrollments.each do |enrollment| %>
-          <tr>
-            <td><%= enrollment.student.user.name %></td>
-            <td><%= enrollment.student.user.email %></td>
-            <% if can? :manage, Enrollment %>
-              <td>$<%= number_with_delimiter(enrollment.enrollment_amount) %></td>
-            <% end %>
-            <td><%= enrollment.created_at.strftime('%d/%m/%Y') %></td>
-            <% if can? :manage, Enrollment %>
-              <td>
-                <%= link_to "Ver", admin_enrollment_path(enrollment), class: "btn btn-primary" %>
-              </td>
-            <% end %>
-          </tr>
+<div class="section-content">
+  <div class="mini-calendar-container">
+    <div class="card">
+      <div class="mini-calendar-header">
+        <%= link_to admin_section_path(@section, month: @prev_month.month, year: @prev_month.year), class: "cal-nav" do %>
+          &larr;
         <% end %>
-      </tbody>
-    </table>
-  <% else %>
-    <p>No hay alumnos inscritos en esta sección.</p>
-  <% end %>
+        <span class="cal-month"><%= I18n.l(@calendar_date, format: '%B %Y').capitalize %></span>
+        <%= link_to admin_section_path(@section, month: @next_month.month, year: @next_month.year), class: "cal-nav" do %>
+          &rarr;
+        <% end %>
+      </div>
+
+      <div class="mini-calendar">
+        <div class="mini-cal-weekdays">
+          <% %w[L M M J V S D].each do |day| %>
+            <div class="mini-cal-weekday"><%= day %></div>
+          <% end %>
+        </div>
+        <div class="mini-cal-body">
+          <% @calendar_weeks.each do |week| %>
+            <% week.each do |day| %>
+              <% if day[:has_class] && day[:in_month] %>
+                <%= link_to day[:date].day,
+                    admin_section_path(@section, date: day[:date], month: @month, year: @year),
+                    class: "mini-cal-day has-class #{'selected' if day[:is_selected]} #{'today' if day[:is_today]}" %>
+              <% else %>
+                <div class="mini-cal-day <%= 'other-month' unless day[:in_month] %> <%= 'today' if day[:is_today] && day[:in_month] %>">
+                  <%= day[:date].day %>
+                </div>
+              <% end %>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="calendar-legend">
+        <span class="legend-item"><span class="legend-dot has-class"></span> Con clase</span>
+        <span class="legend-item"><span class="legend-dot today"></span> Hoy</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="students-list-container">
+    <div class="card">
+      <% if @selected_date %>
+        <div class="selected-date-info">
+          <strong><%= I18n.l(@selected_date, format: '%A %d de %B, %Y').capitalize %></strong>
+          <span class="student-count">(<%= @enrollment_sections.size %> alumnos / <%= @section.places %> cupos)</span>
+        </div>
+
+        <% if @enrollment_sections.any? %>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Estudiante</th>
+                <th>Email</th>
+                <% if can? :manage, Enrollment %>
+                  <th>Acciones</th>
+                <% end %>
+              </tr>
+            </thead>
+            <tbody>
+              <% @enrollment_sections.each_with_index do |es, index| %>
+                <tr>
+                  <td><%= index + 1 %></td>
+                  <td><%= es.enrollment.student.user.name %></td>
+                  <td><%= es.enrollment.student.user.email %></td>
+                  <% if can? :manage, Enrollment %>
+                    <td>
+                      <%= link_to "Ver", admin_enrollment_path(es.enrollment), class: "btn btn-primary" %>
+                    </td>
+                  <% end %>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        <% else %>
+          <p class="no-students">No hay alumnos inscritos para esta fecha.</p>
+        <% end %>
+      <% else %>
+        <p class="no-students">No hay fechas con clases programadas. Selecciona una fecha en el calendario.</p>
+      <% end %>
+    </div>
+  </div>
 </div>

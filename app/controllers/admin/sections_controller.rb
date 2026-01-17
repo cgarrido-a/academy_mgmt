@@ -4,7 +4,7 @@ module Admin
     before_action :set_section, only: [:show, :edit, :update, :destroy]
 
     def index
-      @sections = Section.includes(:course, :teacher).all
+      @sections = Section.includes(:course, :teacher).accessible_by(current_ability)
     end
 
     def show

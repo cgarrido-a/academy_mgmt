@@ -71,6 +71,25 @@
 
     /* Actions */
     .actions { display: flex; gap: 0.5rem; }
+
+    /* Weekly Calendar */
+    .weekly-calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem; margin-top: 1rem; }
+    .calendar-day { background: #f8f9fa; border-radius: 8px; min-height: 150px; overflow: hidden; }
+    .day-header { background: #2c3e50; color: white; padding: 0.75rem; text-align: center; font-weight: 600; font-size: 0.9rem; }
+    .day-sections { padding: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    .section-card { display: block; background: #3498db; color: white; padding: 0.75rem; border-radius: 6px; text-decoration: none; transition: all 0.2s; }
+    .section-card:hover { background: #2980b9; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+    .section-course { font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem; }
+    .section-time { font-size: 0.8rem; opacity: 0.9; }
+    .section-students { font-size: 0.75rem; opacity: 0.8; margin-top: 0.25rem; }
+    .no-sections { color: #95a5a6; font-size: 0.85rem; padding: 0.5rem; text-align: center; }
+
+    @media (max-width: 900px) {
+      .weekly-calendar { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .weekly-calendar { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 
@@ -84,11 +103,11 @@
 
       <% if can? :read, Course %>
         <div class="dropdown">
-          <a>Cursos ▾</a>
+          <a><%= current_teacher? ? "Mis Cursos" : "Cursos" %> ▾</a>
           <div class="dropdown-content">
-            <%= link_to "Cursos", admin_courses_path %>
+            <%= link_to current_teacher? ? "Mis Cursos" : "Cursos", admin_courses_path %>
             <% if can? :read, Section %>
-              <%= link_to "Secciones", admin_sections_path %>
+              <%= link_to current_teacher? ? "Mis Secciones" : "Secciones", admin_sections_path %>
             <% end %>
           </div>
         </div>

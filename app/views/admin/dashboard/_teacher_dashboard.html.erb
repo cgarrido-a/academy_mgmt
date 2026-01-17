@@ -1,0 +1,41 @@
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+  <h1>Mi Dashboard</h1>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <h3>Mis Secciones</h3>
+    <div class="number"><%= @total_sections %></div>
+  </div>
+
+  <div class="stat-card">
+    <h3>Mis Alumnos</h3>
+    <div class="number"><%= @total_students %></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Mi Calendario Semanal</h2>
+
+  <div class="weekly-calendar">
+    <% @sections_by_weekday.each do |weekday, sections| %>
+      <div class="calendar-day">
+        <div class="day-header"><%= weekday %></div>
+        <div class="day-sections">
+          <% if sections.any? %>
+            <% sections.each do |section| %>
+              <%= link_to admin_section_path(section), class: "section-card" do %>
+                <div class="section-course"><%= section.course.title %></div>
+                <div class="section-time"><%= section.formatted_schedule %></div>
+                <div class="section-students"><%= section.enrollments.count %> alumnos</div>
+              <% end %>
+            <% end %>
+          <% else %>
+            <div class="no-sections">Sin clases</div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
+

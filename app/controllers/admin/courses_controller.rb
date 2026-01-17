@@ -4,11 +4,11 @@ module Admin
     before_action :set_course, only: [:show, :edit, :update, :destroy]
 
     def index
-      @courses = Course.includes(:sections).all
+      @courses = Course.includes(:sections).accessible_by(current_ability)
     end
 
     def show
-      @sections = @course.sections.includes(:teacher)
+      @sections = @course.sections.includes(:teacher).accessible_by(current_ability)
     end
 
     def new

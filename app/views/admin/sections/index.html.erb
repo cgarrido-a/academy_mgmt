@@ -1,7 +1,9 @@
 <div class="card">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
     <h2>Secciones</h2>
-    <%= link_to "Nueva Sección", new_admin_section_path, class: "btn btn-success" %>
+    <% if can? :create, Section %>
+      <%= link_to "Nueva Sección", new_admin_section_path, class: "btn btn-success" %>
+    <% end %>
   </div>
 
   <% if @sections.any? %>
@@ -29,8 +31,12 @@
             <td>
               <div class="actions">
                 <%= link_to "Ver", admin_section_path(section), class: "btn btn-primary" %>
-                <%= link_to "Editar", edit_admin_section_path(section), class: "btn btn-secondary" %>
-                <%= button_to "Eliminar", admin_section_path(section), method: :delete, data: { confirm: "¿Estás seguro?" }, class: "btn btn-danger" %>
+                <% if can? :update, section %>
+                  <%= link_to "Editar", edit_admin_section_path(section), class: "btn btn-secondary" %>
+                <% end %>
+                <% if can? :destroy, section %>
+                  <%= button_to "Eliminar", admin_section_path(section), method: :delete, data: { confirm: "¿Estás seguro?" }, class: "btn btn-danger" %>
+                <% end %>
               </div>
             </td>
           </tr>
@@ -38,6 +44,6 @@
       </tbody>
     </table>
   <% else %>
-    <p>No hay secciones registradas. <%= link_to "Crear la primera", new_admin_section_path %></p>
+    <p>No hay secciones asignadas.</p>
   <% end %>
 </div>

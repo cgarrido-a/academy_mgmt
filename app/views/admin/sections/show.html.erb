@@ -2,7 +2,9 @@
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
     <h2>Sección #<%= @section.id %></h2>
     <div class="actions">
-      <%= link_to "Editar", edit_admin_section_path(@section), class: "btn btn-secondary" %>
+      <% if can? :update, @section %>
+        <%= link_to "Editar", edit_admin_section_path(@section), class: "btn btn-secondary" %>
+      <% end %>
       <%= link_to "Volver", admin_sections_path, class: "btn btn-primary" %>
     </div>
   </div>
@@ -39,36 +41,42 @@
 </div>
 
 <div class="card">
-  <h2>Inscripciones (<%= @enrollments.count %>)</h2>
+  <h2>Alumnos (<%= @enrollments.count %>)</h2>
 
   <% if @enrollments.any? %>
     <table>
       <thead>
         <tr>
-          <th>ID</th>
           <th>Estudiante</th>
           <th>Email</th>
-          <th>Monto</th>
-          <th>Fecha</th>
-          <th>Acciones</th>
+          <% if can? :manage, Enrollment %>
+            <th>Monto</th>
+          <% end %>
+          <th>Fecha Inscripción</th>
+          <% if can? :manage, Enrollment %>
+            <th>Acciones</th>
+          <% end %>
         </tr>
       </thead>
       <tbody>
         <% @enrollments.each do |enrollment| %>
           <tr>
-            <td>#<%= enrollment.id %></td>
             <td><%= enrollment.student.user.name %></td>
             <td><%= enrollment.student.user.email %></td>
-            <td>$<%= number_with_delimiter(enrollment.enrollment_amount) %></td>
+            <% if can? :manage, Enrollment %>
+              <td>$<%= number_with_delimiter(enrollment.enrollment_amount) %></td>
+            <% end %>
             <td><%= enrollment.created_at.strftime('%d/%m/%Y') %></td>
-            <td>
-              <%= link_to "Ver", admin_enrollment_path(enrollment), class: "btn btn-primary" %>
-            </td>
+            <% if can? :manage, Enrollment %>
+              <td>
+                <%= link_to "Ver", admin_enrollment_path(enrollment), class: "btn btn-primary" %>
+              </td>
+            <% end %>
           </tr>
         <% end %>
       </tbody>
     </table>
   <% else %>
-    <p>No hay inscripciones en esta sección.</p>
+    <p>No hay alumnos inscritos en esta sección.</p>
   <% end %>
 </div>

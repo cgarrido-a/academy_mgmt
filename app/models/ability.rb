@@ -8,27 +8,22 @@ class Ability
       # Admins can do everything
       can :manage, :all
     elsif user.teacher.present?
+      teacher = user.teacher
+
       # Teachers can access dashboard (read only)
       can :read, :dashboard
       can :index, :dashboard
 
-      # Teachers can view and manage courses
-      can :read, Course
-      can :manage, Course
+      # Teachers can only read courses where they have sections assigned
+      can :read, Course, sections: { teacher_id: teacher.id }
 
-      # Teachers can manage sections (all sections, not just theirs)
-      # You can restrict this later if needed: can :manage, Section, teacher_id: user.teacher.id
-      can :manage, Section
+      # Teachers can only read their own sections
+      can :read, Section, teacher_id: teacher.id
 
-      # Teachers cannot access financial/admin features
-      cannot :manage, Enrollment
-      cannot :manage, Payment
-      cannot :manage, TransbankTransaction
-      cannot :manage, PaymentMethod
-      cannot :manage, PaymentPeriod
-      cannot :manage, WeeklyPlan
-      cannot :manage, User
-      cannot :manage, EnrollmentSection
+      # Teachers can read students enrolled in their sections
+      can :read, Student, enrollments: { sections: { teacher_id: teacher.id } }
+      can :read, Enrollment, sections: { teacher_id: teacher.id }
+      can :read, EnrollmentSection, section: { teacher_id: teacher.id }
     elsif user.student.present?
       # Students have no admin panel access
       cannot :manage, :all

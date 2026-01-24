@@ -239,7 +239,7 @@ module Admin
       @courses = Course.all
       @sections = Section.includes(:course, teacher: :user).all
       @weekly_plans = WeeklyPlan.all
-      @payment_methods = PaymentMethod.all
+      @payment_methods = PaymentMethod.where.not('LOWER(payment_method) = ?', 'webpay')
       @payment_periods = PaymentPeriod.all.order(months: :asc)
 
       # Check if there are any weekly plans

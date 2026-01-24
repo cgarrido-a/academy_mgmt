@@ -2,8 +2,9 @@ module Api
   module V1
     class PaymentMethodsController < BaseController
       # GET /api/v1/payment_methods
+      # Solo retorna Webpay para pagos online del estudiante
       def index
-        payment_methods = PaymentMethod.all
+        payment_methods = PaymentMethod.where('LOWER(payment_method) = ?', 'webpay')
 
         render json: {
           success: true,

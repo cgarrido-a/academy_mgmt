@@ -10,12 +10,49 @@
     </div>
   <% end %>
 
-  <div class="form-group">
-    <%= f.label :student_id, "Estudiante" %>
-    <%= f.select :student_id,
-        options_from_collection_for_select(students, :id, ->(s) { "#{s.user.name} (#{s.user.email})" }, enrollment.student_id),
-        { prompt: "Seleccione un estudiante" },
-        required: true %>
+  <!-- Student/User Section -->
+  <div class="card mb-3" style="border: 1px solid #dee2e6; border-radius: 4px; padding: 15px; margin-bottom: 20px;">
+    <h5 style="margin-bottom: 15px; color: #495057;">Datos del Estudiante</h5>
+
+    <div class="form-group">
+      <%= label_tag :user_email, "Email del Estudiante" %>
+      <div style="display: flex; gap: 10px;">
+        <%= text_field_tag :user_email,
+            enrollment.student&.user&.email,
+            placeholder: "Ingrese el email del estudiante",
+            required: true,
+            id: 'user_email_field',
+            style: 'flex: 1;' %>
+        <button type="button" id="search_user_btn" class="btn btn-primary" onclick="searchUserByEmail()">
+          Buscar
+        </button>
+      </div>
+      <small id="email_status" style="color: #666; display: block; margin-top: 5px;">Ingrese el email y presione "Buscar" para verificar si el estudiante ya existe</small>
+    </div>
+
+    <!-- User info display (shown when user is found) -->
+    <div id="user_found_info" style="display: none; margin-top: 15px; padding: 10px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px;">
+      <p style="margin: 0; color: #155724;"><strong>Estudiante encontrado:</strong> <span id="found_user_name"></span></p>
+      <p style="margin: 5px 0 0 0; color: #155724; font-size: 0.9em;">Email: <span id="found_user_email"></span></p>
+    </div>
+
+    <!-- New user fields (shown when user is not found) -->
+    <div id="new_user_fields" style="display: none; margin-top: 15px; padding: 15px; background: #fff3cd; border: 1px solid #ffeeba; border-radius: 4px;">
+      <p style="margin: 0 0 15px 0; color: #856404;"><strong>Usuario no encontrado.</strong> Complete los datos para crear un nuevo estudiante:</p>
+
+      <div class="form-group">
+        <%= label_tag :user_name, "Nombre Completo" %>
+        <%= text_field_tag :user_name, nil, placeholder: "Nombre del estudiante", id: 'user_name_field', required: false %>
+      </div>
+
+      <div class="form-group">
+        <%= label_tag :user_phone, "Teléfono (opcional)" %>
+        <%= text_field_tag :user_phone, nil, placeholder: "Teléfono de contacto", id: 'user_phone_field' %>
+      </div>
+    </div>
+
+    <!-- Hidden field for student_id -->
+    <%= f.hidden_field :student_id, id: 'student_id_field' %>
   </div>
 
   <div class="form-group">
@@ -347,6 +384,110 @@
         enrollment_amount: <%= enrollment.enrollment_amount || 0 %>,
         total_tuition_fee: <%= enrollment.total_tuition_fee || 0 %>,
         class_dates: <%= enrollment.enrollment_sections.order(:date).pluck(:date).to_json.html_safe %>
+      };
+
+      // User search state
+      let userFound = <%= enrollment.student_id.present? ? 'true' : 'false' %>;
+      let currentStudentId = <%= enrollment.student_id || 'null' %>;
+
+      // Function to search user by email - made globally accessible
+      window.searchUserByEmail = async function() {
+        const emailField = document.getElementById('user_email_field');
+        const emailStatus = document.getElementById('email_status');
+        const userFoundInfo = document.getElementById('user_found_info');
+        const newUserFields = document.getElementById('new_user_fields');
+        const studentIdField = document.getElementById('student_id_field');
+        const foundUserName = document.getElementById('found_user_name');
+        const foundUserEmail = document.getElementById('found_user_email');
+        const userNameField = document.getElementById('user_name_field');
+        const searchBtn = document.getElementById('search_user_btn');
+
+        const email = emailField.value.trim();
+
+        if (!email) {
+          emailStatus.textContent = 'Por favor ingrese un email';
+          emailStatus.style.color = '#dc3545';
+          return;
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          emailStatus.textContent = 'Por favor ingrese un email válido';
+          emailStatus.style.color = '#dc3545';
+          return;
+        }
+
+        // Show loading state
+        searchBtn.disabled = true;
+        searchBtn.textContent = 'Buscando...';
+        emailStatus.textContent = 'Buscando...';
+        emailStatus.style.color = '#666';
+
+        try {
+          const response = await fetch(`/api/v1/users/find_by_email?email=${encodeURIComponent(email)}`);
+          const data = await response.json();
+
+          if (data.success && data.found) {
+            // User found
+            userFound = true;
+
+            if (data.data.is_student) {
+              // User is already a student
+              currentStudentId = data.data.student_id;
+              studentIdField.value = data.data.student_id;
+
+              foundUserName.textContent = data.data.name;
+              foundUserEmail.textContent = data.data.email;
+
+              userFoundInfo.style.display = 'block';
+              newUserFields.style.display = 'none';
+
+              emailStatus.textContent = 'Estudiante encontrado en el sistema';
+              emailStatus.style.color = '#28a745';
+
+              // Make name field not required
+              userNameField.required = false;
+            } else {
+              // User exists but is not a student - will need to create student record
+              currentStudentId = null;
+              studentIdField.value = '';
+
+              foundUserName.textContent = data.data.name + ' (se creará como estudiante)';
+              foundUserEmail.textContent = data.data.email;
+
+              userFoundInfo.style.display = 'block';
+              newUserFields.style.display = 'none';
+
+              emailStatus.textContent = 'Usuario encontrado - se creará el perfil de estudiante automáticamente';
+              emailStatus.style.color = '#ffc107';
+
+              // Make name field not required since we have the name
+              userNameField.required = false;
+            }
+          } else {
+            // User not found - show new user fields
+            userFound = false;
+            currentStudentId = null;
+            studentIdField.value = '';
+
+            userFoundInfo.style.display = 'none';
+            newUserFields.style.display = 'block';
+
+            emailStatus.textContent = 'Usuario no encontrado - complete los datos del nuevo estudiante';
+            emailStatus.style.color = '#856404';
+
+            // Make name field required for new users
+            userNameField.required = true;
+          }
+        } catch (error) {
+          console.error('Error searching user:', error);
+          emailStatus.textContent = 'Error al buscar el usuario. Intente de nuevo.';
+          emailStatus.style.color = '#dc3545';
+        } finally {
+          searchBtn.disabled = false;
+          searchBtn.textContent = 'Buscar';
+        }
       };
 
       // Use turbo:load instead of DOMContentLoaded for Turbo compatibility
@@ -1076,8 +1217,30 @@
         }
       }
 
+      // Initialize user fields for edit mode
+      function initializeUserFieldsForEdit() {
+        const studentIdField = document.getElementById('student_id_field');
+        const userEmailField = document.getElementById('user_email_field');
+        const userFoundInfo = document.getElementById('user_found_info');
+        const foundUserName = document.getElementById('found_user_name');
+        const foundUserEmail = document.getElementById('found_user_email');
+
+        // If we're in edit mode and have a student_id, show the found user info
+        if (currentStudentId && userEmailField && userEmailField.value) {
+          userFound = true;
+          userFoundInfo.style.display = 'block';
+          foundUserName.textContent = '<%= enrollment.student&.user&.name %>';
+          foundUserEmail.textContent = '<%= enrollment.student&.user&.email %>';
+          document.getElementById('email_status').textContent = 'Estudiante del registro actual';
+          document.getElementById('email_status').style.color = '#28a745';
+        }
+      }
+
       // On page load, if editing and course is pre-selected, load calendar
       async function initializeFormOnLoad() {
+        // Initialize user fields first
+        initializeUserFieldsForEdit();
+
         if (!courseSelect || !courseSelect.value) {
           console.log('Form initialization skipped: no course selected');
           return;

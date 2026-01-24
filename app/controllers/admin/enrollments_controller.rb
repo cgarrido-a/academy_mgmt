@@ -18,11 +18,32 @@ module Admin
     end
 
     def create
-      params_for_enrollment = enrollment_params.except(:section_id, :section_ids, :start_date, :class_dates)
-      section_ids = (enrollment_params[:section_ids] || []).reject(&:blank?)
-      class_dates = (enrollment_params[:class_dates] || []).reject(&:blank?)
-      @enrollment = Enrollment.new(params_for_enrollment)
+      # Get section_ids and class_dates before they are excluded
+      raw_params = params.require(:enrollment).permit(:student_id, :section_id, :weekly_plan_id, :payment_method_id, :enrollment_amount, :total_tuition_fee, :payment_date, section_ids: [], class_dates: [])
+      section_ids = (raw_params[:section_ids] || []).reject(&:blank?)
+      if raw_params[:section_id].present? && section_ids.empty?
+        section_ids = [raw_params[:section_id]]
+      end
+      class_dates = (raw_params[:class_dates] || []).reject(&:blank?)
+
+      params_for_enrollment = enrollment_params
+
+      # Handle user/student creation if student_id is not provided
+      student_id = params_for_enrollment[:student_id]
+      user_email = params[:user_email]&.strip&.downcase
+      user_name = params[:user_name]&.strip
+      user_phone = params[:user_phone]&.strip
+
+      @enrollment = Enrollment.new(params_for_enrollment.except(:student_id))
       success = false
+
+      # Validate email is provided
+      if user_email.blank?
+        @enrollment.errors.add(:base, "Debe ingresar el email del estudiante")
+        load_form_data
+        render :new, status: :unprocessable_entity
+        return
+      end
 
       # Validate at least one section is selected
       if section_ids.empty?
@@ -41,6 +62,44 @@ module Admin
       end
 
       ActiveRecord::Base.transaction do
+        # Find or create user and student
+        if student_id.present?
+          @enrollment.student_id = student_id
+        else
+          # Try to find existing user by email
+          user = User.find_by('LOWER(email) = ?', user_email)
+
+          if user
+            # User exists, check if they have a student profile
+            if user.student.present?
+              @enrollment.student = user.student
+            else
+              # Create student profile for existing user
+              student = user.create_student!
+              @enrollment.student = student
+            end
+          else
+            # Create new user and student
+            if user_name.blank?
+              raise StandardError, "Debe ingresar el nombre del estudiante"
+            end
+
+            # Generate a random password for the new user
+            random_password = SecureRandom.hex(8)
+
+            user = User.create!(
+              email: user_email,
+              name: user_name,
+              phone: user_phone,
+              password: random_password,
+              password_confirmation: random_password
+            )
+
+            student = user.create_student!
+            @enrollment.student = student
+          end
+        end
+
         if @enrollment.save
           # Create enrollment sections using the selected/edited dates
           section_ids.each do |section_id|
@@ -90,9 +149,15 @@ module Admin
     end
 
     def update
-      params_for_enrollment = enrollment_params.except(:section_id, :section_ids, :start_date, :class_dates)
-      section_ids = (enrollment_params[:section_ids] || []).reject(&:blank?)
-      class_dates = (enrollment_params[:class_dates] || []).reject(&:blank?)
+      # Get section_ids and class_dates before they are excluded
+      raw_params = params.require(:enrollment).permit(:student_id, :section_id, :weekly_plan_id, :payment_method_id, :enrollment_amount, :total_tuition_fee, :payment_date, section_ids: [], class_dates: [])
+      section_ids = (raw_params[:section_ids] || []).reject(&:blank?)
+      if raw_params[:section_id].present? && section_ids.empty?
+        section_ids = [raw_params[:section_id]]
+      end
+      class_dates = (raw_params[:class_dates] || []).reject(&:blank?)
+
+      params_for_enrollment = enrollment_params
 
       # Validate at least one section is selected
       if section_ids.empty?
@@ -191,7 +256,8 @@ module Admin
         permitted[:section_ids] = [permitted[:section_id]]
       end
 
-      permitted
+      # Remove attributes that don't belong to Enrollment model
+      permitted.except(:start_date, :class_dates, :section_id, :section_ids)
     end
 
     # Removed: tuition_fees and installments tables no longer exist

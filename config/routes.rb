@@ -30,6 +30,11 @@ Rails.application.routes.draw do
           get 'dashboard', action: :dashboard
         end
       end
+      resources :users, only: [] do
+        collection do
+          get 'find_by_email', action: :find_by_email
+        end
+      end
     end
   end
 

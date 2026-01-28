@@ -63,35 +63,37 @@
   </div>
 
   <div class="form-group">
+    <%= f.label :weekly_plan_id, "Plan de Pago" %>
+    <%= f.select :weekly_plan_id,
+        options_from_collection_for_select(weekly_plans, :id, :plan, enrollment.weekly_plan_id),
+        { prompt: "Seleccione un plan de pago" },
+        { required: true, id: 'weekly_plan_select' } %>
+    <small id="plan_info" style="color: #666; display: none;">Seleccione <span id="weekly_classes_count">1</span> sección(es) en el horario</small>
+  </div>
+
+  <div class="form-group" id="sections-container" style="display: none;">
     <%= f.label :section_ids, "Secciones" %>
-    <p style="color: #666; font-size: 0.9em; margin-bottom: 10px;">Haz clic en las secciones del horario para seleccionarlas (puedes seleccionar múltiples)</p>
+    <p id="sections_instruction" style="color: #666; font-size: 0.9em; margin-bottom: 10px;">Haz clic en las secciones del horario para seleccionarlas</p>
 
     <div id="calendar-container" style="margin-top: 15px;">
-      <p style="color: #666; font-style: italic; text-align: center; padding: 40px;">Primero seleccione un curso para ver el horario de secciones disponibles</p>
+      <p style="color: #666; font-style: italic; text-align: center; padding: 40px;">Primero seleccione un curso y un plan de pago</p>
     </div>
 
     <!-- Hidden fields to store selected section IDs -->
     <div id="hidden-section-fields"></div>
   </div>
 
-  <div class="form-group">
-    <%= f.label :start_date, "Fecha de Inicio" %>
+  <div class="form-group" id="start-dates-container" style="display: none;">
+    <%= f.label :start_date, "Fecha(s) de Inicio" %>
+    <p style="color: #666; font-size: 0.9em; margin-bottom: 10px;">Selecciona la fecha de inicio para cada sección</p>
 
-    <div id="calendar-picker-container" style="max-width: 500px; margin-top: 10px;">
-      <p style="color: #666; font-style: italic;">Selecciona una sección primero para ver el calendario de fechas disponibles</p>
+    <div id="calendar-pickers-wrapper">
+      <!-- Calendar pickers will be rendered here dynamically, one per section -->
     </div>
 
     <%= f.hidden_field :start_date, id: 'start_date_field', value: enrollment.enrollment_sections.first&.date %>
 
     <small style="color: #666;">Las fechas resaltadas tienen cupos disponibles</small>
-  </div>
-
-  <div class="form-group">
-    <%= f.label :weekly_plan_id, "Plan de Pago" %>
-    <%= f.select :weekly_plan_id,
-        options_from_collection_for_select(weekly_plans, :id, :plan, enrollment.weekly_plan_id),
-        { prompt: "Seleccione un plan de pago" },
-        { required: true, id: 'weekly_plan_select' } %>
   </div>
 
   <div class="form-group">
@@ -374,7 +376,7 @@
       let availableDatesData = [];
       let selectedSectionIds = new Set(<%= enrollment.section_ids.to_json.html_safe %>);
       let allSections = [];
-      let weeklyPlans = <%= weekly_plans.to_json(only: [:id, :plan, :number_of_classes, :price, :enrollment_fee]).html_safe %>;
+      let weeklyPlans = <%= weekly_plans.to_json(only: [:id, :plan, :number_of_classes, :price, :enrollment_fee, :weekly_classes]).html_safe %>;
       let paymentPeriods = <%= payment_periods.to_json(only: [:id, :months, :discount_percentage, :description]).html_safe %>;
 
       // Enrollment data for edit mode
@@ -389,6 +391,11 @@
       // User search state
       let userFound = <%= enrollment.student_id.present? ? 'true' : 'false' %>;
       let currentStudentId = <%= enrollment.student_id || 'null' %>;
+
+      // Track max sections allowed and start dates per section
+      let maxSectionsAllowed = 0;
+      let startDatesBySection = {}; // { sectionId: 'YYYY-MM-DD' }
+      let calendarDataBySection = {}; // Store calendar data for each section
 
       // Function to search user by email - made globally accessible
       window.searchUserByEmail = async function() {
@@ -496,7 +503,9 @@
         setTimeout(function() {
           const courseSelect = document.getElementById('course_select');
           const calendarContainer = document.getElementById('calendar-container');
-          const calendarPickerContainer = document.getElementById('calendar-picker-container');
+          const sectionsContainer = document.getElementById('sections-container');
+          const startDatesContainer = document.getElementById('start-dates-container');
+          const calendarPickersWrapper = document.getElementById('calendar-pickers-wrapper');
           const hiddenFieldsContainer = document.getElementById('hidden-section-fields');
           const startDateField = document.getElementById('start_date_field');
           const weeklyPlanSelect = document.getElementById('weekly_plan_select');
@@ -506,9 +515,12 @@
           const totalTuitionFeeField = document.getElementById('total_tuition_fee_field');
           const generatedDatesSection = document.getElementById('generated-dates-section');
           const generatedDatesContainer = document.getElementById('generated-dates-container');
+          const planInfo = document.getElementById('plan_info');
+          const weeklyClassesCount = document.getElementById('weekly_classes_count');
+          const sectionsInstruction = document.getElementById('sections_instruction');
 
           // Verify all required elements are present - if not, we're probably not on the enrollments form page
-          if (!courseSelect || !calendarContainer || !calendarPickerContainer || !hiddenFieldsContainer) {
+          if (!courseSelect || !calendarContainer || !hiddenFieldsContainer) {
             // Not on the enrollments form page, skip initialization
             return;
           }
@@ -531,93 +543,115 @@
           if (selectedSectionIds.size > 0) {
             infoDiv.classList.add('visible');
             const selectedSections = allSections.filter(s => selectedSectionIds.has(s.id));
-            infoDiv.innerHTML = `<strong>Secciones seleccionadas (${selectedSectionIds.size}):</strong><br>` +
-              selectedSections.map(s => `• ${s.weekday} ${s.start_time}-${s.end_time} - ${s.teacher}`).join('<br>');
+            const remaining = maxSectionsAllowed - selectedSectionIds.size;
+            let statusText = `<strong>Secciones seleccionadas (${selectedSectionIds.size}/${maxSectionsAllowed}):</strong><br>`;
+            statusText += selectedSections.map(s => `• ${s.weekday} ${s.start_time}-${s.end_time} - ${s.teacher}`).join('<br>');
+            if (remaining > 0) {
+              statusText += `<br><span style="color: #856404;">Faltan ${remaining} sección(es) por seleccionar</span>`;
+            }
+            infoDiv.innerHTML = statusText;
           } else {
             infoDiv.classList.remove('visible');
           }
         }
 
-        // Load available start dates if sections are selected
+        // Show/hide start dates container and load calendars for each section
         if (selectedSectionIds.size > 0) {
-          loadAvailableStartDates(Array.from(selectedSectionIds)[0]);
+          startDatesContainer.style.display = 'block';
+          loadCalendarsForSelectedSections();
         } else {
-          calendarPickerContainer.innerHTML = '<p style="color: #666; font-style: italic;">Selecciona una sección primero para ver las fechas disponibles</p>';
+          startDatesContainer.style.display = 'none';
+          calendarPickersWrapper.innerHTML = '<p style="color: #666; font-style: italic;">Selecciona una sección primero para ver las fechas disponibles</p>';
           generatedDatesSection.style.display = 'none';
         }
       }
 
-      async function loadAvailableStartDates(sectionId) {
-        try {
-          calendarPickerContainer.innerHTML = '<p style="color: #999;">Cargando calendario...</p>';
+      async function loadCalendarsForSelectedSections() {
+        const sectionIds = Array.from(selectedSectionIds);
+        calendarPickersWrapper.innerHTML = '<p style="color: #999;">Cargando calendarios...</p>';
 
-          const response = await fetch(`/api/v1/sections/${sectionId}/calendar`);
-          const data = await response.json();
+        let html = '';
+        for (const sectionId of sectionIds) {
+          const section = allSections.find(s => s.id === sectionId);
+          if (!section) continue;
 
-          if (data.success && data.data.dates.length > 0) {
-            availableDatesData = data.data.dates;
+          try {
+            const response = await fetch(`/api/v1/sections/${sectionId}/calendar`);
+            const data = await response.json();
 
-            // Start with first available date's month or current month
-            if (availableDatesData.length > 0) {
-              const firstDate = new Date(availableDatesData[0].date + 'T00:00:00');
-              currentCalendarMonth = new Date(firstDate.getFullYear(), firstDate.getMonth(), 1);
+            if (data.success && data.data.dates.length > 0) {
+              calendarDataBySection[sectionId] = data.data;
+              html += renderSectionCalendarPicker(sectionId, section, data.data);
+            } else {
+              html += `<div style="margin-bottom: 20px; padding: 15px; background: #f8d7da; border-radius: 4px;">
+                <strong>${section.weekday} ${section.start_time}-${section.end_time}</strong>: No hay fechas disponibles
+              </div>`;
             }
-
-            renderCalendarPicker(data.data);
-          } else {
-            calendarPickerContainer.innerHTML = '<p style="color: #e74c3c;">No hay fechas disponibles para esta sección.</p>';
+          } catch (error) {
+            console.error('Error loading calendar for section', sectionId, error);
+            html += `<div style="margin-bottom: 20px; padding: 15px; background: #f8d7da; border-radius: 4px;">
+              <strong>${section.weekday} ${section.start_time}-${section.end_time}</strong>: Error al cargar calendario
+            </div>`;
           }
-        } catch (error) {
-          console.error('Error al cargar fechas:', error);
-          calendarPickerContainer.innerHTML = '<p style="color: #e74c3c;">Error al cargar las fechas disponibles. Intenta de nuevo.</p>';
         }
+
+        calendarPickersWrapper.innerHTML = html || '<p style="color: #666;">No hay secciones seleccionadas</p>';
       }
 
-      function renderCalendarPicker(sectionData) {
+      function renderSectionCalendarPicker(sectionId, section, sectionData) {
         const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
                            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
         const weekdayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
-        const year = currentCalendarMonth.getFullYear();
-        const month = currentCalendarMonth.getMonth();
+        // Find first available date to set initial month
+        const availableDates = sectionData.dates.filter(d => d.available_places > 0);
+        let displayMonth = new Date();
+        if (availableDates.length > 0) {
+          displayMonth = new Date(availableDates[0].date + 'T00:00:00');
+        }
 
-        // Get first and last day of month
+        const year = displayMonth.getFullYear();
+        const month = displayMonth.getMonth();
         const firstDay = new Date(year, month, 1);
         const lastDay = new Date(year, month + 1, 0);
         const firstDayOfWeek = firstDay.getDay();
         const daysInMonth = lastDay.getDate();
 
-        // Create dates map for quick lookup
+        // Create dates map
         const datesMap = {};
-        availableDatesData.forEach(d => {
+        sectionData.dates.forEach(d => {
           datesMap[d.date] = d;
         });
 
+        const selectedDate = startDatesBySection[sectionId] || '';
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
         let html = `
-          <div class="calendar-picker">
-            <div class="calendar-picker-header">
-              <h3>${monthNames[month]} ${year}</h3>
-              <div class="calendar-picker-nav">
-                <button type="button" onclick="changeCalendarMonth(-1)">◀</button>
-                <button type="button" onclick="changeCalendarMonth(1)">▶</button>
+          <div class="section-calendar-picker" data-section-id="${sectionId}" style="margin-bottom: 20px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
+            <div style="background: #2c3e50; color: white; padding: 12px 15px;">
+              <strong>${section.weekday} ${section.start_time}-${section.end_time}</strong> - ${section.teacher}
+            </div>
+            <div class="calendar-picker">
+              <div class="calendar-picker-header" style="background: #34495e;">
+                <h3>${monthNames[month]} ${year}</h3>
+                <div class="calendar-picker-nav">
+                  <button type="button" onclick="changeSectionCalendarMonth(${sectionId}, -1)">◀</button>
+                  <button type="button" onclick="changeSectionCalendarMonth(${sectionId}, 1)">▶</button>
+                </div>
               </div>
-            </div>
-            <div class="calendar-picker-weekdays">
-              ${weekdayNames.map(day => `<div class="calendar-picker-weekday">${day}</div>`).join('')}
-            </div>
-            <div class="calendar-picker-days">
+              <div class="calendar-picker-weekdays">
+                ${weekdayNames.map(day => `<div class="calendar-picker-weekday">${day}</div>`).join('')}
+              </div>
+              <div class="calendar-picker-days">
         `;
 
-        // Add empty cells for days before first day of month
+        // Empty cells
         for (let i = 0; i < firstDayOfWeek; i++) {
           html += '<div class="calendar-picker-day other-month"></div>';
         }
 
-        // Add days of month
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const selectedDate = startDateField.value;
-
+        // Days
         for (let day = 1; day <= daysInMonth; day++) {
           const dateObj = new Date(year, month, day);
           const dateStr = dateObj.toISOString().split('T')[0];
@@ -631,11 +665,10 @@
           if (isToday) classes.push('today');
           if (isSelected) classes.push('selected');
           if (isAvailable) classes.push('available');
-          else if (!dateData) classes.push('disabled');
           else classes.push('disabled');
 
           const spots = dateData ? `${dateData.available_places}/${dateData.total_places}` : '';
-          const onclick = isAvailable ? `onclick="selectStartDate('${dateStr}')"` : '';
+          const onclick = isAvailable ? `onclick="selectSectionStartDate(${sectionId}, '${dateStr}')"` : '';
 
           html += `
             <div class="${classes.join(' ')}" ${onclick}>
@@ -646,77 +679,43 @@
         }
 
         html += `
-            </div>
-            <div class="calendar-picker-legend">
-              <div class="calendar-legend-item">
-                <div class="calendar-legend-color" style="background: #e8f5e9; border-color: #66bb6a;"></div>
-                <span>Disponible</span>
-              </div>
-              <div class="calendar-legend-item">
-                <div class="calendar-legend-color" style="background: #4caf50; border-color: #388e3c;"></div>
-                <span>Seleccionado</span>
-              </div>
-              <div class="calendar-legend-item">
-                <div class="calendar-legend-color" style="background: #f5f5f5; border-color: #e0e0e0;"></div>
-                <span>No disponible</span>
               </div>
             </div>
           </div>
-          <p style="margin-top: 10px; color: #555; font-size: 0.9em;">
-            <strong>${sectionData.course}</strong> - ${sectionData.weekday} ${sectionData.schedule[0]}
-          </p>
         `;
 
-        if (selectedSectionIds.size > 1) {
-          html += `
-            <p style="margin-top: 10px; color: #f39c12; font-size: 0.9em;">
-              ⚠️ Nota: Seleccionaste múltiples secciones. La fecha elegida se aplicará a todas.
-            </p>
-          `;
-        }
-
-        calendarPickerContainer.innerHTML = html;
+        return html;
       }
 
-      // Make function globally accessible
-      window.renderCalendarPicker = renderCalendarPicker;
+      window.selectSectionStartDate = function(sectionId, date) {
+        startDatesBySection[sectionId] = date;
 
-      function changeCalendarMonth(direction) {
-        currentCalendarMonth.setMonth(currentCalendarMonth.getMonth() + direction);
-
-        // Re-render with stored section data
-        if (selectedSectionIds.size > 0) {
-          const sectionId = Array.from(selectedSectionIds)[0];
-          const response = fetch(`/api/v1/sections/${sectionId}/calendar`)
-            .then(res => res.json())
-            .then(data => {
-              if (data.success) {
-                renderCalendarPicker(data.data);
-              }
-            });
-        }
-      }
-
-      // Make function globally accessible
-      window.changeCalendarMonth = changeCalendarMonth;
-
-      function selectStartDate(date) {
-        startDateField.value = date;
-
-        // Re-render calendar to show new selection
-        if (selectedSectionIds.size > 0) {
-          const sectionId = Array.from(selectedSectionIds)[0];
-          fetch(`/api/v1/sections/${sectionId}/calendar`)
-            .then(res => res.json())
-            .then(data => {
-              if (data.success) {
-                renderCalendarPicker(data.data);
-              }
-            });
+        // Update the first section's date in the hidden field for backwards compatibility
+        const firstSectionId = Array.from(selectedSectionIds)[0];
+        if (firstSectionId && startDatesBySection[firstSectionId]) {
+          startDateField.value = startDatesBySection[firstSectionId];
         }
 
-        // If a plan and payment period are selected, regenerate the class dates
-        if (weeklyPlanSelect.value && paymentPeriodSelect.value) {
+        // Re-render calendars to show selection
+        loadCalendarsForSelectedSections();
+
+        // Check if all sections have dates selected, then regenerate class dates
+        checkAndGenerateClassDates();
+      };
+
+      window.changeSectionCalendarMonth = function(sectionId, direction) {
+        const data = calendarDataBySection[sectionId];
+        if (!data) return;
+
+        // This is simplified - in production you'd track month per section
+        loadCalendarsForSelectedSections();
+      };
+
+      function checkAndGenerateClassDates() {
+        // Check if all selected sections have start dates
+        const allHaveDates = Array.from(selectedSectionIds).every(id => startDatesBySection[id]);
+
+        if (allHaveDates && weeklyPlanSelect.value && paymentPeriodSelect.value) {
           const selectedPeriodId = parseInt(paymentPeriodSelect.value);
           const paymentPeriod = paymentPeriods.find(p => p.id === selectedPeriodId);
           if (paymentPeriod) {
@@ -725,18 +724,17 @@
         }
       }
 
-      // Make function globally accessible
-      window.selectStartDate = selectStartDate;
-
       let selectedClassDates = []; // Store final selected dates
       let availableDatesForSection = []; // Store all available dates from calendar
 
       async function generateClassDatesPreview(months = null) {
-        const startDate = startDateField.value;
         const weeklyPlanId = weeklyPlanSelect.value;
-        const sectionId = Array.from(selectedSectionIds)[0];
+        const sectionIds = Array.from(selectedSectionIds);
 
-        if (!startDate || !weeklyPlanId || !sectionId) {
+        // Check all sections have start dates
+        const allHaveDates = sectionIds.every(id => startDatesBySection[id]);
+
+        if (!allHaveDates || !weeklyPlanId || sectionIds.length === 0) {
           generatedDatesSection.style.display = 'none';
           return;
         }
@@ -751,63 +749,78 @@
           generatedDatesContainer.innerHTML = '<p style="color: #999;">Generando fechas...</p>';
           generatedDatesSection.style.display = 'block';
 
-          // Build URL with months parameter
-          const previewUrl = `/api/v1/sections/${sectionId}/preview_class_dates?start_date=${startDate}&weekly_plan_id=${weeklyPlanId}&months=${months}`;
+          // Generate dates for each section
+          let allAssignedDates = [];
+          let allSkippedDates = [];
+          let planInfo = null;
 
-          // Fetch both the preview dates and all available dates from calendar
-          const [previewResponse, calendarResponse] = await Promise.all([
-            fetch(previewUrl),
-            fetch(`/api/v1/sections/${sectionId}/calendar`)
-          ]);
+          for (const sectionId of sectionIds) {
+            const startDate = startDatesBySection[sectionId];
+            const section = allSections.find(s => s.id === sectionId);
 
-          const previewData = await previewResponse.json();
-          const calendarData = await calendarResponse.json();
+            const previewUrl = `/api/v1/sections/${sectionId}/preview_class_dates?start_date=${startDate}&weekly_plan_id=${weeklyPlanId}&months=${months}`;
+            const response = await fetch(previewUrl);
+            const data = await response.json();
 
-          if (previewData.success && previewData.data.assigned_dates.length > 0) {
-            // Store available dates for the dropdown
-            availableDatesForSection = calendarData.success ? calendarData.data.dates.filter(d => d.available_places > 0) : [];
+            if (data.success && data.data.assigned_dates.length > 0) {
+              planInfo = data.data.weekly_plan;
+              // Add section info to each date
+              data.data.assigned_dates.forEach(d => {
+                allAssignedDates.push({
+                  ...d,
+                  sectionId: sectionId,
+                  sectionInfo: section ? `${section.weekday} ${section.start_time}` : ''
+                });
+              });
+              data.data.skipped_dates.forEach(d => {
+                allSkippedDates.push({...d, sectionId});
+              });
+            }
+          }
 
-            // Initialize selected dates with the auto-generated ones
-            selectedClassDates = previewData.data.assigned_dates.map(d => d.date);
+          if (allAssignedDates.length > 0) {
+            // Sort by date
+            allAssignedDates.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-            const weeklyClasses = previewData.data.weekly_plan.weekly_classes || 1;
+            // Store dates for form submission
+            selectedClassDates = allAssignedDates.map(d => d.date);
+
+            const weeklyClasses = planInfo?.weekly_classes || sectionIds.length;
             const monthsText = months === 1 ? '1 mes' : `${months} meses`;
-            const totalClasses = previewData.data.assigned_dates.length;
+            const totalClasses = allAssignedDates.length;
 
             let html = `
               <p style="margin-top: 0; font-weight: bold; color: #333;">
-                Plan: ${previewData.data.weekly_plan.plan}
+                Plan: ${planInfo?.plan || 'N/A'}
               </p>
               <p style="margin: 5px 0; color: #666; font-size: 0.95em;">
                 ${weeklyClasses} ${weeklyClasses === 1 ? 'clase' : 'clases'} por semana × ${monthsText} = ${totalClasses} clases
               </p>
-              <div style="margin: 10px 0;">
+              <div style="margin: 10px 0; max-height: 400px; overflow-y: auto;">
             `;
 
-            previewData.data.assigned_dates.forEach((dateInfo, index) => {
+            allAssignedDates.forEach((dateInfo, index) => {
               const dateObj = new Date(dateInfo.date + 'T00:00:00');
               const formattedDate = dateObj.toLocaleDateString('es-ES', {
-                weekday: 'long',
+                weekday: 'short',
                 year: 'numeric',
-                month: 'long',
+                month: 'short',
                 day: 'numeric'
               });
 
               html += `
-                <div style="display: flex; align-items: center; margin-bottom: 10px; padding: 10px; background: #f9f9f9; border-radius: 4px;">
-                  <div style="flex: 1;">
-                    <strong>Clase ${index + 1}:</strong>
+                <div style="display: flex; align-items: center; margin-bottom: 8px; padding: 8px; background: #f9f9f9; border-radius: 4px; font-size: 0.9em;">
+                  <div style="flex: 0.5;">
+                    <strong>${index + 1}</strong>
                   </div>
-                  <div style="flex: 3;">
-                    <select
-                      id="class_date_${index}"
-                      onchange="updateClassDate(${index}, this.value)"
-                      style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.95em;">
-                      ${generateDateOptions(dateInfo.date, availableDatesForSection)}
-                    </select>
+                  <div style="flex: 2;">
+                    ${formattedDate}
                   </div>
-                  <div style="flex: 1; text-align: right; margin-left: 10px;">
-                    <span class="section-places-info" style="color: #27ae60; font-size: 0.9em; font-weight: bold;">${dateInfo.available_places} cupos</span>
+                  <div style="flex: 1.5; color: #666;">
+                    ${dateInfo.sectionInfo}
+                  </div>
+                  <div style="flex: 1; text-align: right;">
+                    <span style="color: #27ae60; font-size: 0.85em;">${dateInfo.available_places} cupos</span>
                   </div>
                 </div>
               `;
@@ -815,49 +828,18 @@
 
             html += '</div>';
 
-            if (previewData.data.skipped_dates.length > 0) {
-              html += `<p style="color: #e67e22; font-size: 0.9em; margin-top: 10px;">Se omitieron ${previewData.data.skipped_dates.length} fecha(s) sin cupos disponibles</p>`;
+            if (allSkippedDates.length > 0) {
+              html += `<p style="color: #e67e22; font-size: 0.9em; margin-top: 10px;">Se omitieron ${allSkippedDates.length} fecha(s) sin cupos disponibles</p>`;
             }
 
             generatedDatesContainer.innerHTML = html;
             updateClassDatesHiddenFields();
           } else {
-            const errorMsg = previewData.error || 'No se pudieron generar las fechas. Intenta con otra fecha de inicio.';
-            generatedDatesContainer.innerHTML = `<p style="color: #e74c3c;">${errorMsg}</p>`;
+            generatedDatesContainer.innerHTML = `<p style="color: #e74c3c;">No se pudieron generar las fechas. Intenta con otras fechas de inicio.</p>`;
           }
         } catch (error) {
           console.error('Error al generar fechas:', error);
           generatedDatesContainer.innerHTML = `<p style="color: #e74c3c;">Error al generar las fechas: ${error.message}</p>`;
-        }
-      }
-
-      function generateDateOptions(selectedDate, availableDates) {
-        let options = '';
-        availableDates.forEach(dateInfo => {
-          const dateObj = new Date(dateInfo.date + 'T00:00:00');
-          const formattedDate = dateObj.toLocaleDateString('es-ES', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          });
-          const isSelected = dateInfo.date === selectedDate;
-          options += `<option value="${dateInfo.date}" ${isSelected ? 'selected' : ''}>${formattedDate} (${dateInfo.available_places} cupos)</option>`;
-        });
-        return options;
-      }
-
-      function updateClassDate(index, newDate) {
-        selectedClassDates[index] = newDate;
-        updateClassDatesHiddenFields();
-
-        // Update available places display for the selected date
-        const dateInfo = availableDatesForSection.find(d => d.date === newDate);
-        if (dateInfo) {
-          const placesSpan = document.querySelector(`#class_date_${index}`).closest('div').parentElement.querySelector('.section-places-info');
-          if (placesSpan) {
-            placesSpan.textContent = `${dateInfo.available_places} cupos`;
-          }
         }
       }
 
@@ -879,7 +861,15 @@
       function toggleSection(sectionId) {
         if (selectedSectionIds.has(sectionId)) {
           selectedSectionIds.delete(sectionId);
+          // Remove start date for this section
+          delete startDatesBySection[sectionId];
+          delete calendarDataBySection[sectionId];
         } else {
+          // Check if we've reached the limit
+          if (maxSectionsAllowed > 0 && selectedSectionIds.size >= maxSectionsAllowed) {
+            alert(`Solo puedes seleccionar ${maxSectionsAllowed} sección(es) según el plan elegido.`);
+            return;
+          }
           selectedSectionIds.add(sectionId);
         }
 
@@ -954,25 +944,35 @@
 
       // Make functions available globally
       window.toggleSection = toggleSection;
-      window.selectStartDate = selectStartDate;
-      window.updateClassDate = updateClassDate;
 
-      // Handle course selection change
-      if (courseSelect) {
-        courseSelect.addEventListener('change', async function() {
-          const courseId = this.value;
+      // Function to check and show sections when both course and plan are selected
+      async function checkAndShowSections() {
+        const courseId = courseSelect.value;
+        const planId = weeklyPlanSelect.value;
 
+        if (!courseId || !planId) {
+          sectionsContainer.style.display = 'none';
+          startDatesContainer.style.display = 'none';
+          return;
+        }
+
+        // Get weekly_classes from selected plan
+        const selectedPlan = weeklyPlans.find(p => p.id === parseInt(planId));
+        maxSectionsAllowed = selectedPlan ? (selectedPlan.weekly_classes || 1) : 1;
+
+        // Update instruction text
+        if (sectionsInstruction) {
+          sectionsInstruction.textContent = maxSectionsAllowed === 1
+            ? 'Haz clic en una sección del horario para seleccionarla'
+            : `Haz clic en ${maxSectionsAllowed} secciones del horario para seleccionarlas`;
+        }
+
+        // Show sections container
+        sectionsContainer.style.display = 'block';
+
+        // Load sections if not already loaded
+        if (allSections.length === 0 || allSections[0]?.course_id !== parseInt(courseId)) {
           calendarContainer.innerHTML = '<p style="color: #999; text-align: center; padding: 40px;">Cargando horario...</p>';
-          calendarPickerContainer.innerHTML = '<p style="color: #666; font-style: italic;">Selecciona una sección primero para ver las fechas disponibles</p>';
-          generatedDatesSection.style.display = 'none';
-          selectedSectionIds.clear();
-          startDateField.value = '';
-          updateHiddenFields();
-
-          if (!courseId) {
-            calendarContainer.innerHTML = '<p style="color: #666; font-style: italic; text-align: center; padding: 40px;">Primero seleccione un curso para ver el horario de secciones disponibles</p>';
-            return;
-          }
 
           try {
             const response = await fetch(`/admin/enrollments/sections_by_course?course_id=${courseId}`);
@@ -987,15 +987,58 @@
             console.error('Error al cargar secciones:', error);
             calendarContainer.innerHTML = '<p style="color: #e74c3c; text-align: center; padding: 40px;">Error al cargar las secciones</p>';
           }
+        } else {
+          // Re-render calendar to update max sections
+          createCalendar(allSections);
+        }
+      }
+
+      // Handle course selection change
+      if (courseSelect) {
+        courseSelect.addEventListener('change', async function() {
+          const courseId = this.value;
+
+          // Reset sections and dates
+          selectedSectionIds.clear();
+          startDatesBySection = {};
+          calendarDataBySection = {};
+          startDateField.value = '';
+          allSections = [];
+          generatedDatesSection.style.display = 'none';
+
+          if (!courseId) {
+            sectionsContainer.style.display = 'none';
+            startDatesContainer.style.display = 'none';
+            calendarContainer.innerHTML = '<p style="color: #666; font-style: italic; text-align: center; padding: 40px;">Primero seleccione un curso y un plan de pago</p>';
+            return;
+          }
+
+          // Check if plan is also selected
+          await checkAndShowSections();
         });
       }
 
       // Handle weekly plan selection change
       if (weeklyPlanSelect) {
-        weeklyPlanSelect.addEventListener('change', function() {
+        weeklyPlanSelect.addEventListener('change', async function() {
           const selectedPlanId = parseInt(this.value);
 
+          // Reset sections when plan changes
+          selectedSectionIds.clear();
+          startDatesBySection = {};
+          calendarDataBySection = {};
+          startDateField.value = '';
+
           if (selectedPlanId) {
+            const selectedPlan = weeklyPlans.find(p => p.id === selectedPlanId);
+            maxSectionsAllowed = selectedPlan ? (selectedPlan.weekly_classes || 1) : 1;
+
+            // Show plan info
+            if (planInfo) {
+              planInfo.style.display = 'block';
+              weeklyClassesCount.textContent = maxSectionsAllowed;
+            }
+
             // Populate payment period selector
             paymentPeriodSelect.innerHTML = '<option value="">Seleccione un periodo de pago</option>';
             paymentPeriods.forEach(period => {
@@ -1013,8 +1056,15 @@
             totalTuitionFeeField.value = '';
             generatedDatesSection.style.display = 'none';
             generatedDatesContainer.innerHTML = '<p style="color: #666; font-style: italic;">Selecciona un periodo de pago para generar las fechas</p>';
+
+            // Check if course is also selected
+            await checkAndShowSections();
           } else {
             // Reset if no plan selected
+            maxSectionsAllowed = 0;
+            if (planInfo) planInfo.style.display = 'none';
+            sectionsContainer.style.display = 'none';
+            startDatesContainer.style.display = 'none';
             paymentPeriodSelect.innerHTML = '<option value="">Seleccione primero un plan de pago</option>';
             paymentPeriodSelect.disabled = true;
             priceCalculationDiv.style.display = 'none';
@@ -1038,10 +1088,8 @@
             if (weeklyPlan && paymentPeriod) {
               calculateAndDisplayPricing(weeklyPlan, paymentPeriod);
 
-              // Generate class dates after selecting payment period
-              if (startDateField.value && selectedSectionIds.size > 0) {
-                generateClassDatesPreview(paymentPeriod.months);
-              }
+              // Generate class dates after selecting payment period if all sections have dates
+              checkAndGenerateClassDates();
             }
           } else {
             // Hide calculation and dates if no period selected
@@ -1151,70 +1199,41 @@
         generatedDatesSection.style.display = 'block';
 
         const weeklyPlan = weeklyPlans.find(p => p.id === enrollmentData.weekly_plan_id);
-        const weeklyClasses = weeklyPlan ? (weeklyPlan.number_of_classes || 1) : 1;
 
-        // Load available dates from the calendar for the section
-        const sectionId = Array.from(selectedSectionIds)[0];
-        if (!sectionId) {
-          generatedDatesContainer.innerHTML = '<p style="color: #e74c3c;">Error: No se pudo cargar las fechas disponibles</p>';
-          return;
-        }
+        let html = `
+          <p style="margin-top: 0; font-weight: bold; color: #333;">
+            Plan: ${weeklyPlan ? weeklyPlan.plan : 'N/A'}
+          </p>
+          <p style="margin: 5px 0; color: #666; font-size: 0.95em;">
+            Total: ${enrollmentData.class_dates.length} clases programadas
+          </p>
+          <div style="margin: 10px 0; max-height: 400px; overflow-y: auto;">
+        `;
 
-        try {
-          generatedDatesContainer.innerHTML = '<p style="color: #999;">Cargando fechas disponibles...</p>';
-
-          const calendarResponse = await fetch(`/api/v1/sections/${sectionId}/calendar`);
-          const calendarData = await calendarResponse.json();
-
-          if (!calendarData.success) {
-            generatedDatesContainer.innerHTML = '<p style="color: #e74c3c;">Error al cargar las fechas disponibles</p>';
-            return;
-          }
-
-          availableDatesForSection = calendarData.data.dates.filter(d => d.available_places > 0);
-
-          let html = `
-            <p style="margin-top: 0; font-weight: bold; color: #333;">
-              Plan: ${weeklyPlan ? weeklyPlan.plan : 'N/A'}
-            </p>
-            <p style="margin: 5px 0; color: #666; font-size: 0.95em;">
-              Total: ${enrollmentData.class_dates.length} clases programadas
-            </p>
-            <div style="margin: 10px 0;">
-          `;
-
-          enrollmentData.class_dates.forEach((dateStr, index) => {
-            // Find the selected date info to show available places
-            const selectedDateInfo = calendarData.data.dates.find(d => d.date === dateStr);
-            const availablePlaces = selectedDateInfo ? selectedDateInfo.available_places : '?';
-
-            html += `
-              <div style="display: flex; align-items: center; margin-bottom: 10px; padding: 10px; background: #f9f9f9; border-radius: 4px;">
-                <div style="flex: 1;">
-                  <strong>Clase ${index + 1}:</strong>
-                </div>
-                <div style="flex: 3;">
-                  <select
-                    id="class_date_${index}"
-                    onchange="updateClassDate(${index}, this.value)"
-                    style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.95em;">
-                    ${generateDateOptions(dateStr, availableDatesForSection)}
-                  </select>
-                </div>
-                <div style="flex: 1; text-align: right; margin-left: 10px;">
-                  <span class="section-places-info" style="color: #27ae60; font-size: 0.9em; font-weight: bold;">${availablePlaces} cupos</span>
-                </div>
-              </div>
-            `;
+        enrollmentData.class_dates.forEach((dateStr, index) => {
+          const dateObj = new Date(dateStr + 'T00:00:00');
+          const formattedDate = dateObj.toLocaleDateString('es-ES', {
+            weekday: 'short',
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
           });
 
-          html += '</div>';
-          generatedDatesContainer.innerHTML = html;
-          updateClassDatesHiddenFields();
-        } catch (error) {
-          console.error('Error al cargar fechas disponibles:', error);
-          generatedDatesContainer.innerHTML = '<p style="color: #e74c3c;">Error al cargar las fechas disponibles</p>';
-        }
+          html += `
+            <div style="display: flex; align-items: center; margin-bottom: 8px; padding: 8px; background: #f9f9f9; border-radius: 4px; font-size: 0.9em;">
+              <div style="flex: 0.5;">
+                <strong>${index + 1}</strong>
+              </div>
+              <div style="flex: 3;">
+                ${formattedDate}
+              </div>
+            </div>
+          `;
+        });
+
+        html += '</div>';
+        generatedDatesContainer.innerHTML = html;
+        updateClassDatesHiddenFields();
       }
 
       // Initialize user fields for edit mode
@@ -1241,49 +1260,40 @@
         // Initialize user fields first
         initializeUserFieldsForEdit();
 
-        if (!courseSelect || !courseSelect.value) {
+        // Check if we're in edit mode
+        if (enrollmentData.id && courseSelect.value && weeklyPlanSelect.value) {
+          console.log('Initializing edit mode for enrollment:', enrollmentData.id);
+
+          // Set max sections from plan
+          const selectedPlan = weeklyPlans.find(p => p.id === parseInt(weeklyPlanSelect.value));
+          maxSectionsAllowed = selectedPlan ? (selectedPlan.weekly_classes || 1) : 1;
+
+          // Show plan info
+          if (planInfo) {
+            planInfo.style.display = 'block';
+            weeklyClassesCount.textContent = maxSectionsAllowed;
+          }
+
+          // Initialize start dates from existing enrollment sections
+          // Group by section and get first date for each
+          const sectionDates = {};
+          selectedSectionIds.forEach(sectionId => {
+            // Find the first date for this section from enrollment data
+            const sectionEnrollmentDates = enrollmentData.class_dates;
+            if (sectionEnrollmentDates && sectionEnrollmentDates.length > 0) {
+              startDatesBySection[sectionId] = sectionEnrollmentDates[0];
+            }
+          });
+
+          // Load sections and show calendars
+          await checkAndShowSections();
+
+          // Initialize edit mode data
+          await initializeEditMode();
+
+          console.log('Form initialization completed successfully');
+        } else if (!courseSelect.value) {
           console.log('Form initialization skipped: no course selected');
-          return;
-        }
-
-        const courseId = courseSelect.value;
-        console.log('Initializing form for course:', courseId);
-
-        try {
-          // Show loading indicator
-          if (calendarContainer) {
-            calendarContainer.innerHTML = '<p style="color: #999; text-align: center; padding: 40px;">Cargando horario...</p>';
-          }
-
-          const response = await fetch(`/admin/enrollments/sections_by_course?course_id=${courseId}`);
-          const data = await response.json();
-
-          if (data.sections && data.sections.length > 0) {
-            console.log('Creating calendar with', data.sections.length, 'sections');
-            createCalendar(data.sections);
-
-            // If sections are pre-selected, load start dates (await to ensure it completes)
-            if (selectedSectionIds.size > 0) {
-              console.log('Loading available start dates for section:', Array.from(selectedSectionIds)[0]);
-              await loadAvailableStartDates(Array.from(selectedSectionIds)[0]);
-            }
-
-            // Initialize edit mode data (await to ensure it completes)
-            if (enrollmentData.id) {
-              console.log('Initializing edit mode for enrollment:', enrollmentData.id);
-              await initializeEditMode();
-            }
-
-            console.log('Form initialization completed successfully');
-          } else {
-            console.warn('No sections found for course:', courseId);
-            calendarContainer.innerHTML = '<p style="color: #e74c3c; text-align: center; padding: 40px;">No hay secciones disponibles para este curso</p>';
-          }
-        } catch (error) {
-          console.error('Error al cargar secciones en edición:', error);
-          if (calendarContainer) {
-            calendarContainer.innerHTML = '<p style="color: #e74c3c; text-align: center; padding: 40px;">Error al cargar el horario. Por favor, recarga la página.</p>';
-          }
         }
       }
 

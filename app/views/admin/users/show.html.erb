@@ -32,23 +32,6 @@
       <strong>Profesión:</strong>
       <p><%= @user.teacher.profession || 'No especificada' %></p>
     </div>
-
-    <div class="form-group">
-      <strong>Secciones que imparte:</strong>
-      <% sections = @user.teacher.sections %>
-      <% if sections.any? %>
-        <ul>
-          <% sections.each do |section| %>
-            <li>
-              <%= link_to section.course.title, admin_section_path(section) %> -
-              <%= section.formatted_schedule %>
-            </li>
-          <% end %>
-        </ul>
-      <% else %>
-        <p>No imparte secciones actualmente.</p>
-      <% end %>
-    </div>
   <% end %>
 
   <% if @user.student %>
@@ -83,3 +66,95 @@
     <p><%= @user.created_at.strftime('%d/%m/%Y %H:%M') %></p>
   </div>
 </div>
+
+<% if @user.teacher && @teacher_sections.present? %>
+  <!-- Estadísticas del Docente -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <h3>Cursos</h3>
+      <div class="number"><%= @teacher_courses.count %></div>
+    </div>
+    <div class="stat-card">
+      <h3>Secciones</h3>
+      <div class="number"><%= @teacher_sections.count %></div>
+    </div>
+    <div class="stat-card">
+      <h3>Alumnos</h3>
+      <div class="number"><%= @teacher_students.count %></div>
+    </div>
+  </div>
+
+  <!-- Cursos que imparte -->
+  <div class="card">
+    <h2>Cursos que imparte</h2>
+    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem;">
+      <% @teacher_courses.each do |course| %>
+        <%= link_to course.title, admin_course_path(course),
+            style: "background: #3498db; color: white; padding: 0.5rem 1rem; border-radius: 4px; text-decoration: none;" %>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Secciones -->
+  <div class="card">
+    <h2>Secciones</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Curso</th>
+          <th>Día</th>
+          <th>Horario</th>
+          <th>Cupos</th>
+          <th>Alumnos</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @teacher_sections.each do |section| %>
+          <% students_count = @students_count_by_section[section.id]&.count || 0 %>
+          <tr>
+            <td><%= section.course.title %></td>
+            <td><%= section.weekday %></td>
+            <td><%= section.formatted_schedule %></td>
+            <td><%= section.places %></td>
+            <td><%= students_count %></td>
+            <td>
+              <%= link_to "Ver", admin_section_path(section), class: "btn btn-primary" %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Listado de Alumnos -->
+  <div class="card">
+    <h2>Alumnos (<%= @teacher_students.count %>)</h2>
+    <% if @teacher_students.any? %>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @teacher_students.each_with_index do |student, index| %>
+            <tr>
+              <td><%= index + 1 %></td>
+              <td><%= student.user.name %></td>
+              <td><%= student.user.email %></td>
+              <td>
+                <%= link_to "Ver", admin_user_path(student.user), class: "btn btn-primary" %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <p style="color: #7f8c8d; font-style: italic;">No tiene alumnos actualmente.</p>
+    <% end %>
+  </div>
+<% end %>

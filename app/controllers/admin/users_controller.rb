@@ -28,6 +28,10 @@ module Admin
 
     def show
       @role = determine_role(@user)
+
+      if @user.teacher.present?
+        load_teacher_data
+      end
     end
 
     def new
@@ -95,6 +99,26 @@ module Admin
       return 'student' if user.student.present?
       return 'admin' if user.admin_user.present?
       'none'
+    end
+
+    def load_teacher_data
+      teacher = @user.teacher
+      @teacher_sections = teacher.sections.includes(:course).order(:weekday)
+      @teacher_courses = @teacher_sections.map(&:course).uniq.sort_by(&:title)
+
+      # Obtener todos los estudiantes únicos del profesor
+      @teacher_students = Student.joins(enrollments: { enrollment_sections: :section })
+                                 .where(sections: { teacher_id: teacher.id })
+                                 .includes(:user)
+                                 .distinct
+                                 .order('users.name')
+
+      # Contar estudiantes por sección
+      @students_count_by_section = EnrollmentSection.joins(:section)
+                                                    .where(sections: { teacher_id: teacher.id })
+                                                    .group(:section_id)
+                                                    .select('section_id, COUNT(DISTINCT enrollment_id) as count')
+                                                    .index_by(&:section_id)
     end
   end
 end

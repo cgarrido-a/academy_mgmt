@@ -72,6 +72,15 @@
     /* Actions */
     .actions { display: flex; gap: 0.5rem; }
 
+    /* Two Column Layout */
+    .row { display: flex; gap: 1.5rem; }
+    .col-md-9 { flex: 0 0 75%; max-width: 75%; }
+    .col-md-3 { flex: 0 0 25%; max-width: 25%; }
+    @media (max-width: 768px) {
+      .row { flex-direction: column; }
+      .col-md-9, .col-md-3 { flex: 0 0 100%; max-width: 100%; }
+    }
+
     /* Monthly Calendar */
     .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem; }
     .calendar-nav { display: flex; align-items: center; gap: 1rem; }
@@ -190,6 +199,15 @@
             <% if can? :manage, PaymentMethod %>
               <%= link_to "Métodos de Pago", admin_payment_methods_path %>
             <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <% if can? :manage, TeacherPayment %>
+        <div class="dropdown">
+          <a>Pagos a Profesores ▾</a>
+          <div class="dropdown-content">
+            <%= link_to "Pagos a Profesores", admin_teacher_payments_path %>
           </div>
         </div>
       <% end %>

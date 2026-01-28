@@ -60,6 +60,11 @@ Rails.application.routes.draw do
       end
     end
     resources :transbank_transactions, only: [:index, :show]
+    resources :teacher_payments, only: [:index, :show] do
+      member do
+        patch :toggle_status
+      end
+    end
   end
 
   # Student routes

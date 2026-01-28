@@ -37,7 +37,7 @@ module Admin
     end
 
     def destroy
-      if @payment_method.enrollments.exists? || @payment_method.salary_payments.exists?
+      if @payment_method.enrollments.exists? || @payment_method.teacher_payments.exists?
         redirect_to admin_payment_methods_path, alert: 'No se puede eliminar un método de pago con registros asociados.'
       else
         @payment_method.destroy

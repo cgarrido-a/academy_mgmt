@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_01_16_210245) do
+ActiveRecord::Schema[7.1].define(version: 2026_01_28_023423) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -87,18 +87,6 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_16_210245) do
     t.index ["processed_by_id"], name: "index_payments_on_processed_by_id"
   end
 
-  create_table "salary_payments", force: :cascade do |t|
-    t.integer "teacher_id", null: false
-    t.integer "payment_method_id", null: false
-    t.integer "amount"
-    t.string "status"
-    t.date "payment_date"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["payment_method_id"], name: "index_salary_payments_on_payment_method_id"
-    t.index ["teacher_id"], name: "index_salary_payments_on_teacher_id"
-  end
-
   create_table "sections", force: :cascade do |t|
     t.integer "course_id", null: false
     t.integer "teacher_id", null: false
@@ -116,6 +104,21 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_16_210245) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["user_id"], name: "index_students_on_user_id"
+  end
+
+  create_table "teacher_payments", force: :cascade do |t|
+    t.bigint "teacher_id", null: false
+    t.bigint "payment_method_id", null: false
+    t.integer "amount"
+    t.string "status", default: "pending"
+    t.date "payment_date"
+    t.date "period_start"
+    t.date "period_end"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["payment_method_id"], name: "index_teacher_payments_on_payment_method_id"
+    t.index ["teacher_id"], name: "index_teacher_payments_on_teacher_id"
   end
 
   create_table "teachers", force: :cascade do |t|
@@ -185,11 +188,11 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_16_210245) do
   add_foreign_key "payments", "enrollments"
   add_foreign_key "payments", "payment_methods"
   add_foreign_key "payments", "users", column: "processed_by_id"
-  add_foreign_key "salary_payments", "payment_methods"
-  add_foreign_key "salary_payments", "teachers"
   add_foreign_key "sections", "courses"
   add_foreign_key "sections", "teachers"
   add_foreign_key "students", "users"
+  add_foreign_key "teacher_payments", "payment_methods"
+  add_foreign_key "teacher_payments", "teachers"
   add_foreign_key "teachers", "users"
   add_foreign_key "transbank_transactions", "enrollments"
 end

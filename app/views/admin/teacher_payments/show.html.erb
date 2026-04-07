@@ -1,77 +1,71 @@
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <h1>Matrículas de <%= @teacher.user.name %></h1>
-  <%= link_to 'Volver', admin_teacher_payments_path, class: 'btn btn-secondary' %>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+  <div>
+    <h1 style="color: #2c3e50; margin-bottom: 0.25rem;"><%= @teacher.user.name %></h1>
+    <span style="color: #7f8c8d; font-size: 0.95rem;"><%= I18n.l(@month, format: '%B %Y').capitalize %></span>
+  </div>
+  <%= link_to 'Volver', admin_teacher_payments_path(month: @month.strftime('%Y-%m-%d')), class: 'btn btn-primary' %>
 </div>
 
-<div class="card mb-4">
-  <div class="card-body">
-    <h5 class="card-title">Filtrar por Curso</h5>
-    <%= form_tag(admin_teacher_payment_path(@teacher), method: :get, class: 'd-flex gap-2 align-items-end') do %>
-      <%= hidden_field_tag :month, params[:month] %>
-      <div class="flex-grow-1">
-        <%= select_tag :course_id,
-            options_from_collection_for_select(@courses, :id, :title, @selected_course),
-            include_blank: 'Todos los cursos',
-            class: 'form-select' %>
-      </div>
-      <%= submit_tag 'Filtrar', class: 'btn btn-primary' %>
-      <% if params[:course_id].present? %>
-        <%= link_to 'Limpiar', admin_teacher_payment_path(@teacher, month: params[:month]), class: 'btn btn-outline-secondary' %>
-      <% end %>
-    <% end %>
+<div class="stats-grid" style="margin-bottom: 1.5rem;">
+  <div class="stat-card">
+    <h3>Matriculas</h3>
+    <div class="number"><%= @enrollments.count %></div>
+  </div>
+  <div class="stat-card">
+    <h3>Total Mensualidades</h3>
+    <div class="number" style="font-size: 1.5rem;"><%= number_to_currency(@total_tuition, precision: 0) %></div>
+  </div>
+  <div class="stat-card">
+    <h3>A Pagar (42.5%)</h3>
+    <div class="number" style="font-size: 1.5rem; color: #e74c3c;"><%= number_to_currency(@payment_amount, precision: 0) %></div>
   </div>
 </div>
 
-<div class="card mb-4">
-  <div class="card-body">
-    <h5 class="card-title">Resumen - <%= l(@month, format: '%B %Y') %></h5>
-    <div class="row">
-      <div class="col-md-4">
-        <strong>Total Matrículas:</strong> <%= @enrollments.count %>
-      </div>
-      <div class="col-md-4">
-        <strong>Total Mensualidades:</strong> <%= number_to_currency(@total_tuition) %>
-      </div>
-      <div class="col-md-4">
-        <strong>Monto a Pagar (42.5%):</strong> <%= number_to_currency(@payment_amount) %>
-      </div>
+<% if @courses.count > 1 %>
+  <div class="card" style="padding: 1rem; margin-bottom: 1.5rem;">
+    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+      <span style="font-weight: 500; color: #2c3e50;">Filtrar por curso:</span>
+      <%= link_to "Todos", admin_teacher_payment_path(@teacher, month: params[:month]), class: "filter-btn #{@selected_course.nil? ? 'active' : ''}" %>
+      <% @courses.each do |course| %>
+        <%= link_to course.title, admin_teacher_payment_path(@teacher, month: params[:month], course_id: course.id), class: "filter-btn #{@selected_course == course.id ? 'active' : ''}" %>
+      <% end %>
     </div>
   </div>
-</div>
-
-<table class="table table-striped">
-  <thead>
-    <tr>
-      <th>Estudiante</th>
-      <th>Curso</th>
-      <th>Plan</th>
-      <th>Mensualidad</th>
-      <th>Fecha Matrícula</th>
-      <th>Acciones</th>
-    </tr>
-  </thead>
-  <tbody>
-    <% @enrollments.each do |enrollment| %>
-      <tr>
-        <td><%= enrollment.student.user.name %></td>
-        <td>
-          <% enrollment.enrollment_sections.map { |es| es.section.course }.uniq.each do |course| %>
-            <span class="badge bg-info"><%= course.title %></span>
-          <% end %>
-        </td>
-        <td><%= enrollment.weekly_plan.plan %></td>
-        <td><%= number_to_currency(enrollment.total_tuition_fee) %></td>
-        <td><%= l(enrollment.created_at.to_date, format: :short) %></td>
-        <td>
-          <%= link_to 'Ver', admin_enrollment_path(enrollment), class: 'btn btn-sm btn-outline-primary' %>
-        </td>
-      </tr>
-    <% end %>
-  </tbody>
-</table>
-
-<% if @enrollments.empty? %>
-  <div class="alert alert-info">
-    No hay matrículas registradas para este profesor en el mes seleccionado.
-  </div>
 <% end %>
+
+<div class="card">
+  <% if @enrollments.any? %>
+    <table>
+      <thead>
+        <tr>
+          <th>Estudiante</th>
+          <th>Curso</th>
+          <th>Plan</th>
+          <th style="text-align: right;">Mensualidad</th>
+          <th>Fecha Matricula</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @enrollments.each do |enrollment| %>
+          <tr>
+            <td><strong><%= enrollment.student.user.name %></strong></td>
+            <td>
+              <% enrollment.enrollment_sections.map { |es| es.section.course }.uniq.each do |course| %>
+                <span style="background: #e8f4fd; color: #2980b9; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 500;"><%= course.title %></span>
+              <% end %>
+            </td>
+            <td><%= enrollment.weekly_plan.plan %></td>
+            <td style="text-align: right; font-weight: 600;"><%= number_to_currency(enrollment.total_tuition_fee, precision: 0) %></td>
+            <td><%= I18n.l(enrollment.created_at.to_date, format: '%d/%m/%Y') %></td>
+            <td>
+              <%= link_to 'Ver', admin_enrollment_path(enrollment), class: 'btn btn-primary', style: "padding: 0.3rem 0.75rem; font-size: 0.85rem;" %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p style="color: #7f8c8d; text-align: center; padding: 2rem;">No hay matriculas registradas para este docente en el mes seleccionado.</p>
+  <% end %>
+</div>

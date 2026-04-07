@@ -17,7 +17,7 @@ class Section < ApplicationRecord
 
   # Instance methods
   def available_places
-    places - enrollments.count
+    places - enrollments.distinct.count
   end
 
   def has_available_places?

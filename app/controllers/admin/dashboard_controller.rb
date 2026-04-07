@@ -136,6 +136,54 @@ module Admin
       @recent_enrollments = Enrollment.includes(student: :user, sections: :course)
                                        .order(created_at: :desc)
                                        .limit(10)
+
+      # Monthly teacher report
+      @current_date = Date.current
+      @report_year = (params[:year] || @current_date.year).to_i
+      @report_month = (params[:month] || @current_date.month).to_i
+      @report_date = Date.new(@report_year, @report_month, 1)
+      @report_prev = @report_date.prev_month
+      @report_next = @report_date.next_month
+
+      month_start = @report_date.beginning_of_month
+      month_end = @report_date.end_of_month
+
+      # Get all enrollment_sections for the month grouped by teacher
+      teacher_data = EnrollmentSection
+        .joins(section: { teacher: :user })
+        .where(date: month_start..month_end)
+        .group('teachers.id', 'users.name')
+        .pluck(
+          Arel.sql('teachers.id'),
+          Arel.sql('users.name'),
+          Arel.sql('COUNT(DISTINCT enrollment_sections.section_id)'),
+          Arel.sql('COUNT(DISTINCT enrollment_sections.date)'),
+          Arel.sql('COUNT(*)'),
+          Arel.sql('COUNT(DISTINCT enrollment_sections.enrollment_id)'),
+          Arel.sql('COUNT(CASE WHEN enrollment_sections.attended = true THEN 1 END)'),
+          Arel.sql('COUNT(CASE WHEN enrollment_sections.attended = false THEN 1 END)')
+        )
+
+      @teacher_report = teacher_data.map do |teacher_id, name, sections, class_dates, total_entries, students, present, absent|
+        registered = present + absent
+        rate = registered > 0 ? ((present.to_f / registered) * 100).round(0) : nil
+        {
+          teacher_id: teacher_id, name: name, sections: sections,
+          class_dates: class_dates, total_entries: total_entries,
+          students: students, present: present, absent: absent, rate: rate
+        }
+      end.sort_by { |t| t[:name] }
+
+      @report_totals = {
+        sections: @teacher_report.sum { |t| t[:sections] },
+        class_dates: @teacher_report.sum { |t| t[:class_dates] },
+        total_entries: @teacher_report.sum { |t| t[:total_entries] },
+        students: @teacher_report.sum { |t| t[:students] },
+        present: @teacher_report.sum { |t| t[:present] },
+        absent: @teacher_report.sum { |t| t[:absent] }
+      }
+      registered_total = @report_totals[:present] + @report_totals[:absent]
+      @report_totals[:rate] = registered_total > 0 ? ((@report_totals[:present].to_f / registered_total) * 100).round(0) : nil
     end
 
     public

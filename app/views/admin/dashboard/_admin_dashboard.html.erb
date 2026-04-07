@@ -26,6 +26,85 @@
 </div>
 
 <div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
+    <h2 style="margin-bottom: 0;">Resumen Docentes - <%= I18n.l(@report_date, format: '%B %Y').capitalize %></h2>
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <%= link_to admin_root_path(month: @report_prev.month, year: @report_prev.year), class: "btn btn-secondary", style: "padding: 0.3rem 0.75rem;" do %>
+        &larr;
+      <% end %>
+      <span style="font-weight: 600; color: #2c3e50; min-width: 120px; text-align: center;">
+        <%= I18n.l(@report_date, format: '%B %Y').capitalize %>
+      </span>
+      <%= link_to admin_root_path(month: @report_next.month, year: @report_next.year), class: "btn btn-secondary", style: "padding: 0.3rem 0.75rem;" do %>
+        &rarr;
+      <% end %>
+    </div>
+  </div>
+
+  <% if @teacher_report.any? %>
+    <table>
+      <thead>
+        <tr>
+          <th>Docente</th>
+          <th style="text-align: center;">Secciones</th>
+          <th style="text-align: center;">Clases dictadas</th>
+          <th style="text-align: center;">Total registros</th>
+          <th style="text-align: center;">Alumnos</th>
+          <th style="text-align: center;">Presentes</th>
+          <th style="text-align: center;">Ausentes</th>
+          <th style="text-align: center;">Asistencia</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @teacher_report.each do |t| %>
+          <tr>
+            <td><strong><%= t[:name] %></strong></td>
+            <td style="text-align: center;"><%= t[:sections] %></td>
+            <td style="text-align: center;"><%= t[:class_dates] %></td>
+            <td style="text-align: center;"><%= t[:total_entries] %></td>
+            <td style="text-align: center;"><%= t[:students] %></td>
+            <td style="text-align: center; color: #27ae60; font-weight: 600;"><%= t[:present] %></td>
+            <td style="text-align: center; color: #e74c3c; font-weight: 600;"><%= t[:absent] %></td>
+            <td style="text-align: center;">
+              <% if t[:rate] %>
+                <div style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                  <div style="width: 60px; height: 8px; background: #eee; border-radius: 4px; overflow: hidden;">
+                    <div style="width: <%= t[:rate] %>%; height: 100%; background: <%= t[:rate] >= 75 ? '#27ae60' : t[:rate] >= 50 ? '#f39c12' : '#e74c3c' %>; border-radius: 4px;"></div>
+                  </div>
+                  <span style="font-weight: 600; font-size: 0.9rem; color: <%= t[:rate] >= 75 ? '#27ae60' : t[:rate] >= 50 ? '#f39c12' : '#e74c3c' %>;"><%= t[:rate] %>%</span>
+                </div>
+              <% else %>
+                <span style="color: #bdc3c7;">--</span>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+      <tfoot>
+        <tr style="background: #f8f9fa; font-weight: 600;">
+          <td>Total</td>
+          <td style="text-align: center;"><%= @report_totals[:sections] %></td>
+          <td style="text-align: center;"><%= @report_totals[:class_dates] %></td>
+          <td style="text-align: center;"><%= @report_totals[:total_entries] %></td>
+          <td style="text-align: center;"><%= @report_totals[:students] %></td>
+          <td style="text-align: center; color: #27ae60;"><%= @report_totals[:present] %></td>
+          <td style="text-align: center; color: #e74c3c;"><%= @report_totals[:absent] %></td>
+          <td style="text-align: center;">
+            <% if @report_totals[:rate] %>
+              <span style="color: <%= @report_totals[:rate] >= 75 ? '#27ae60' : @report_totals[:rate] >= 50 ? '#f39c12' : '#e74c3c' %>;"><%= @report_totals[:rate] %>%</span>
+            <% else %>
+              <span style="color: #bdc3c7;">--</span>
+            <% end %>
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+  <% else %>
+    <p style="color: #7f8c8d; text-align: center; padding: 2rem;">No hay actividad docente para este mes.</p>
+  <% end %>
+</div>
+
+<div class="card">
   <h2>Inscripciones Recientes</h2>
 
   <% if @recent_enrollments.any? %>

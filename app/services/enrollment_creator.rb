@@ -76,13 +76,21 @@ class EnrollmentCreator
     weekly_plan = WeeklyPlan.find(@weekly_plan_id)
     number_of_classes = weekly_plan.number_of_classes
 
+    # When using specific dates, validate total across all sections (not per-section)
+    if @section_dates.present?
+      total_specific_dates = @section_ids.sum { |sid| (@section_dates[sid.to_s].is_a?(Array) ? @section_dates[sid.to_s].length : 0) }
+      if total_specific_dates != number_of_classes
+        raise "Debe proporcionar exactamente #{number_of_classes} fechas en total (proporcionó #{total_specific_dates})"
+      end
+    end
+
     @section_ids.each do |section_id|
       section = Section.find(section_id)
 
       # Determinar qué fechas usar
       if @section_dates.present? && @section_dates[section_id.to_s].is_a?(Array)
-        # Usar fechas específicas del usuario (nuevo comportamiento)
-        class_dates = validate_and_parse_specific_dates(section, @section_dates[section_id.to_s], number_of_classes)
+        # Usar fechas específicas del usuario (ya validado el total arriba)
+        class_dates = validate_and_parse_specific_dates(section, @section_dates[section_id.to_s])
       else
         # Usar lógica automática con start_date (comportamiento actual)
         start_date_to_use = @start_date.presence || @section_dates.values.first
@@ -136,7 +144,7 @@ class EnrollmentCreator
     SecureRandom.hex(8)
   end
 
-  def validate_and_parse_specific_dates(section, dates_array, expected_count)
+  def validate_and_parse_specific_dates(section, dates_array)
     # Map Spanish weekday names to Ruby's wday (0 = Sunday, 1 = Monday, etc.)
     weekday_map = {
       'Domingo' => 0,
@@ -148,11 +156,6 @@ class EnrollmentCreator
       'Sábado' => 6
     }
     target_wday = weekday_map[section.weekday]
-
-    # Validar cantidad de fechas
-    if dates_array.length != expected_count
-      raise "Debe proporcionar exactamente #{expected_count} fechas (proporcionó #{dates_array.length})"
-    end
 
     parsed_dates = dates_array.map do |date_str|
       date = Date.parse(date_str)

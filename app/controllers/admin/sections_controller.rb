@@ -4,10 +4,10 @@ module Admin
     before_action :set_section, only: [:show, :edit, :update, :destroy]
 
     def index
-      @sections = Section.includes(:course, teacher: :user).accessible_by(current_ability)
+      weekday_order = "CASE weekday WHEN 'Lunes' THEN 1 WHEN 'Martes' THEN 2 WHEN 'Miércoles' THEN 3 WHEN 'Jueves' THEN 4 WHEN 'Viernes' THEN 5 WHEN 'Sábado' THEN 6 WHEN 'Domingo' THEN 7 END"
+      @sections = Section.includes(:course, teacher: :user).accessible_by(current_ability).order(Arel.sql(weekday_order))
 
       if current_teacher?
-        @sections = @sections.order(:weekday)
         section_ids = @sections.map(&:id)
 
         @student_counts = EnrollmentSection

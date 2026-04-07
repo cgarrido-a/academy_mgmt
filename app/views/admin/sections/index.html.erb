@@ -66,10 +66,10 @@
         <thead>
           <tr>
             <th>ID</th>
+            <th>Dia</th>
             <th>Curso</th>
             <th>Profesor</th>
             <th>Horario</th>
-            <th>Dia de la semana</th>
             <th>Cupos</th>
             <th>Acciones</th>
           </tr>
@@ -78,10 +78,10 @@
           <% @sections.each do |section| %>
             <tr>
               <td><%= section.id %></td>
+              <td><%= section.weekday %></td>
               <td><%= section.course.title %></td>
               <td><%= section.teacher.user.name %></td>
               <td><%= section.formatted_schedule %></td>
-              <td><%= section.weekday %></td>
               <td><%= section.places %></td>
               <td>
                 <div class="actions">

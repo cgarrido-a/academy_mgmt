@@ -22,8 +22,9 @@ class WeeklyPlan < ApplicationRecord
     base_price = determine_base_price(section_ids)
     return base_price if payment_period.nil? || base_price.nil?
 
+    months = payment_period.months || 1
     discount_multiplier = 1 - (payment_period.discount_percentage / 100.0)
-    (base_price * discount_multiplier).round
+    (base_price * months * discount_multiplier).round
   end
 
   # Determine the base price based on whether sections are on Saturday

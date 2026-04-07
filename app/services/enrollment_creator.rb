@@ -72,9 +72,14 @@ class EnrollmentCreator
   end
 
   def create_enrollment_sections
-    # Get number of classes from weekly plan
+    # Get number of classes from weekly plan, multiplied by payment period months
     weekly_plan = WeeklyPlan.find(@weekly_plan_id)
     number_of_classes = weekly_plan.number_of_classes
+
+    if @payment_period_id.present?
+      payment_period = PaymentPeriod.find_by(id: @payment_period_id)
+      number_of_classes = number_of_classes * (payment_period.months || 1) if payment_period
+    end
 
     # When using specific dates, validate total across all sections (not per-section)
     if @section_dates.present?

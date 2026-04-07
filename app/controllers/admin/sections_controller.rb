@@ -4,7 +4,24 @@ module Admin
     before_action :set_section, only: [:show, :edit, :update, :destroy]
 
     def index
-      @sections = Section.includes(:course, :teacher).accessible_by(current_ability)
+      @sections = Section.includes(:course, teacher: :user).accessible_by(current_ability)
+
+      if current_teacher?
+        @sections = @sections.order(:weekday)
+        section_ids = @sections.map(&:id)
+
+        @student_counts = EnrollmentSection
+          .where(section_id: section_ids)
+          .group(:section_id)
+          .select(:section_id, 'COUNT(DISTINCT enrollment_id) as total')
+          .index_by(&:section_id)
+
+        @next_class_dates = EnrollmentSection
+          .where(section_id: section_ids)
+          .where('date >= ?', Date.current)
+          .group(:section_id)
+          .minimum(:date)
+      end
     end
 
     def show
@@ -26,6 +43,19 @@ module Admin
       @year = (params[:year] || default_date.year).to_i
       @month = (params[:month] || default_date.month).to_i
       @calendar_date = Date.new(@year, @month, 1)
+
+      # Attendance status per date for calendar indicators
+      if can? :take_attendance, @section
+        attendance_data = @section.enrollment_sections
+          .where(date: @section_dates.to_a)
+          .group(:date)
+          .pluck(:date, Arel.sql('COUNT(*)'), Arel.sql('COUNT(CASE WHEN attended = true THEN 1 END)'))
+        @attendance_by_date = attendance_data.each_with_object({}) do |(date, total, present), hash|
+          hash[date] = { total: total, present: present }
+        end
+      else
+        @attendance_by_date = {}
+      end
 
       # Build mini calendar
       @calendar_weeks = build_section_calendar(@calendar_date)
@@ -58,17 +88,27 @@ module Admin
       start_date = first_day.beginning_of_week(:monday)
       end_date = last_day.end_of_week(:monday)
 
+      # Map section weekday to wday number
+      weekday_map = {
+        'Domingo' => 0, 'Lunes' => 1, 'Martes' => 2, 'Miércoles' => 3,
+        'Jueves' => 4, 'Viernes' => 5, 'Sábado' => 6
+      }
+      section_wday = weekday_map[@section.weekday]
+
       weeks = []
       current = start_date
 
       while current <= end_date
         week = (0..6).map do |i|
           day = current + i
+          has_enrollments = @section_dates.include?(day)
+          is_section_day = day.wday == section_wday
           {
             date: day,
             in_month: day.month == date.month,
             is_today: day == Date.current,
-            has_class: @section_dates.include?(day),
+            has_class: has_enrollments,
+            is_section_day: is_section_day,
             is_selected: day == @selected_date
           }
         end
@@ -114,6 +154,21 @@ module Admin
         @teachers = Teacher.includes(:user).all
         render :edit, status: :unprocessable_entity
       end
+    end
+
+    def take_attendance
+      @section = Section.find(params[:id])
+      authorize! :take_attendance, @section
+
+      date = params[:date]
+      attendance_params = params.require(:attendance)
+
+      attendance_params.each do |es_id, attrs|
+        es = @section.enrollment_sections.find(es_id)
+        es.update!(attended: attrs[:attended] == "1")
+      end
+
+      redirect_to admin_section_path(@section, date: date), notice: 'Asistencia guardada exitosamente.'
     end
 
     def destroy

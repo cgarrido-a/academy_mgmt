@@ -1,49 +1,105 @@
-<div class="card">
+<% if current_teacher? %>
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-    <h2>Secciones</h2>
-    <% if can? :create, Section %>
-      <%= link_to "Nueva Sección", new_admin_section_path, class: "btn btn-success" %>
-    <% end %>
+    <h1 style="color: #2c3e50;">Mis Secciones</h1>
   </div>
 
+  <% weekday_order = %w[Lunes Martes Miércoles Jueves Viernes Sábado Domingo] %>
+  <% grouped = @sections.group_by(&:weekday) %>
+
   <% if @sections.any? %>
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Curso</th>
-          <th>Profesor</th>
-          <th>Horario</th>
-          <th>Día de la semana</th>
-          <th>Cupos</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% @sections.each do |section| %>
-          <tr>
-            <td><%= section.id %></td>
-            <td><%= section.course.title %></td>
-            <td><%= section.teacher.user.name %></td>
-            <td><%= section.formatted_schedule %></td>
-            <td><%= section.weekday %></td>
-            <td><%= section.available_places %>/<%= section.places %></td>
-            <td>
-              <div class="actions">
-                <%= link_to "Ver", admin_section_path(section), class: "btn btn-primary" %>
-                <% if can? :update, section %>
-                  <%= link_to "Editar", edit_admin_section_path(section), class: "btn btn-secondary" %>
-                <% end %>
-                <% if can? :destroy, section %>
-                  <%= button_to "Eliminar", admin_section_path(section), method: :delete, data: { confirm: "¿Estás seguro?" }, class: "btn btn-danger" %>
+    <% weekday_order.each do |day| %>
+      <% next unless grouped[day] %>
+      <div style="margin-bottom: 2rem;">
+        <h2 style="color: #2c3e50; font-size: 1.1rem; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 2px solid #3498db;">
+          <%= day %>
+        </h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem;">
+          <% grouped[day].each do |section| %>
+            <% student_count = @student_counts[section.id]&.total || 0 %>
+            <% next_date = @next_class_dates[section.id] %>
+            <%= link_to admin_section_path(section), style: "text-decoration: none; color: inherit; display: block;" do %>
+              <div class="card" style="margin-bottom: 0; transition: transform 0.2s, box-shadow 0.2s; cursor: pointer;"
+                   onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)';"
+                   onmouseout="this.style.transform='none'; this.style.boxShadow='0 1px 3px rgba(0,0,0,0.1)';">
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                  <div>
+                    <h3 style="color: #2c3e50; margin-bottom: 0.25rem; font-size: 1.1rem;"><%= section.course.title %></h3>
+                    <span style="color: #7f8c8d; font-size: 0.9rem;"><%= section.formatted_schedule %></span>
+                  </div>
+                  <div style="background: #e8f4fd; color: #2980b9; padding: 0.4rem 0.75rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">
+                    <%= student_count %>/<%= section.places %>
+                  </div>
+                </div>
+                <% if next_date %>
+                  <div style="margin-top: 0.75rem; font-size: 0.85rem; color: #7f8c8d;">
+                    Proxima clase: <strong style="color: #2c3e50;"><%= I18n.l(next_date, format: '%d de %B') %></strong>
+                  </div>
+                <% else %>
+                  <div style="margin-top: 0.75rem; font-size: 0.85rem; color: #bdc3c7;">
+                    Sin clases programadas
+                  </div>
                 <% end %>
               </div>
-            </td>
-          </tr>
-        <% end %>
-      </tbody>
-    </table>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
   <% else %>
-    <p>No hay secciones asignadas.</p>
+    <div class="card">
+      <p style="color: #7f8c8d; text-align: center; padding: 2rem;">No tienes secciones asignadas.</p>
+    </div>
   <% end %>
-</div>
+
+<% else %>
+  <%# Admin view - original table %>
+  <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+      <h2>Secciones</h2>
+      <% if can? :create, Section %>
+        <%= link_to "Nueva Sección", new_admin_section_path, class: "btn btn-success" %>
+      <% end %>
+    </div>
+
+    <% if @sections.any? %>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Curso</th>
+            <th>Profesor</th>
+            <th>Horario</th>
+            <th>Dia de la semana</th>
+            <th>Cupos</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @sections.each do |section| %>
+            <tr>
+              <td><%= section.id %></td>
+              <td><%= section.course.title %></td>
+              <td><%= section.teacher.user.name %></td>
+              <td><%= section.formatted_schedule %></td>
+              <td><%= section.weekday %></td>
+              <td><%= section.available_places %>/<%= section.places %></td>
+              <td>
+                <div class="actions">
+                  <%= link_to "Ver", admin_section_path(section), class: "btn btn-primary" %>
+                  <% if can? :update, section %>
+                    <%= link_to "Editar", edit_admin_section_path(section), class: "btn btn-secondary" %>
+                  <% end %>
+                  <% if can? :destroy, section %>
+                    <%= button_to "Eliminar", admin_section_path(section), method: :delete, data: { confirm: "¿Estás seguro?" }, class: "btn btn-danger" %>
+                  <% end %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <p>No hay secciones asignadas.</p>
+    <% end %>
+  </div>
+<% end %>

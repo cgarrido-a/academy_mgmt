@@ -137,6 +137,9 @@
     .mini-cal-day.today { background: #fff3cd; font-weight: bold; }
     .mini-cal-day.has-class { background: #d4edda; color: #155724; font-weight: 600; cursor: pointer; text-decoration: none; display: block; }
     .mini-cal-day.has-class:hover { background: #c3e6cb; }
+    .mini-cal-day.section-day { background: #f0f0f0; color: #7f8c8d; font-weight: 500; cursor: pointer; text-decoration: none; display: block; border: 1px dashed #bdc3c7; }
+    .mini-cal-day.section-day:hover { background: #e0e0e0; }
+    .mini-cal-day.section-day.selected { background: #3498db; color: white; border-style: solid; }
     .mini-cal-day.has-class.selected { background: #3498db; color: white; }
     .mini-cal-day.has-class.today { background: #27ae60; color: white; }
     .mini-cal-day.has-class.selected.today { background: #27ae60; }
@@ -145,6 +148,7 @@
     .legend-item { display: flex; align-items: center; gap: 0.25rem; font-size: 0.75rem; color: #7f8c8d; }
     .legend-dot { width: 12px; height: 12px; border-radius: 2px; }
     .legend-dot.has-class { background: #d4edda; border: 1px solid #c3e6cb; }
+    .legend-dot.section-day-legend { background: #f0f0f0; border: 1px dashed #bdc3c7; }
     .legend-dot.today { background: #fff3cd; border: 1px solid #ffc107; }
 
     .selected-date-info { margin-bottom: 1rem; padding: 0.75rem 1rem; background: #e8f4fd; border-radius: 6px; border-left: 4px solid #3498db; }
@@ -155,6 +159,27 @@
     @media (max-width: 700px) {
       .section-content { grid-template-columns: 1fr; }
     }
+
+    /* Attendance Toggle Switch */
+    .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; vertical-align: middle; }
+    .toggle-switch .attendance-checkbox { opacity: 0; width: 0; height: 0; position: absolute; }
+    .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #ccc; border-radius: 24px; transition: 0.2s; }
+    .toggle-slider:before { content: ""; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.2s; }
+    .toggle-switch .attendance-checkbox:checked + .toggle-slider { background: #27ae60; }
+    .toggle-switch .attendance-checkbox:checked + .toggle-slider:before { transform: translateX(20px); }
+
+    /* Attendance Row Highlight */
+    .attendance-row { transition: background 0.15s; }
+    .attendance-row.attended { background: #f0faf0; }
+    .attendance-row.attended:hover { background: #e5f5e5; }
+
+    /* Calendar Attendance Indicators */
+    .mini-cal-day.attendance-done { background: #27ae60; color: white; }
+    .mini-cal-day.attendance-done:hover { background: #229954; }
+    .mini-cal-day.attendance-partial { background: #f39c12; color: white; }
+    .mini-cal-day.attendance-partial:hover { background: #e67e22; }
+    .mini-cal-day.attendance-done.selected, .mini-cal-day.attendance-partial.selected { background: #3498db; color: white; }
+    .legend-dot.attendance-complete { background: #27ae60; border: 1px solid #229954; }
 
     @media (max-width: 768px) {
       .calendar-cell { min-height: 80px; padding: 0.25rem; }

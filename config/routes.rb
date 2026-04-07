@@ -43,7 +43,11 @@ Rails.application.routes.draw do
     root "dashboard#index"
     get 'export', to: 'dashboard#export', as: :export_financial_report
     resources :courses
-    resources :sections
+    resources :sections do
+      member do
+        patch :take_attendance
+      end
+    end
     resources :enrollments do
       collection do
         get 'sections_by_course', action: :sections_by_course

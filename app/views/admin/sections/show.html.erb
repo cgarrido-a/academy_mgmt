@@ -1,6 +1,15 @@
 <div class="card">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-    <h2>Seccion #<%= @section.id %></h2>
+    <% if current_teacher? %>
+      <div>
+        <h2 style="margin-bottom: 0.25rem;"><%= @section.course.title %></h2>
+        <span style="color: #7f8c8d; font-size: 0.95rem;">
+          <%= @section.weekday %> &middot; <%= @section.formatted_schedule %> &middot; <%= @section.places %> cupos
+        </span>
+      </div>
+    <% else %>
+      <h2>Seccion #<%= @section.id %></h2>
+    <% end %>
     <div class="actions">
       <% if can? :update, @section %>
         <%= link_to "Editar", edit_admin_section_path(@section), class: "btn btn-secondary" %>
@@ -9,32 +18,34 @@
     </div>
   </div>
 
-  <div class="section-info-grid">
-    <div class="form-group">
-      <strong>Curso:</strong>
-      <p><%= link_to @section.course.title, admin_course_path(@section.course) %></p>
-    </div>
+  <% unless current_teacher? %>
+    <div class="section-info-grid">
+      <div class="form-group">
+        <strong>Curso:</strong>
+        <p><%= link_to @section.course.title, admin_course_path(@section.course) %></p>
+      </div>
 
-    <div class="form-group">
-      <strong>Profesor:</strong>
-      <p><%= @section.teacher.user.name %></p>
-    </div>
+      <div class="form-group">
+        <strong>Profesor:</strong>
+        <p><%= @section.teacher.user.name %></p>
+      </div>
 
-    <div class="form-group">
-      <strong>Horario:</strong>
-      <p><%= @section.formatted_schedule %></p>
-    </div>
+      <div class="form-group">
+        <strong>Horario:</strong>
+        <p><%= @section.formatted_schedule %></p>
+      </div>
 
-    <div class="form-group">
-      <strong>Dia:</strong>
-      <p><%= @section.weekday %></p>
-    </div>
+      <div class="form-group">
+        <strong>Dia:</strong>
+        <p><%= @section.weekday %></p>
+      </div>
 
-    <div class="form-group">
-      <strong>Cupos:</strong>
-      <p><%= @section.places %></p>
+      <div class="form-group">
+        <strong>Cupos:</strong>
+        <p><%= @section.places %></p>
+      </div>
     </div>
-  </div>
+  <% end %>
 </div>
 
 <div class="section-content">
@@ -60,9 +71,23 @@
           <% @calendar_weeks.each do |week| %>
             <% week.each do |day| %>
               <% if day[:has_class] && day[:in_month] %>
+                <%
+                  att = @attendance_by_date[day[:date]]
+                  if att && att[:present] == att[:total] && att[:total] > 0
+                    att_class = "attendance-done"
+                  elsif att && att[:present] > 0
+                    att_class = "attendance-partial"
+                  else
+                    att_class = ""
+                  end
+                %>
                 <%= link_to day[:date].day,
                     admin_section_path(@section, date: day[:date], month: @month, year: @year),
-                    class: "mini-cal-day has-class #{'selected' if day[:is_selected]} #{'today' if day[:is_today]}" %>
+                    class: "mini-cal-day has-class #{'selected' if day[:is_selected]} #{'today' if day[:is_today]} #{att_class}" %>
+              <% elsif day[:is_section_day] && day[:in_month] %>
+                <%= link_to day[:date].day,
+                    admin_section_path(@section, date: day[:date], month: @month, year: @year),
+                    class: "mini-cal-day section-day #{'selected' if day[:is_selected]} #{'today' if day[:is_today]}" %>
               <% else %>
                 <div class="mini-cal-day <%= 'other-month' unless day[:in_month] %> <%= 'today' if day[:is_today] && day[:in_month] %>">
                   <%= day[:date].day %>
@@ -74,8 +99,12 @@
       </div>
 
       <div class="calendar-legend">
-        <span class="legend-item"><span class="legend-dot has-class"></span> Con clase</span>
+        <span class="legend-item"><span class="legend-dot has-class"></span> Con alumnos</span>
+        <span class="legend-item"><span class="legend-dot section-day-legend"></span> Sin alumnos</span>
         <span class="legend-item"><span class="legend-dot today"></span> Hoy</span>
+        <% if can? :take_attendance, @section %>
+          <span class="legend-item"><span class="legend-dot attendance-complete"></span> Asistencia</span>
+        <% end %>
       </div>
     </div>
   </div>
@@ -89,38 +118,135 @@
         </div>
 
         <% if @enrollment_sections.any? %>
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Estudiante</th>
-                <th>Email</th>
-                <% if can? :manage, Enrollment %>
-                  <th>Acciones</th>
-                <% end %>
-              </tr>
-            </thead>
-            <tbody>
-              <% @enrollment_sections.each_with_index do |es, index| %>
+          <% if can? :take_attendance, @section %>
+            <%= form_tag take_attendance_admin_section_path(@section), method: :patch do %>
+              <%= hidden_field_tag :date, @selected_date %>
+
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <div style="display: flex; gap: 0.5rem;">
+                  <button type="button" class="btn btn-secondary" style="padding: 0.3rem 0.75rem; font-size: 0.85rem;" onclick="toggleAll(true)">Todos presentes</button>
+                  <button type="button" class="btn btn-secondary" style="padding: 0.3rem 0.75rem; font-size: 0.85rem;" onclick="toggleAll(false)">Desmarcar todos</button>
+                </div>
+                <span id="attendance-counter" style="color: #7f8c8d; font-size: 0.9rem;">
+                  <% present_count = @enrollment_sections.count { |es| es.attended? } %>
+                  <strong id="present-count"><%= present_count %></strong>/<%= @enrollment_sections.size %> presentes
+                </span>
+              </div>
+
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width: 40px;">#</th>
+                    <th>Estudiante</th>
+                    <% unless current_teacher? %>
+                      <th>Email</th>
+                    <% end %>
+                    <th style="text-align: center; width: 100px;">Asistencia</th>
+                    <% if can? :manage, Enrollment %>
+                      <th>Acciones</th>
+                    <% end %>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% @enrollment_sections.each_with_index do |es, index| %>
+                    <tr class="attendance-row <%= 'attended' if es.attended? %>">
+                      <td><%= index + 1 %></td>
+                      <td>
+                        <strong><%= es.enrollment.student.user.name %></strong>
+                        <% if current_teacher? %>
+                          <br><span style="color: #7f8c8d; font-size: 0.85rem;"><%= es.enrollment.student.user.email %></span>
+                        <% end %>
+                      </td>
+                      <% unless current_teacher? %>
+                        <td><%= es.enrollment.student.user.email %></td>
+                      <% end %>
+                      <td style="text-align: center;">
+                        <%= hidden_field_tag "attendance[#{es.id}][attended]", "0" %>
+                        <label class="toggle-switch">
+                          <%= check_box_tag "attendance[#{es.id}][attended]", "1", es.attended?, class: "attendance-checkbox", onchange: "updateCounter(this)" %>
+                          <span class="toggle-slider"></span>
+                        </label>
+                      </td>
+                      <% if can? :manage, Enrollment %>
+                        <td>
+                          <%= link_to "Ver", admin_enrollment_path(es.enrollment), class: "btn btn-primary" %>
+                        </td>
+                      <% end %>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+
+              <div style="margin-top: 1rem;">
+                <%= submit_tag "Guardar Asistencia", class: "btn btn-success", style: "width: 100%; padding: 0.75rem; font-size: 1.05rem;" %>
+              </div>
+            <% end %>
+          <% else %>
+            <table>
+              <thead>
                 <tr>
-                  <td><%= index + 1 %></td>
-                  <td><%= es.enrollment.student.user.name %></td>
-                  <td><%= es.enrollment.student.user.email %></td>
+                  <th>#</th>
+                  <th>Estudiante</th>
+                  <th>Email</th>
                   <% if can? :manage, Enrollment %>
-                    <td>
-                      <%= link_to "Ver", admin_enrollment_path(es.enrollment), class: "btn btn-primary" %>
-                    </td>
+                    <th>Acciones</th>
                   <% end %>
                 </tr>
-              <% end %>
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                <% @enrollment_sections.each_with_index do |es, index| %>
+                  <tr>
+                    <td><%= index + 1 %></td>
+                    <td><%= es.enrollment.student.user.name %></td>
+                    <td><%= es.enrollment.student.user.email %></td>
+                    <% if can? :manage, Enrollment %>
+                      <td>
+                        <%= link_to "Ver", admin_enrollment_path(es.enrollment), class: "btn btn-primary" %>
+                      </td>
+                    <% end %>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          <% end %>
         <% else %>
           <p class="no-students">No hay alumnos inscritos para esta fecha.</p>
         <% end %>
       <% else %>
-        <p class="no-students">No hay fechas con clases programadas. Selecciona una fecha en el calendario.</p>
+        <p class="no-students">Selecciona una fecha en el calendario para ver los alumnos.</p>
       <% end %>
     </div>
   </div>
 </div>
+
+<% if can? :take_attendance, @section %>
+<script>
+  function toggleAll(checked) {
+    document.querySelectorAll('.attendance-checkbox').forEach(function(cb) {
+      cb.checked = checked;
+      updateRowStyle(cb);
+    });
+    updateCounterDisplay();
+  }
+
+  function updateCounter(cb) {
+    updateRowStyle(cb);
+    updateCounterDisplay();
+  }
+
+  function updateRowStyle(cb) {
+    var row = cb.closest('.attendance-row');
+    if (cb.checked) {
+      row.classList.add('attended');
+    } else {
+      row.classList.remove('attended');
+    }
+  }
+
+  function updateCounterDisplay() {
+    var total = document.querySelectorAll('.attendance-checkbox').length;
+    var present = document.querySelectorAll('.attendance-checkbox:checked').length;
+    document.getElementById('present-count').textContent = present;
+  }
+</script>
+<% end %>

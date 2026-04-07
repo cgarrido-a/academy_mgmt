@@ -1,5 +1,5 @@
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-  <h1>Mi Dashboard</h1>
+  <h1 style="color: #2c3e50;">Mi Dashboard</h1>
 </div>
 
 <div class="stats-grid">
@@ -12,7 +12,89 @@
     <h3>Mis Alumnos</h3>
     <div class="number"><%= @total_students %></div>
   </div>
+
+  <div class="stat-card">
+    <h3>Asistencia del mes</h3>
+    <% if @month_attendance_rate %>
+      <div class="number" style="color: <%= @month_attendance_rate >= 75 ? '#27ae60' : @month_attendance_rate >= 50 ? '#f39c12' : '#e74c3c' %>;">
+        <%= @month_attendance_rate %>%
+      </div>
+    <% else %>
+      <div class="number" style="color: #bdc3c7;">--</div>
+    <% end %>
+    <span style="font-size: 0.8rem; color: #7f8c8d;"><%= @month_present %> presentes / <%= @month_absent %> ausentes</span>
+  </div>
+
+  <div class="stat-card">
+    <h3>Sin registrar</h3>
+    <div class="number" style="color: <%= @month_pending > 0 ? '#f39c12' : '#27ae60' %>;"><%= @month_pending %></div>
+    <span style="font-size: 0.8rem; color: #7f8c8d;">clases por registrar</span>
+  </div>
 </div>
+
+<% if @pending_dates.any? %>
+  <div class="card" style="border-left: 4px solid #f39c12; margin-bottom: 1.5rem;">
+    <h2 style="font-size: 1.1rem; color: #f39c12; margin-bottom: 0.75rem;">Asistencia pendiente</h2>
+    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+      <% @pending_dates.first(8).each do |p| %>
+        <%= link_to admin_section_path(p[:section], date: p[:date]),
+            style: "text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; background: #fff8e1; border: 1px solid #ffe082; padding: 0.5rem 0.75rem; border-radius: 6px; color: #2c3e50; font-size: 0.85rem; transition: background 0.2s;",
+            onmouseover: "this.style.background='#fff3cd'",
+            onmouseout: "this.style.background='#fff8e1'" do %>
+          <strong><%= p[:section].course.title %></strong>
+          <span style="color: #7f8c8d;"><%= I18n.l(p[:date], format: '%a %d/%m') %></span>
+          <span style="background: #f39c12; color: white; padding: 0.15rem 0.5rem; border-radius: 10px; font-size: 0.75rem;"><%= p[:count] %></span>
+        <% end %>
+      <% end %>
+      <% if @pending_dates.size > 8 %>
+        <span style="align-self: center; color: #7f8c8d; font-size: 0.85rem;">y <%= @pending_dates.size - 8 %> mas...</span>
+      <% end %>
+    </div>
+  </div>
+<% end %>
+
+<% if @section_attendance.any? %>
+  <div class="card" style="margin-bottom: 1.5rem;">
+    <h2 style="font-size: 1.1rem; margin-bottom: 1rem;">Asistencia por seccion - <%= I18n.l(@calendar_date, format: '%B %Y').capitalize %></h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Seccion</th>
+          <th>Dia</th>
+          <th style="text-align: center;">Presentes</th>
+          <th style="text-align: center;">Ausentes</th>
+          <th style="text-align: center;">Pendientes</th>
+          <th style="text-align: center;">Asistencia</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @section_attendance.each do |sa| %>
+          <tr>
+            <td>
+              <%= link_to sa[:section].course.title, admin_section_path(sa[:section]), style: "color: #3498db; text-decoration: none; font-weight: 500;" %>
+            </td>
+            <td style="color: #7f8c8d;"><%= sa[:section].weekday %> &middot; <%= sa[:section].formatted_schedule %></td>
+            <td style="text-align: center; color: #27ae60; font-weight: 600;"><%= sa[:present] %></td>
+            <td style="text-align: center; color: #e74c3c; font-weight: 600;"><%= sa[:absent] %></td>
+            <td style="text-align: center; color: #f39c12; font-weight: 600;"><%= sa[:total] - sa[:present] - sa[:absent] %></td>
+            <td style="text-align: center;">
+              <% if sa[:rate] %>
+                <div style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                  <div style="width: 60px; height: 8px; background: #eee; border-radius: 4px; overflow: hidden;">
+                    <div style="width: <%= sa[:rate] %>%; height: 100%; background: <%= sa[:rate] >= 75 ? '#27ae60' : sa[:rate] >= 50 ? '#f39c12' : '#e74c3c' %>; border-radius: 4px;"></div>
+                  </div>
+                  <span style="font-weight: 600; font-size: 0.9rem; color: <%= sa[:rate] >= 75 ? '#27ae60' : sa[:rate] >= 50 ? '#f39c12' : '#e74c3c' %>;"><%= sa[:rate] %>%</span>
+                </div>
+              <% else %>
+                <span style="color: #bdc3c7;">--</span>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% end %>
 
 <div class="card">
   <div class="calendar-header">

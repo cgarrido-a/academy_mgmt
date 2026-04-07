@@ -20,10 +20,14 @@ class Ability
       # Teachers can only read their own sections
       can :read, Section, teacher_id: teacher.id
 
+      # Teachers can take attendance on their own sections
+      can :take_attendance, Section, teacher_id: teacher.id
+
       # Teachers can read students enrolled in their sections
       can :read, Student, enrollments: { sections: { teacher_id: teacher.id } }
       can :read, Enrollment, sections: { teacher_id: teacher.id }
       can :read, EnrollmentSection, section: { teacher_id: teacher.id }
+      can :update, EnrollmentSection, section: { teacher_id: teacher.id }
     elsif user.student.present?
       # Students have no admin panel access
       cannot :manage, :all

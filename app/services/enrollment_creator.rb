@@ -58,10 +58,13 @@ class EnrollmentCreator
   end
 
   def create_enrollment
+    # Default to Webpay payment method if none provided (Transbank flow)
+    effective_payment_method_id = @payment_method_id.presence || PaymentMethod.find_by(payment_method: 'Webpay')&.id || PaymentMethod.first&.id
+
     @enrollment = Enrollment.create!(
       student: @student,
       weekly_plan_id: @weekly_plan_id,
-      payment_method_id: @payment_method_id,
+      payment_method_id: effective_payment_method_id,
       enrollment_amount: @enrollment_amount,
       total_tuition_fee: @total_tuition_fee,
       payment_date: Date.today
@@ -107,16 +110,15 @@ class EnrollmentCreator
   end
 
   def create_enrollment_fee_payment
-    # Only create payment record if payment method is NOT online payment (Transbank)
-    # For Transbank, payment will be created after confirmation in the callback
+    # Skip payment creation if no payment method (Transbank flow sends null)
+    # or if payment method is online payment — payment will be created after Transbank callback
+    return if @payment_method_id.blank?
+
     payment_method = PaymentMethod.find(@payment_method_id)
 
-    # Skip payment creation for Transbank/Webpay/online card payments
-    # Payment will be created after payment confirmation in Transbank callback
     return if payment_method.payment_method&.downcase&.include?('transbank') ||
               payment_method.payment_method&.downcase&.include?('webpay') ||
-              payment_method.payment_method&.downcase&.include?('tarjeta') ||
-              @payment_method_id == 1 # ID 1 is online card payment
+              payment_method.payment_method&.downcase&.include?('tarjeta')
 
     # For other payment methods (cash, transfer, etc), create payment immediately
     Payment.create!(

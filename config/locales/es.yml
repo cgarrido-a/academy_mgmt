@@ -1,4 +1,8 @@
 es:
+  activerecord:
+    errors:
+      messages:
+        record_invalid: "La validación falló: %{errors}"
   date:
     formats:
       default: "%d/%m/%Y"

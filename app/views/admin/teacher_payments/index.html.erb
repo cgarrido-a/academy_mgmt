@@ -20,11 +20,11 @@
       <div class="number"><%= @summary[:teachers] %></div>
     </div>
     <div class="stat-card">
-      <h3>Total Matriculas</h3>
-      <div class="number"><%= @summary[:enrollments] %></div>
+      <h3>Clases Asistidas</h3>
+      <div class="number"><%= @summary[:attended_classes] %></div>
     </div>
     <div class="stat-card">
-      <h3>Total Mensualidades</h3>
+      <h3>Valor Clases Asistidas</h3>
       <div class="number" style="font-size: 1.5rem;"><%= number_to_currency(@summary[:tuition], precision: 0) %></div>
     </div>
     <div class="stat-card">
@@ -40,8 +40,8 @@
       <thead>
         <tr>
           <th>Docente</th>
-          <th style="text-align: center;">Matriculas</th>
-          <th style="text-align: right;">Total Mensualidades</th>
+          <th style="text-align: center;">Clases Asistidas</th>
+          <th style="text-align: right;">Valor Clases</th>
           <th style="text-align: right;">A Pagar (42.5%)</th>
           <th style="text-align: center;">Estado</th>
           <th>Acciones</th>
@@ -51,7 +51,7 @@
         <% @teacher_rows.each do |row| %>
           <tr>
             <td><strong><%= row[:name] %></strong></td>
-            <td style="text-align: center;"><%= row[:enrollment_count] %></td>
+            <td style="text-align: center;"><%= row[:attended_count] %></td>
             <td style="text-align: right;"><%= number_to_currency(row[:tuition_total], precision: 0) %></td>
             <td style="text-align: right; font-weight: 600; color: #2c3e50;"><%= number_to_currency(row[:payment_amount], precision: 0) %></td>
             <td style="text-align: center;">
@@ -83,7 +83,7 @@
         <tfoot>
           <tr style="background: #f8f9fa; font-weight: 600;">
             <td>Total</td>
-            <td style="text-align: center;"><%= @summary[:enrollments] %></td>
+            <td style="text-align: center;"><%= @summary[:attended_classes] %></td>
             <td style="text-align: right;"><%= number_to_currency(@summary[:tuition], precision: 0) %></td>
             <td style="text-align: right; color: #2c3e50;"><%= number_to_currency(@summary[:payment], precision: 0) %></td>
             <td></td>

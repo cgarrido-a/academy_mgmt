@@ -9,10 +9,14 @@
 <div class="stats-grid" style="margin-bottom: 1.5rem;">
   <div class="stat-card">
     <h3>Matriculas</h3>
-    <div class="number"><%= @enrollments.count %></div>
+    <div class="number"><%= @enrollment_rows.size %></div>
   </div>
   <div class="stat-card">
-    <h3>Total Mensualidades</h3>
+    <h3>Clases Asistidas</h3>
+    <div class="number"><%= @attended_count %></div>
+  </div>
+  <div class="stat-card">
+    <h3>Valor Clases Asistidas</h3>
     <div class="number" style="font-size: 1.5rem;"><%= number_to_currency(@total_tuition, precision: 0) %></div>
   </div>
   <div class="stat-card">
@@ -34,38 +38,40 @@
 <% end %>
 
 <div class="card">
-  <% if @enrollments.any? %>
+  <% if @enrollment_rows.any? %>
     <table>
       <thead>
         <tr>
           <th>Estudiante</th>
           <th>Curso</th>
           <th>Plan</th>
-          <th style="text-align: right;">Mensualidad</th>
-          <th>Fecha Matricula</th>
+          <th style="text-align: center;">Clases</th>
+          <th style="text-align: right;">Precio/Clase</th>
+          <th style="text-align: right;">Valor Asistidas</th>
           <th>Acciones</th>
         </tr>
       </thead>
       <tbody>
-        <% @enrollments.each do |enrollment| %>
+        <% @enrollment_rows.each do |row| %>
           <tr>
-            <td><strong><%= enrollment.student.user.name %></strong></td>
+            <td><strong><%= row[:enrollment].student.user.name %></strong></td>
             <td>
-              <% enrollment.enrollment_sections.map { |es| es.section.course }.uniq.each do |course| %>
+              <% row[:courses].each do |course| %>
                 <span style="background: #e8f4fd; color: #2980b9; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 500;"><%= course.title %></span>
               <% end %>
             </td>
-            <td><%= enrollment.weekly_plan.plan %></td>
-            <td style="text-align: right; font-weight: 600;"><%= number_to_currency(enrollment.total_tuition_fee, precision: 0) %></td>
-            <td><%= I18n.l(enrollment.created_at.to_date, format: '%d/%m/%Y') %></td>
+            <td><%= row[:enrollment].weekly_plan.plan %></td>
+            <td style="text-align: center;"><%= row[:attended_count] %>/<%= row[:total_sessions] %></td>
+            <td style="text-align: right;"><%= number_to_currency(row[:price_per_class].round, precision: 0) %></td>
+            <td style="text-align: right; font-weight: 600;"><%= number_to_currency(row[:attended_value].round, precision: 0) %></td>
             <td>
-              <%= link_to 'Ver', admin_enrollment_path(enrollment), class: 'btn btn-primary', style: "padding: 0.3rem 0.75rem; font-size: 0.85rem;" %>
+              <%= link_to 'Ver', admin_enrollment_path(row[:enrollment]), class: 'btn btn-primary', style: "padding: 0.3rem 0.75rem; font-size: 0.85rem;" %>
             </td>
           </tr>
         <% end %>
       </tbody>
     </table>
   <% else %>
-    <p style="color: #7f8c8d; text-align: center; padding: 2rem;">No hay matriculas registradas para este docente en el mes seleccionado.</p>
+    <p style="color: #7f8c8d; text-align: center; padding: 2rem;">No hay clases asistidas para este docente en el mes seleccionado.</p>
   <% end %>
 </div>

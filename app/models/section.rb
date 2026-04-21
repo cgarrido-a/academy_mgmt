@@ -42,6 +42,50 @@ class Section < ApplicationRecord
     "#{entry['start_time']}-#{entry['end_time']}"
   end
 
+  WEEKDAY_TO_WDAY = {
+    'Domingo' => 0, 'Lunes' => 1, 'Martes' => 2, 'Miércoles' => 3,
+    'Jueves' => 4, 'Viernes' => 5, 'Sábado' => 6
+  }.freeze
+
+  def class_dates
+    enrollment_sections.select(:date).distinct.pluck(:date).to_set
+  end
+
+  def attendance_counts_by_date
+    enrollment_sections
+      .group(:date)
+      .pluck(:date, Arel.sql('COUNT(*)'), Arel.sql('COUNT(CASE WHEN attended = true THEN 1 END)'))
+      .each_with_object({}) { |(d, t, p), h| h[d] = { total: t, present: p } }
+  end
+
+  def calendar_weeks_for(month_date, selected_date: nil, class_dates_set: nil)
+    first_day = month_date.beginning_of_month
+    last_day = month_date.end_of_month
+    start_date = first_day.beginning_of_week(:monday)
+    end_date = last_day.end_of_week(:monday)
+
+    dates = class_dates_set || class_dates
+    section_wday = WEEKDAY_TO_WDAY[weekday]
+
+    weeks = []
+    current = start_date
+    while current <= end_date
+      weeks << (0..6).map do |i|
+        day = current + i
+        {
+          date: day,
+          in_month: day.month == month_date.month,
+          is_today: day == Date.current,
+          has_class: dates.include?(day),
+          is_section_day: day.wday == section_wday,
+          is_selected: day == selected_date
+        }
+      end
+      current += 7
+    end
+    weeks
+  end
+
   private
 
   def schedule_format

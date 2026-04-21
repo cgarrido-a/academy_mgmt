@@ -168,7 +168,12 @@ module Admin
         es.update!(attended: attrs[:attended] == "1")
       end
 
-      redirect_to admin_section_path(@section, date: date), notice: 'Asistencia guardada exitosamente.'
+      if params[:course_id].present?
+        redirect_to attendance_admin_course_path(params[:course_id], section_id: @section.id, date: date),
+                    notice: 'Asistencia guardada exitosamente.'
+      else
+        redirect_to admin_section_path(@section, date: date), notice: 'Asistencia guardada exitosamente.'
+      end
     end
 
     def destroy

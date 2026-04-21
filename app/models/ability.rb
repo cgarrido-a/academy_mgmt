@@ -16,6 +16,7 @@ class Ability
 
       # Teachers can only read courses where they have sections assigned
       can :read, Course, sections: { teacher_id: teacher.id }
+      can :attendance, Course, sections: { teacher_id: teacher.id }
 
       # Teachers can only read their own sections
       can :read, Section, teacher_id: teacher.id

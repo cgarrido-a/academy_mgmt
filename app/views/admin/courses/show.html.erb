@@ -2,6 +2,9 @@
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
     <h2><%= @course.title %></h2>
     <div class="actions">
+      <% if can? :attendance, @course %>
+        <%= link_to "Pasar Asistencia", attendance_admin_course_path(@course), class: "btn btn-success" %>
+      <% end %>
       <% if can? :update, @course %>
         <%= link_to "Editar", edit_admin_course_path(@course), class: "btn btn-secondary" %>
       <% end %>

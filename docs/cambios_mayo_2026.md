@@ -111,6 +111,7 @@ Se agregó un flujo dedicado de **"Asignar recuperatorio"** que:
 - El recuperatorio debe ser en una sección del mismo curso.
 - La fecha del recuperatorio debe ser futura y respetar el cupo de la sala.
 - **La fecha del recuperatorio debe estar dentro del período del plan contratado** (entre la primera y la última clase del alumno). El docente está limitado a esta regla; **el administrador puede asignar recuperatorios fuera del período** como excepciones puntuales.
+- **No se puede recuperar en una fecha en que el alumno ya tiene clase agendada del plan**. Por ejemplo, si un alumno contrató todos los lunes y faltó a uno, los otros lunes que ya están programados aparecen visiblemente marcados como "✓ Agendada" y no se pueden seleccionar. Evita doble agenda y le ahorra al admin tener que recordar la grilla completa del alumno.
 
 ### Qué gana la academia
 - Trazabilidad real: se sabe cuántas faltas hubo, cuántas se recuperaron y dónde.

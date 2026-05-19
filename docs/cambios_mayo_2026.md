@@ -108,10 +108,14 @@ Se agregó un flujo dedicado de **"Asignar recuperatorio"** que:
 ### Reglas básicas que aplica el sistema
 - Solo se puede asignar un recuperatorio a una falta confirmada.
 - Una misma falta solo puede tener un recuperatorio.
+- **No se puede recuperar un recuperatorio**: si el alumno también falta a la clase de reposición, esa clase del plan se da por perdida. Una falta del plan da derecho a un único intento de recuperación.
 - El recuperatorio debe ser en una sección del mismo curso.
 - La fecha del recuperatorio debe ser futura y respetar el cupo de la sala.
 - **La fecha del recuperatorio debe estar dentro del período del plan contratado** (entre la primera y la última clase del alumno). El docente está limitado a esta regla; **el administrador puede asignar recuperatorios fuera del período** como excepciones puntuales.
 - **No se puede recuperar en una fecha en que el alumno ya tiene clase agendada del plan**. Por ejemplo, si un alumno contrató todos los lunes y faltó a uno, los otros lunes que ya están programados aparecen visiblemente marcados como "✓ Agendada" y no se pueden seleccionar. Evita doble agenda y le ahorra al admin tener que recordar la grilla completa del alumno.
+
+### Motivo de la recuperación
+Cuando se asigna un recuperatorio se puede dejar un **motivo opcional** (por ejemplo "alumno enfermo", "viaje familiar"). Ese motivo ahora se muestra en todas las vistas donde aparece la clase: el detalle de la inscripción, la lista de alumnos del día, y como tooltip del badge de recuperatorio. Útil para que el siguiente que revise (profesor o admin) entienda por qué fue necesario.
 
 ### Qué gana la academia
 - Trazabilidad real: se sabe cuántas faltas hubo, cuántas se recuperaron y dónde.

@@ -18,6 +18,8 @@
   .date-chip .dc-seats { font-size: 0.68rem; color: #4b5563; margin-top: 0.2rem; }
   .date-chip:disabled { opacity: 0.4; cursor: not-allowed; }
   .date-chip:disabled .dc-seats { color: #e74c3c; }
+  .date-chip.is-scheduled { background: #eef2f7; border-style: dashed; border-color: #cbd5e1; opacity: 0.7; }
+  .date-chip.is-scheduled:disabled .dc-seats { color: #6b7280; }
   .date-chip.selected { background: #3498db; color: white; border-color: #2980b9; }
   .date-chip.selected .dc-month,
   .date-chip.selected .dc-seats { color: rgba(255,255,255,0.9); }
@@ -96,8 +98,10 @@
               <% opt[:dates].each do |d| %>
                 <% chip_title = if locked
                                   "Esta sección la dicta otro profesor — coordina con el admin"
+                                elsif d[:already_scheduled]
+                                  "Clase ya agendada en el plan del alumno este día"
                                 elsif !d[:has_room]
-                                  "Sin cupo o el alumno ya está inscrito"
+                                  "Sin cupo en esta sección"
                                 elsif d[:out_of_contract] && !current_admin?
                                   "Fuera del período del plan contratado"
                                 elsif d[:out_of_contract] && current_admin?
@@ -106,7 +110,7 @@
                                   ""
                                 end %>
                 <button type="button"
-                        class="date-chip <%= 'disabled' unless d[:usable] %>"
+                        class="date-chip <%= 'disabled' unless d[:usable] %> <%= 'is-scheduled' if d[:already_scheduled] %>"
                         title="<%= chip_title %>"
                         <%= 'disabled' unless d[:usable] %>
                         <% if d[:usable] %>
@@ -118,7 +122,11 @@
                         <% end %>>
                   <span class="dc-day"><%= d[:date].day %></span>
                   <span class="dc-month"><%= I18n.l(d[:date], format: '%b').gsub('.', '') %></span>
-                  <span class="dc-seats"><%= d[:taken] %>/<%= d[:places] %></span>
+                  <% if d[:already_scheduled] %>
+                    <span class="dc-seats" style="color: #6b7280; font-weight: 600;">✓ Agendada</span>
+                  <% else %>
+                    <span class="dc-seats"><%= d[:taken] %>/<%= d[:places] %></span>
+                  <% end %>
                 </button>
               <% end %>
             </div>

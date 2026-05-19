@@ -204,10 +204,13 @@ module Admin
                       {}
                     end
 
-      already_enrolled = EnrollmentSection
-                          .where(enrollment_id: @enrollment.id, section_id: section_ids, date: from..to)
-                          .pluck(:section_id, :date)
-                          .to_set
+      # Fechas en las que el alumno ya tiene una clase agendada de esta misma inscripción
+      # (sea regular o makeup, en cualquier sección): no se puede recuperar ahí porque
+      # ya hay una clase de su plan ese día.
+      already_scheduled_dates = EnrollmentSection
+                                  .where(enrollment_id: @enrollment.id, date: from..to)
+                                  .pluck(:date)
+                                  .to_set
 
       weekday_map = Section::WEEKDAY_TO_WDAY
 
@@ -223,7 +226,8 @@ module Admin
           d = first_date + (k * 7)
           break if d > to
           taken = seat_counts[[section.id, d]] || 0
-          has_room = taken < section.places && !already_enrolled.include?([section.id, d])
+          already_scheduled = already_scheduled_dates.include?(d)
+          has_room = taken < section.places
           out_of_contract = @contract_start && @contract_end && (d < @contract_start || d > @contract_end)
           # El profe queda bloqueado fuera del período; el admin puede saltarse.
           period_block = out_of_contract && !current_admin?
@@ -232,8 +236,9 @@ module Admin
             taken: taken,
             places: section.places,
             has_room: has_room,
+            already_scheduled: already_scheduled,
             out_of_contract: out_of_contract,
-            usable: mine && has_room && !period_block
+            usable: mine && has_room && !already_scheduled && !period_block
           }
         end
         { section: section, dates: dates, mine: mine }

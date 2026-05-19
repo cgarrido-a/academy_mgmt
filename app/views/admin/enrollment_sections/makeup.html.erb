@@ -1,0 +1,143 @@
+<style>
+  .makeup-context { background: #fff8e6; border: 1px solid #f4d68c; border-radius: 6px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; }
+  .makeup-context .label { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: #7a5b13; margin-bottom: 0.25rem; }
+  .makeup-context strong { color: #2c3e50; }
+
+  .section-option { padding: 1rem; border: 1px solid #e9ecef; border-radius: 8px; margin-bottom: 1rem; background: white; }
+  .section-option.locked { background: #fafbfc; border-style: dashed; opacity: 0.85; }
+  .section-option-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; gap: 1rem; flex-wrap: wrap; }
+  .section-option-header h3 { margin: 0; font-size: 1rem; color: #2c3e50; font-weight: 600; }
+  .section-option-header .meta { color: #7f8c8d; font-size: 0.85rem; }
+  .section-option-header .lock-note { display: inline-block; padding: 0.2rem 0.55rem; border-radius: 10px; background: #fff8e6; color: #7a5b13; font-size: 0.72rem; font-weight: 600; border: 1px solid #f4d68c; }
+
+  .date-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .date-chip { display: inline-flex; flex-direction: column; align-items: center; padding: 0.5rem 0.75rem; border-radius: 8px; background: #f1f5f9; color: #2c3e50; border: 2px solid transparent; cursor: pointer; min-width: 64px; line-height: 1.2; font-family: inherit; font-size: 0.78rem; transition: all 0.15s; }
+  .date-chip:hover:not(:disabled) { background: #e0e7ff; border-color: #c7d2fe; }
+  .date-chip .dc-day { font-size: 1.05rem; font-weight: 700; }
+  .date-chip .dc-month { font-size: 0.7rem; color: #7f8c8d; text-transform: uppercase; }
+  .date-chip .dc-seats { font-size: 0.68rem; color: #4b5563; margin-top: 0.2rem; }
+  .date-chip:disabled { opacity: 0.4; cursor: not-allowed; }
+  .date-chip:disabled .dc-seats { color: #e74c3c; }
+  .date-chip.selected { background: #3498db; color: white; border-color: #2980b9; }
+  .date-chip.selected .dc-month,
+  .date-chip.selected .dc-seats { color: rgba(255,255,255,0.9); }
+
+  #selection-preview { padding: 0.75rem 1rem; background: #d1fae5; border: 1px solid #6ee7b7; border-radius: 6px; color: #065f46; font-size: 0.9rem; margin-top: 1rem; display: none; }
+  #selection-preview strong { font-weight: 700; }
+
+  .no-options { text-align: center; padding: 1.5rem; color: #7f8c8d; }
+</style>
+
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <h2 style="margin: 0;">🔁 Asignar recuperatorio</h2>
+    <%= link_to "Volver a la inscripción", admin_enrollment_path(@enrollment), class: "btn btn-secondary" %>
+  </div>
+
+  <div class="makeup-context">
+    <div class="label">Falta original</div>
+    <p>
+      <strong><%= @enrollment.student.user.name %></strong> faltó a
+      <strong><%= @origin_section.course.title %></strong>
+      (<%= @origin_section.weekday %> <%= @origin_section.formatted_schedule %>)
+      el <strong><%= I18n.l(@enrollment_section.date, format: '%A %d de %B, %Y').capitalize %></strong>.
+    </p>
+  </div>
+
+  <h3 style="font-size: 1.05rem; color: #2c3e50; margin-bottom: 0.5rem;">Fechas disponibles en <%= @origin_section.course.title %></h3>
+  <p style="color: #7f8c8d; font-size: 0.88rem; margin-bottom: 1rem;">
+    Mostrando próximas 8 semanas en otras secciones del mismo curso.
+    Los chips deshabilitados indican falta de cupo, alumno ya inscrito ese día, o sección de otro profesor.
+    <% if current_teacher? %>
+      <br>🔒 <em>Solo puedes asignar recuperatorios en tus propias secciones. Las de otros profes se muestran como referencia para que puedas informar al alumno.</em>
+    <% end %>
+  </p>
+
+  <% if @makeup_options.any? %>
+    <%= form_with url: assign_makeup_admin_enrollment_section_path(@enrollment_section), method: :post, scope: :enrollment_section, local: true, id: "makeup-form" do |f| %>
+      <%= f.hidden_field :section_id, id: 'makeup_section_id' %>
+      <%= f.hidden_field :date, id: 'makeup_date' %>
+
+      <% # Mostrar primero las del propio profe, luego las informativas %>
+      <% @makeup_options.sort_by { |o| o[:mine] ? 0 : 1 }.each do |opt| %>
+        <% section = opt[:section] %>
+        <% locked = !opt[:mine] %>
+        <div class="section-option <%= 'locked' if locked %>">
+          <div class="section-option-header">
+            <h3><%= section.weekday %> · <%= section.formatted_schedule %></h3>
+            <span class="meta">
+              <%= section.teacher.user.name %> · <%= section.places %> cupos
+              <% if locked %>
+                <span class="lock-note">🔒 Solo admin puede asignar aquí</span>
+              <% end %>
+            </span>
+          </div>
+
+          <% if opt[:dates].any? %>
+            <div class="date-chips">
+              <% opt[:dates].each do |d| %>
+                <% chip_title = if locked
+                                  "Esta sección la dicta otro profesor — coordina con el admin"
+                                elsif !d[:has_room]
+                                  "Sin cupo o el alumno ya está inscrito"
+                                else
+                                  ""
+                                end %>
+                <button type="button"
+                        class="date-chip <%= 'disabled' unless d[:usable] %>"
+                        title="<%= chip_title %>"
+                        <%= 'disabled' unless d[:usable] %>
+                        <% if d[:usable] %>
+                          data-section-id="<%= section.id %>"
+                          data-date="<%= d[:date].iso8601 %>"
+                          data-section-label="<%= section.weekday %> <%= section.formatted_schedule %> (<%= section.teacher.user.name %>)"
+                          data-date-label="<%= I18n.l(d[:date], format: '%A %d de %B').capitalize %>"
+                          onclick="selectMakeupDate(this)"
+                        <% end %>>
+                  <span class="dc-day"><%= d[:date].day %></span>
+                  <span class="dc-month"><%= I18n.l(d[:date], format: '%b').gsub('.', '') %></span>
+                  <span class="dc-seats"><%= d[:taken] %>/<%= d[:places] %></span>
+                </button>
+              <% end %>
+            </div>
+          <% else %>
+            <p class="no-options" style="padding: 0.5rem;">No hay fechas próximas calculables para esta sección.</p>
+          <% end %>
+        </div>
+      <% end %>
+
+      <div id="selection-preview"></div>
+
+      <div class="form-group" style="margin-top: 1.5rem;">
+        <label>Motivo (opcional)</label>
+        <%= f.text_area :makeup_reason, rows: 3, placeholder: 'Ej: alumno enfermo, viaje familiar, etc.' %>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+        <%= f.submit 'Asignar recuperatorio', class: 'btn btn-success', id: 'submit-btn', disabled: true %>
+        <%= link_to 'Cancelar', admin_enrollment_path(@enrollment), class: 'btn btn-secondary' %>
+      </div>
+    <% end %>
+  <% else %>
+    <div class="no-options">
+      <p>No hay otras secciones de <strong><%= @origin_section.course.title %></strong> en este momento.</p>
+      <%= link_to 'Volver', admin_enrollment_path(@enrollment), class: 'btn btn-secondary', style: 'margin-top: 1rem;' %>
+    </div>
+  <% end %>
+</div>
+
+<script>
+  function selectMakeupDate(btn) {
+    document.getElementById('makeup_section_id').value = btn.dataset.sectionId;
+    document.getElementById('makeup_date').value = btn.dataset.date;
+
+    document.querySelectorAll('.date-chip').forEach(function(c) { c.classList.remove('selected'); });
+    btn.classList.add('selected');
+
+    var preview = document.getElementById('selection-preview');
+    preview.innerHTML = '✓ Seleccionado: <strong>' + btn.dataset.sectionLabel + '</strong> &middot; ' + btn.dataset.dateLabel;
+    preview.style.display = 'block';
+
+    document.getElementById('submit-btn').disabled = false;
+  }
+</script>

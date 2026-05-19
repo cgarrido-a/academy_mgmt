@@ -29,6 +29,7 @@ class Ability
       can :read, Enrollment, sections: { teacher_id: teacher.id }
       can :read, EnrollmentSection, section: { teacher_id: teacher.id }
       can :update, EnrollmentSection, section: { teacher_id: teacher.id }
+      can [:makeup, :assign_makeup], EnrollmentSection, section: { teacher_id: teacher.id }
     elsif user.student.present?
       # Students have no admin panel access
       cannot :manage, :all

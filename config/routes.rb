@@ -57,7 +57,12 @@ Rails.application.routes.draw do
         get 'sections_by_course', action: :sections_by_course
       end
     end
-    resources :enrollment_sections, only: [:edit, :update, :destroy]
+    resources :enrollment_sections, only: [:edit, :update, :destroy] do
+      member do
+        get  :makeup
+        post :assign_makeup
+      end
+    end
     resources :users
     resources :weekly_plans
     resources :payment_periods

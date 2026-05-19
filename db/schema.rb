@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_07_001835) do
+ActiveRecord::Schema[7.1].define(version: 2026_05_18_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -36,8 +36,13 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_07_001835) do
     t.datetime "updated_at", null: false
     t.date "date"
     t.boolean "attended"
+    t.string "kind", default: "regular", null: false
+    t.bigint "makes_up_for_id"
+    t.text "makeup_reason"
     t.index ["enrollment_id", "section_id", "date"], name: "index_enrollment_sections_on_enrollment_section_and_date", unique: true
     t.index ["enrollment_id"], name: "index_enrollment_sections_on_enrollment_id"
+    t.index ["kind"], name: "index_enrollment_sections_on_kind"
+    t.index ["makes_up_for_id"], name: "index_enrollment_sections_on_makes_up_for_id", unique: true
     t.index ["section_id"], name: "index_enrollment_sections_on_section_id"
   end
 
@@ -181,6 +186,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_07_001835) do
   end
 
   add_foreign_key "admin_users", "users"
+  add_foreign_key "enrollment_sections", "enrollment_sections", column: "makes_up_for_id"
   add_foreign_key "enrollment_sections", "enrollments"
   add_foreign_key "enrollment_sections", "sections"
   add_foreign_key "enrollments", "payment_methods"

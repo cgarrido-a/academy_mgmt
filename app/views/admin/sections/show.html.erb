@@ -1,15 +1,121 @@
+<style>
+  /* --- Header / chips --- */
+  .section-hero { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
+  .section-hero-info h2 { margin: 0 0 0.6rem 0; color: #2c3e50; font-size: 1.4rem; }
+  .section-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+  .meta-chip { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.7rem; border-radius: 20px; background: #f1f3f5; color: #2c3e50; font-size: 0.85rem; }
+  .meta-chip strong { font-weight: 600; }
+
+  .weekday-badge { display: inline-block; padding: 0.3rem 0.7rem; border-radius: 12px; font-size: 0.82rem; font-weight: 600; }
+  .weekday-Lunes     { background: #fef3c7; color: #92400e; }
+  .weekday-Martes    { background: #dbeafe; color: #1e40af; }
+  .weekday-Miércoles { background: #ddd6fe; color: #5b21b6; }
+  .weekday-Jueves    { background: #fce7f3; color: #9d174d; }
+  .weekday-Viernes   { background: #d1fae5; color: #065f46; }
+  .weekday-Sábado    { background: #fed7aa; color: #9a3412; }
+  .weekday-Domingo   { background: #e5e7eb; color: #374151; }
+
+  .teacher-avatar-sm { width: 24px; height: 24px; border-radius: 50%; background: #3498db; color: white; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.7rem; }
+
+  /* --- Stats cards --- */
+  .day-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem; }
+  .day-stat { background: white; border: 1px solid #e9ecef; border-radius: 8px; padding: 0.85rem 1rem; }
+  .day-stat .label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: #7f8c8d; margin-bottom: 0.25rem; }
+  .day-stat .value { font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
+  .day-stat.present .value { color: #27ae60; }
+  .day-stat.absent  .value { color: #e74c3c; }
+  .day-stat.pending .value { color: #f39c12; }
+  .day-stat.rate    .value { color: #3498db; }
+
+  /* --- Quick date nav --- */
+  .quick-dates { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e9ecef; }
+  .quick-dates-label { font-size: 0.8rem; color: #7f8c8d; margin-right: 0.3rem; }
+  .quick-arrow { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 44px; border-radius: 6px; text-decoration: none; color: #3498db; background: white; border: 1px solid #dee2e6; font-size: 1.1rem; transition: all 0.15s; }
+  .quick-arrow:hover { background: #e8f4fd; border-color: #3498db; }
+  .quick-arrow.disabled { opacity: 0.3; pointer-events: none; }
+  .quick-date { display: inline-flex; flex-direction: column; align-items: center; padding: 0.35rem 0.7rem; border-radius: 6px; text-decoration: none; background: white; color: #2c3e50; border: 1px solid #dee2e6; font-size: 0.78rem; line-height: 1.15; transition: all 0.15s; min-width: 52px; }
+  .quick-date .qd-day { font-weight: 700; font-size: 0.95rem; }
+  .quick-date .qd-month { color: #7f8c8d; font-size: 0.7rem; text-transform: uppercase; }
+  .quick-date:hover { background: #f1f3f5; border-color: #adb5bd; }
+  .quick-date.past   { opacity: 0.65; }
+  .quick-date.today  { border-color: #f39c12; background: #fff8e6; }
+  .quick-date.today .qd-month { color: #f39c12; font-weight: 600; }
+  .quick-date.active { background: #3498db; border-color: #3498db; color: white; opacity: 1; }
+  .quick-date.active .qd-month { color: rgba(255,255,255,0.9); }
+
+  /* --- Search --- */
+  .student-search { width: 100%; padding: 0.55rem 0.85rem; border: 1px solid #dee2e6; border-radius: 6px; font-size: 0.95rem; margin-bottom: 0.75rem; }
+  .student-search:focus { outline: none; border-color: #3498db; }
+
+  /* --- Student list table --- */
+  .students-table { width: 100%; border-collapse: collapse; }
+  .students-table th { background: #f8f9fa; color: #2c3e50; font-weight: 600; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.04em; padding: 0.7rem 0.85rem; text-align: left; border-bottom: 2px solid #e9ecef; }
+  .students-table td { padding: 0.7rem 0.85rem; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+  .students-table tbody tr { transition: background 0.15s; }
+  .students-table tbody tr:hover { background: #f8fafc; }
+  .student-name { display: flex; flex-direction: column; gap: 0.1rem; }
+  .student-name strong { color: #2c3e50; font-weight: 600; }
+  .student-email { color: #7f8c8d; font-size: 0.78rem; }
+
+  /* --- Segmented attendance buttons --- */
+  .seg-attendance { display: inline-flex; border-radius: 6px; overflow: hidden; border: 1px solid #dee2e6; background: white; }
+  .seg-attendance .seg-btn { padding: 0.35rem 0.85rem; cursor: pointer; font-size: 0.82rem; font-weight: 600; background: transparent; border: none; color: #7f8c8d; transition: all 0.15s; }
+  .seg-attendance .seg-btn + .seg-btn { border-left: 1px solid #dee2e6; }
+  .seg-attendance .seg-btn:hover { background: #f8f9fa; }
+  .seg-attendance .seg-btn.active-present { background: #27ae60; color: white; }
+  .seg-attendance .seg-btn.active-absent  { background: #e74c3c; color: white; }
+  .seg-radio { display: none; }
+
+  /* --- Historical attendance --- */
+  .hist-rate { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; color: #4b5563; font-variant-numeric: tabular-nums; }
+  .hist-bar { width: 50px; height: 5px; background: #eef0f3; border-radius: 3px; overflow: hidden; }
+  .hist-fill { height: 100%; border-radius: 3px; }
+  .hist-fill.good  { background: #27ae60; }
+  .hist-fill.mid   { background: #f39c12; }
+  .hist-fill.poor  { background: #e74c3c; }
+  .hist-empty { color: #bdc3c7; font-size: 0.8rem; font-style: italic; }
+
+  /* --- Status badges (read-only) --- */
+  .status-badge { display: inline-block; padding: 0.25rem 0.7rem; border-radius: 12px; font-size: 0.78rem; font-weight: 600; }
+  .status-present { background: #d1fae5; color: #065f46; }
+  .status-absent  { background: #fee2e2; color: #991b1b; }
+  .status-pending { background: #f1f3f5; color: #7f8c8d; }
+
+  /* --- Lock banner --- */
+  .lock-banner { background: #fff8e6; border: 1px solid #f4d68c; border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 1rem; color: #7a5b13; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; }
+
+  /* --- Makeup badges --- */
+  .makeup-badge { display: inline-block; padding: 0.2rem 0.55rem; border-radius: 10px; font-size: 0.7rem; font-weight: 600; margin-left: 0.4rem; vertical-align: middle; }
+  .makeup-badge.is-makeup    { background: #e0e7ff; color: #3730a3; }
+  .makeup-badge.has-makeup   { background: #d1fae5; color: #065f46; }
+  .makeup-link { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.6rem; border-radius: 6px; text-decoration: none; background: #fff8e6; color: #7a5b13; font-size: 0.78rem; font-weight: 600; border: 1px solid #f4d68c; margin-top: 0.4rem; }
+  .makeup-link:hover { background: #f4d68c; }
+
+  /* --- Misc --- */
+  .empty-students { text-align: center; padding: 2rem 1rem; color: #7f8c8d; }
+  .empty-students-icon { font-size: 2rem; opacity: 0.5; margin-bottom: 0.5rem; }
+  .row-tools { display: flex; gap: 0.5rem; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; flex-wrap: wrap; }
+  .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 6px; text-decoration: none; color: #3498db; background: #e8f4fd; transition: all 0.15s; }
+  .icon-btn:hover { background: #3498db; color: white; }
+</style>
+
+<% teacher_name = @section.teacher.user.name %>
+<% teacher_initials = teacher_name.split.first(2).map { |p| p[0] }.join.upcase %>
+
 <div class="card">
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-    <% if current_teacher? %>
-      <div>
-        <h2 style="margin-bottom: 0.25rem;"><%= @section.course.title %></h2>
-        <span style="color: #7f8c8d; font-size: 0.95rem;">
-          <%= @section.weekday %> &middot; <%= @section.formatted_schedule %> &middot; <%= @section.places %> cupos
+  <div class="section-hero">
+    <div class="section-hero-info">
+      <h2><%= @section.course.title %></h2>
+      <div class="section-meta">
+        <span class="weekday-badge weekday-<%= @section.weekday %>"><%= @section.weekday %></span>
+        <span class="meta-chip">🕒 <strong><%= @section.formatted_schedule %></strong></span>
+        <span class="meta-chip">
+          <span class="teacher-avatar-sm"><%= teacher_initials %></span>
+          <%= teacher_name %>
         </span>
+        <span class="meta-chip">👥 <strong><%= @section.places %></strong> cupos</span>
       </div>
-    <% else %>
-      <h2>Seccion #<%= @section.id %></h2>
-    <% end %>
+    </div>
     <div class="actions">
       <% if can? :update, @section %>
         <%= link_to "Editar", edit_admin_section_path(@section), class: "btn btn-secondary" %>
@@ -17,35 +123,6 @@
       <%= link_to "Volver", admin_sections_path, class: "btn btn-primary" %>
     </div>
   </div>
-
-  <% unless current_teacher? %>
-    <div class="section-info-grid">
-      <div class="form-group">
-        <strong>Curso:</strong>
-        <p><%= link_to @section.course.title, admin_course_path(@section.course) %></p>
-      </div>
-
-      <div class="form-group">
-        <strong>Profesor:</strong>
-        <p><%= @section.teacher.user.name %></p>
-      </div>
-
-      <div class="form-group">
-        <strong>Horario:</strong>
-        <p><%= @section.formatted_schedule %></p>
-      </div>
-
-      <div class="form-group">
-        <strong>Dia:</strong>
-        <p><%= @section.weekday %></p>
-      </div>
-
-      <div class="form-group">
-        <strong>Cupos:</strong>
-        <p><%= @section.places %></p>
-      </div>
-    </div>
-  <% end %>
 </div>
 
 <div class="section-content">
@@ -111,6 +188,33 @@
 
   <div class="students-list-container">
     <div class="card">
+      <% if @quick_dates.any? %>
+        <div class="quick-dates">
+          <span class="quick-dates-label">Ir a:</span>
+          <%= link_to admin_section_path(@section, date: @selected_date, dates_offset: @quick_dates_prev_offset),
+                class: "quick-arrow #{'disabled' unless @quick_dates_has_prev}",
+                title: "Fechas anteriores" do %>
+            ←
+          <% end %>
+          <% @quick_dates.each do |d| %>
+            <% klass = []
+               klass << "active" if d == @selected_date
+               klass << "past"   if d < Date.current
+               klass << "today"  if d == Date.current %>
+            <%= link_to admin_section_path(@section, date: d, month: d.month, year: d.year),
+                  class: "quick-date #{klass.join(' ')}" do %>
+              <span class="qd-day"><%= d.day %></span>
+              <span class="qd-month"><%= I18n.l(d, format: '%b').gsub('.', '') %></span>
+            <% end %>
+          <% end %>
+          <%= link_to admin_section_path(@section, date: @selected_date, dates_offset: @quick_dates_next_offset),
+                class: "quick-arrow #{'disabled' unless @quick_dates_has_next}",
+                title: "Fechas siguientes" do %>
+            →
+          <% end %>
+        </div>
+      <% end %>
+
       <% if @selected_date %>
         <div class="selected-date-info">
           <strong><%= I18n.l(@selected_date, format: '%A %d de %B, %Y').capitalize %></strong>
@@ -118,58 +222,83 @@
         </div>
 
         <% if @enrollment_sections.any? %>
-          <% if can? :take_attendance, @section %>
-            <%= form_tag take_attendance_admin_section_path(@section), method: :patch do %>
+          <% if @can_mark_attendance %>
+            <div class="day-stats">
+              <div class="day-stat present"><div class="label">Presentes</div><div class="value"><%= @day_present %></div></div>
+              <div class="day-stat absent"><div class="label">Ausentes</div><div class="value"><%= @day_absent %></div></div>
+              <div class="day-stat pending"><div class="label">Pendientes</div><div class="value"><%= @day_pending %></div></div>
+              <div class="day-stat rate"><div class="label">Asistencia</div><div class="value"><%= @day_rate ? "#{@day_rate}%" : '—' %></div></div>
+            </div>
+
+            <%= form_tag take_attendance_admin_section_path(@section), method: :patch, id: "attendance-form" do %>
               <%= hidden_field_tag :date, @selected_date %>
 
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+              <div class="row-tools">
+                <input type="text" id="student-search" class="student-search" placeholder="🔍 Buscar estudiante por nombre..." style="flex: 1; min-width: 220px; margin-bottom: 0;" oninput="filterStudents(this.value)" />
                 <div style="display: flex; gap: 0.5rem;">
-                  <button type="button" class="btn btn-secondary" style="padding: 0.3rem 0.75rem; font-size: 0.85rem;" onclick="toggleAll(true)">Todos presentes</button>
-                  <button type="button" class="btn btn-secondary" style="padding: 0.3rem 0.75rem; font-size: 0.85rem;" onclick="toggleAll(false)">Desmarcar todos</button>
+                  <button type="button" class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.82rem;" onclick="markAll('present')">✓ Todos presentes</button>
+                  <button type="button" class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.82rem;" onclick="markAll('absent')">✗ Todos ausentes</button>
                 </div>
-                <span id="attendance-counter" style="color: #7f8c8d; font-size: 0.9rem;">
-                  <% present_count = @enrollment_sections.count { |es| es.attended? } %>
-                  <strong id="present-count"><%= present_count %></strong>/<%= @enrollment_sections.size %> presentes
-                </span>
               </div>
 
-              <table>
+              <table class="students-table">
                 <thead>
                   <tr>
-                    <th style="width: 40px;">#</th>
                     <th>Estudiante</th>
-                    <% unless current_teacher? %>
-                      <th>Email</th>
-                    <% end %>
-                    <th style="text-align: center; width: 100px;">Asistencia</th>
+                    <th style="width: 180px;">Historial</th>
+                    <th style="text-align: center; width: 200px;">Asistencia</th>
                     <% if can? :manage, Enrollment %>
-                      <th>Acciones</th>
+                      <th style="width: 60px;"></th>
                     <% end %>
                   </tr>
                 </thead>
-                <tbody>
-                  <% @enrollment_sections.each_with_index do |es, index| %>
-                    <tr class="attendance-row <%= 'attended' if es.attended? %>">
-                      <td><%= index + 1 %></td>
+                <tbody id="students-tbody">
+                  <% @enrollment_sections.each do |es| %>
+                    <% stats = @student_attendance_stats[es.enrollment_id] %>
+                    <% current = es.attended.nil? ? nil : (es.attended ? 'present' : 'absent') %>
+                    <tr class="attendance-row" data-student-name="<%= es.enrollment.student.user.name.downcase %>">
                       <td>
-                        <strong><%= es.enrollment.student.user.name %></strong>
-                        <% if current_teacher? %>
-                          <br><span style="color: #7f8c8d; font-size: 0.85rem;"><%= es.enrollment.student.user.email %></span>
+                        <div class="student-name">
+                          <strong>
+                            <%= link_to es.enrollment.student.user.name, admin_enrollment_path(es.enrollment),
+                                  style: "color: #2c3e50; text-decoration: none;",
+                                  title: "Ver inscripción" %>
+                            <% if es.makeup? && es.makes_up_for %>
+                              <span class="makeup-badge is-makeup" title="Recupera la falta del <%= I18n.l(es.makes_up_for.date, format: '%d/%m/%Y') %> en <%= es.makes_up_for.section.course.title %>">🔁 Recuperatorio</span>
+                            <% elsif es.attended == false && es.makeup.present? %>
+                              <span class="makeup-badge has-makeup" title="Recuperado el <%= I18n.l(es.makeup.date, format: '%d/%m/%Y') %> en <%= es.makeup.section.course.title %>">↪ Recuperado <%= I18n.l(es.makeup.date, format: '%d/%m') %></span>
+                            <% end %>
+                          </strong>
+                          <span class="student-email"><%= es.enrollment.student.user.email %></span>
+                          <% if es.attended == false && es.regular? && es.makeup.blank? && can?(:makeup, es) %>
+                            <%= link_to makeup_admin_enrollment_section_path(es), class: "makeup-link" do %>
+                              🔁 Asignar recuperatorio
+                            <% end %>
+                          <% end %>
+                        </div>
+                      </td>
+                      <td>
+                        <% if stats && stats[:rate] %>
+                          <% fill = stats[:rate] >= 75 ? 'good' : (stats[:rate] >= 50 ? 'mid' : 'poor') %>
+                          <div class="hist-rate">
+                            <span><strong><%= stats[:present] %></strong>/<%= stats[:total] %></span>
+                            <div class="hist-bar"><div class="hist-fill <%= fill %>" style="width: <%= stats[:rate] %>%;"></div></div>
+                            <span><%= stats[:rate] %>%</span>
+                          </div>
+                        <% else %>
+                          <span class="hist-empty">Sin registros previos</span>
                         <% end %>
                       </td>
-                      <% unless current_teacher? %>
-                        <td><%= es.enrollment.student.user.email %></td>
-                      <% end %>
                       <td style="text-align: center;">
-                        <%= hidden_field_tag "attendance[#{es.id}][attended]", "0" %>
-                        <label class="toggle-switch">
-                          <%= check_box_tag "attendance[#{es.id}][attended]", "1", es.attended?, class: "attendance-checkbox", onchange: "updateCounter(this)" %>
-                          <span class="toggle-slider"></span>
-                        </label>
+                        <%= hidden_field_tag "attendance[#{es.id}][attended]", current == 'present' ? '1' : '0', id: "attendance_value_#{es.id}", data: { row: es.id } %>
+                        <div class="seg-attendance" data-row="<%= es.id %>">
+                          <button type="button" class="seg-btn <%= 'active-present' if current == 'present' %>" data-action="present" onclick="setAttendance(<%= es.id %>, true)">Presente</button>
+                          <button type="button" class="seg-btn <%= 'active-absent' if current == 'absent' %>" data-action="absent" onclick="setAttendance(<%= es.id %>, false)">Ausente</button>
+                        </div>
                       </td>
                       <% if can? :manage, Enrollment %>
                         <td>
-                          <%= link_to "Ver", admin_enrollment_path(es.enrollment), class: "btn btn-primary" %>
+                          <%= link_to "👁", admin_enrollment_path(es.enrollment), class: "icon-btn", title: "Ver inscripción" %>
                         </td>
                       <% end %>
                     </tr>
@@ -182,27 +311,81 @@
               </div>
             <% end %>
           <% else %>
-            <table>
+            <%# Read-only view: profe en fecha pasada, o sin permiso para tomar asistencia %>
+            <% if can?(:take_attendance, @section) && current_teacher? && @selected_date < Date.current %>
+              <div class="lock-banner">
+                🔒 La asistencia de fechas pasadas es de sólo lectura. Pide al admin si necesitas modificarla.
+              </div>
+            <% end %>
+
+            <% if @day_present || @day_absent %>
+              <div class="day-stats">
+                <div class="day-stat present"><div class="label">Presentes</div><div class="value"><%= @day_present || 0 %></div></div>
+                <div class="day-stat absent"><div class="label">Ausentes</div><div class="value"><%= @day_absent || 0 %></div></div>
+                <div class="day-stat pending"><div class="label">Pendientes</div><div class="value"><%= @day_pending || 0 %></div></div>
+                <div class="day-stat rate"><div class="label">Asistencia</div><div class="value"><%= @day_rate ? "#{@day_rate}%" : '—' %></div></div>
+              </div>
+            <% end %>
+
+            <input type="text" id="student-search" class="student-search" placeholder="🔍 Buscar estudiante..." oninput="filterStudents(this.value)" />
+            <table class="students-table">
               <thead>
                 <tr>
-                  <th>#</th>
                   <th>Estudiante</th>
-                  <th>Email</th>
+                  <th style="width: 180px;">Historial</th>
+                  <th style="text-align: center; width: 120px;">Asistencia</th>
                   <% if can? :manage, Enrollment %>
-                    <th>Acciones</th>
+                    <th style="width: 60px;"></th>
                   <% end %>
                 </tr>
               </thead>
-              <tbody>
-                <% @enrollment_sections.each_with_index do |es, index| %>
-                  <tr>
-                    <td><%= index + 1 %></td>
-                    <td><%= es.enrollment.student.user.name %></td>
-                    <td><%= es.enrollment.student.user.email %></td>
+              <tbody id="students-tbody">
+                <% @enrollment_sections.each do |es| %>
+                  <% stats = @student_attendance_stats[es.enrollment_id] %>
+                  <tr data-student-name="<%= es.enrollment.student.user.name.downcase %>">
+                    <td>
+                      <div class="student-name">
+                        <strong>
+                          <%= link_to es.enrollment.student.user.name, admin_enrollment_path(es.enrollment),
+                                style: "color: #2c3e50; text-decoration: none;",
+                                title: "Ver inscripción" %>
+                          <% if es.makeup? && es.makes_up_for %>
+                            <span class="makeup-badge is-makeup" title="Recupera la falta del <%= I18n.l(es.makes_up_for.date, format: '%d/%m/%Y') %> en <%= es.makes_up_for.section.course.title %>">🔁 Recuperatorio</span>
+                          <% elsif es.attended == false && es.makeup.present? %>
+                            <span class="makeup-badge has-makeup" title="Recuperado el <%= I18n.l(es.makeup.date, format: '%d/%m/%Y') %> en <%= es.makeup.section.course.title %>">↪ Recuperado <%= I18n.l(es.makeup.date, format: '%d/%m') %></span>
+                          <% end %>
+                        </strong>
+                        <span class="student-email"><%= es.enrollment.student.user.email %></span>
+                        <% if es.attended == false && es.regular? && es.makeup.blank? && can?(:makeup, es) %>
+                          <%= link_to makeup_admin_enrollment_section_path(es), class: "makeup-link" do %>
+                            🔁 Asignar recuperatorio
+                          <% end %>
+                        <% end %>
+                      </div>
+                    </td>
+                    <td>
+                      <% if stats && stats[:rate] %>
+                        <% fill = stats[:rate] >= 75 ? 'good' : (stats[:rate] >= 50 ? 'mid' : 'poor') %>
+                        <div class="hist-rate">
+                          <span><strong><%= stats[:present] %></strong>/<%= stats[:total] %></span>
+                          <div class="hist-bar"><div class="hist-fill <%= fill %>" style="width: <%= stats[:rate] %>%;"></div></div>
+                          <span><%= stats[:rate] %>%</span>
+                        </div>
+                      <% else %>
+                        <span class="hist-empty">Sin registros previos</span>
+                      <% end %>
+                    </td>
+                    <td style="text-align: center;">
+                      <% if es.attended == true %>
+                        <span class="status-badge status-present">✓ Presente</span>
+                      <% elsif es.attended == false %>
+                        <span class="status-badge status-absent">✗ Ausente</span>
+                      <% else %>
+                        <span class="status-badge status-pending">Sin marcar</span>
+                      <% end %>
+                    </td>
                     <% if can? :manage, Enrollment %>
-                      <td>
-                        <%= link_to "Ver", admin_enrollment_path(es.enrollment), class: "btn btn-primary" %>
-                      </td>
+                      <td><%= link_to "👁", admin_enrollment_path(es.enrollment), class: "icon-btn", title: "Ver inscripción" %></td>
                     <% end %>
                   </tr>
                 <% end %>
@@ -210,43 +393,83 @@
             </table>
           <% end %>
         <% else %>
-          <p class="no-students">No hay alumnos inscritos para esta fecha.</p>
+          <div class="empty-students">
+            <div class="empty-students-icon">👥</div>
+            <p>No hay alumnos inscritos para esta fecha.</p>
+          </div>
         <% end %>
       <% else %>
-        <p class="no-students">Selecciona una fecha en el calendario para ver los alumnos.</p>
+        <div class="empty-students">
+          <div class="empty-students-icon">📅</div>
+          <p>Selecciona una fecha en el calendario para ver los alumnos.</p>
+        </div>
       <% end %>
     </div>
   </div>
 </div>
 
-<% if can? :take_attendance, @section %>
+<% if @can_mark_attendance %>
 <script>
-  function toggleAll(checked) {
-    document.querySelectorAll('.attendance-checkbox').forEach(function(cb) {
-      cb.checked = checked;
-      updateRowStyle(cb);
+  function setAttendance(rowId, isPresent) {
+    var hidden = document.getElementById('attendance_value_' + rowId);
+    if (hidden) hidden.value = isPresent ? '1' : '0';
+
+    var seg = document.querySelector('.seg-attendance[data-row="' + rowId + '"]');
+    if (seg) {
+      seg.querySelectorAll('.seg-btn').forEach(function(b) { b.classList.remove('active-present', 'active-absent'); });
+      var btn = seg.querySelector('.seg-btn[data-action="' + (isPresent ? 'present' : 'absent') + '"]');
+      if (btn) btn.classList.add(isPresent ? 'active-present' : 'active-absent');
+    }
+    updateDayStats();
+  }
+
+  function markAll(action) {
+    document.querySelectorAll('.seg-attendance').forEach(function(seg) {
+      // Saltar filas ocultas por búsqueda
+      var row = seg.closest('tr');
+      if (row && row.style.display === 'none') return;
+      var rowId = seg.getAttribute('data-row');
+      setAttendance(parseInt(rowId, 10), action === 'present');
     });
-    updateCounterDisplay();
   }
 
-  function updateCounter(cb) {
-    updateRowStyle(cb);
-    updateCounterDisplay();
-  }
+  function updateDayStats() {
+    var present = 0, absent = 0, pending = 0;
+    document.querySelectorAll('.seg-attendance').forEach(function(seg) {
+      var hasPresent = seg.querySelector('.seg-btn.active-present');
+      var hasAbsent  = seg.querySelector('.seg-btn.active-absent');
+      if (hasPresent) present++;
+      else if (hasAbsent) absent++;
+      else pending++;
+    });
+    var marked = present + absent;
+    var rate = marked > 0 ? Math.round((present / marked) * 100) + '%' : '—';
 
-  function updateRowStyle(cb) {
-    var row = cb.closest('.attendance-row');
-    if (cb.checked) {
-      row.classList.add('attended');
-    } else {
-      row.classList.remove('attended');
+    var stats = document.querySelectorAll('.day-stat .value');
+    if (stats.length >= 4) {
+      stats[0].textContent = present;
+      stats[1].textContent = absent;
+      stats[2].textContent = pending;
+      stats[3].textContent = rate;
     }
   }
 
-  function updateCounterDisplay() {
-    var total = document.querySelectorAll('.attendance-checkbox').length;
-    var present = document.querySelectorAll('.attendance-checkbox:checked').length;
-    document.getElementById('present-count').textContent = present;
+  function filterStudents(query) {
+    var q = (query || '').toLowerCase().trim();
+    document.querySelectorAll('#students-tbody tr').forEach(function(row) {
+      var name = row.getAttribute('data-student-name') || '';
+      row.style.display = (q === '' || name.indexOf(q) !== -1) ? '' : 'none';
+    });
+  }
+</script>
+<% else %>
+<script>
+  function filterStudents(query) {
+    var q = (query || '').toLowerCase().trim();
+    document.querySelectorAll('#students-tbody tr').forEach(function(row) {
+      var name = row.getAttribute('data-student-name') || '';
+      row.style.display = (q === '' || name.indexOf(q) !== -1) ? '' : 'none';
+    });
   }
 </script>
 <% end %>

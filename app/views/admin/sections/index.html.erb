@@ -15,7 +15,7 @@
         </h2>
         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem;">
           <% grouped[day].each do |section| %>
-            <% student_count = @student_counts[section.id]&.total || 0 %>
+            <% student_count = @student_counts[section.id] || 0 %>
             <% next_date = @next_class_dates[section.id] %>
             <%= link_to admin_section_path(section), style: "text-decoration: none; color: inherit; display: block;" do %>
               <div class="card" style="margin-bottom: 0; transition: transform 0.2s, box-shadow 0.2s; cursor: pointer;"
@@ -52,54 +52,135 @@
   <% end %>
 
 <% else %>
-  <%# Admin view - original table %>
+  <%# Admin view %>
+  <style>
+    .sections-table-wrapper { overflow-x: auto; border-radius: 8px; border: 1px solid #e9ecef; }
+    .sections-table { width: 100%; border-collapse: collapse; background: white; }
+    .sections-table thead th { background: #f8f9fa; color: #2c3e50; font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; padding: 0.85rem 1rem; border-bottom: 2px solid #e9ecef; text-align: left; }
+    .sections-table tbody td { padding: 0.85rem 1rem; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+    .sections-table tbody tr { transition: background 0.15s; }
+    .sections-table tbody tr:hover { background: #f8fafc; }
+    .sections-table tbody tr:last-child td { border-bottom: none; }
+
+    .weekday-badge { display: inline-block; padding: 0.25rem 0.65rem; border-radius: 12px; font-size: 0.78rem; font-weight: 600; white-space: nowrap; }
+    .weekday-Lunes     { background: #fef3c7; color: #92400e; }
+    .weekday-Martes    { background: #dbeafe; color: #1e40af; }
+    .weekday-Miércoles { background: #ddd6fe; color: #5b21b6; }
+    .weekday-Jueves    { background: #fce7f3; color: #9d174d; }
+    .weekday-Viernes   { background: #d1fae5; color: #065f46; }
+    .weekday-Sábado    { background: #fed7aa; color: #9a3412; }
+    .weekday-Domingo   { background: #e5e7eb; color: #374151; }
+
+    .course-cell { font-weight: 600; color: #2c3e50; }
+    .schedule-cell { font-variant-numeric: tabular-nums; color: #4b5563; font-size: 0.92rem; }
+    .teacher-cell { display: flex; align-items: center; gap: 0.6rem; }
+    .teacher-avatar { width: 30px; height: 30px; border-radius: 50%; background: #3498db; color: white; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.78rem; flex-shrink: 0; }
+    .teacher-name { color: #2c3e50; font-size: 0.92rem; }
+
+    .capacity-cell { min-width: 140px; }
+    .capacity-bar { width: 100%; height: 6px; background: #eef0f3; border-radius: 4px; overflow: hidden; margin-top: 0.25rem; }
+    .capacity-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+    .capacity-fill.low  { background: #27ae60; }
+    .capacity-fill.med  { background: #f39c12; }
+    .capacity-fill.high { background: #e74c3c; }
+    .capacity-text { font-size: 0.85rem; color: #4b5563; font-variant-numeric: tabular-nums; }
+    .capacity-text strong { color: #2c3e50; }
+
+    .row-actions { display: flex; gap: 0.35rem; justify-content: flex-end; }
+    .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 6px; text-decoration: none; font-size: 0.95rem; border: none; cursor: pointer; transition: all 0.15s; padding: 0; background: transparent; }
+    .icon-btn-view   { color: #3498db; background: #e8f4fd; }
+    .icon-btn-view:hover   { background: #3498db; color: white; }
+    .icon-btn-edit   { color: #7f8c8d; background: #f1f3f5; }
+    .icon-btn-edit:hover   { background: #7f8c8d; color: white; }
+    .icon-btn-delete { color: #e74c3c; background: #fdecea; }
+    .icon-btn-delete:hover { background: #e74c3c; color: white; }
+    .icon-btn-delete form { margin: 0; padding: 0; display: contents; }
+
+    .empty-state { text-align: center; padding: 3rem 1rem; color: #7f8c8d; }
+    .empty-state-icon { font-size: 2.5rem; margin-bottom: 0.5rem; opacity: 0.5; }
+  </style>
+
   <div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-      <h2>Secciones</h2>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+      <h2 style="margin: 0;">Secciones <span style="color: #7f8c8d; font-weight: 400; font-size: 0.95rem;">(<%= @sections.size %>)</span></h2>
       <% if can? :create, Section %>
-        <%= link_to "Nueva Sección", new_admin_section_path, class: "btn btn-success" %>
+        <%= link_to "+ Nueva Sección", new_admin_section_path, class: "btn btn-success" %>
       <% end %>
     </div>
 
+    <% if @courses.any? %>
+      <div class="course-filters">
+        <span class="filter-label">Filtrar por curso:</span>
+        <%= link_to "Todos", admin_sections_path,
+              class: "filter-btn #{'active' if @selected_course_id.nil?}" %>
+        <% @courses.each do |course| %>
+          <%= link_to course.title, admin_sections_path(course_id: course.id),
+                class: "filter-btn #{'active' if @selected_course_id == course.id}" %>
+        <% end %>
+      </div>
+    <% end %>
+
     <% if @sections.any? %>
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Dia</th>
-            <th>Curso</th>
-            <th>Profesor</th>
-            <th>Horario</th>
-            <th>Cupos</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% @sections.each do |section| %>
+      <div class="sections-table-wrapper">
+        <table class="sections-table">
+          <thead>
             <tr>
-              <td><%= section.id %></td>
-              <td><%= section.weekday %></td>
-              <td><%= section.course.title %></td>
-              <td><%= section.teacher.user.name %></td>
-              <td><%= section.formatted_schedule %></td>
-              <td><%= section.places %></td>
-              <td>
-                <div class="actions">
-                  <%= link_to "Ver", admin_section_path(section), class: "btn btn-primary" %>
-                  <% if can? :update, section %>
-                    <%= link_to "Editar", edit_admin_section_path(section), class: "btn btn-secondary" %>
-                  <% end %>
-                  <% if can? :destroy, section %>
-                    <%= button_to "Eliminar", admin_section_path(section), method: :delete, data: { confirm: "¿Estás seguro?" }, class: "btn btn-danger" %>
-                  <% end %>
-                </div>
-              </td>
+              <th>Día</th>
+              <th>Horario</th>
+              <th>Curso</th>
+              <th>Profesor</th>
+              <th>Cupos</th>
+              <th style="text-align: right;">Acciones</th>
             </tr>
-          <% end %>
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            <% @sections.each do |section| %>
+              <% taken = @student_counts[section.id] || 0 %>
+              <% pct = section.places.to_i.positive? ? (taken.to_f / section.places * 100).round : 0 %>
+              <% fill_class = pct >= 90 ? 'high' : (pct >= 60 ? 'med' : 'low') %>
+              <% teacher_name = section.teacher.user.name %>
+              <% initials = teacher_name.split.first(2).map { |p| p[0] }.join.upcase %>
+              <tr>
+                <td>
+                  <span class="weekday-badge weekday-<%= section.weekday %>"><%= section.weekday %></span>
+                </td>
+                <td class="schedule-cell"><%= section.formatted_schedule %></td>
+                <td class="course-cell"><%= section.course.title %></td>
+                <td>
+                  <div class="teacher-cell">
+                    <span class="teacher-avatar"><%= initials %></span>
+                    <span class="teacher-name"><%= teacher_name %></span>
+                  </div>
+                </td>
+                <td class="capacity-cell">
+                  <div class="capacity-text"><strong><%= taken %></strong> / <%= section.places %></div>
+                  <div class="capacity-bar">
+                    <div class="capacity-fill <%= fill_class %>" style="width: <%= [pct, 100].min %>%;"></div>
+                  </div>
+                </td>
+                <td>
+                  <div class="row-actions">
+                    <%= link_to "👁", admin_section_path(section), class: "icon-btn icon-btn-view", title: "Ver" %>
+                    <% if can? :update, section %>
+                      <%= link_to "✎", edit_admin_section_path(section), class: "icon-btn icon-btn-edit", title: "Editar" %>
+                    <% end %>
+                    <% if can? :destroy, section %>
+                      <%= button_to "🗑", admin_section_path(section), method: :delete,
+                            form: { data: { turbo_confirm: "¿Eliminar esta sección?" } },
+                            class: "icon-btn icon-btn-delete", title: "Eliminar" %>
+                    <% end %>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
     <% else %>
-      <p>No hay secciones asignadas.</p>
+      <div class="empty-state">
+        <div class="empty-state-icon">📭</div>
+        <p>No hay secciones <%= @selected_course_id ? "para este curso" : "asignadas" %>.</p>
+      </div>
     <% end %>
   </div>
 <% end %>

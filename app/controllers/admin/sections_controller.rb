@@ -7,21 +7,23 @@ module Admin
       weekday_order = "CASE weekday WHEN 'Lunes' THEN 1 WHEN 'Martes' THEN 2 WHEN 'Miércoles' THEN 3 WHEN 'Jueves' THEN 4 WHEN 'Viernes' THEN 5 WHEN 'Sábado' THEN 6 WHEN 'Domingo' THEN 7 END"
       @sections = Section.includes(:course, teacher: :user).accessible_by(current_ability).order(Arel.sql(weekday_order))
 
-      if current_teacher?
-        section_ids = @sections.map(&:id)
+      @courses = Course.joins(:sections).merge(Section.accessible_by(current_ability)).distinct.order(:title)
+      @selected_course_id = params[:course_id].presence&.to_i
+      @sections = @sections.where(course_id: @selected_course_id) if @selected_course_id
 
-        @student_counts = EnrollmentSection
-          .where(section_id: section_ids)
-          .group(:section_id)
-          .select(:section_id, 'COUNT(DISTINCT enrollment_id) as total')
-          .index_by(&:section_id)
+      section_ids = @sections.map(&:id)
 
-        @next_class_dates = EnrollmentSection
-          .where(section_id: section_ids)
-          .where('date >= ?', Date.current)
-          .group(:section_id)
-          .minimum(:date)
-      end
+      @student_counts = EnrollmentSection
+        .where(section_id: section_ids)
+        .group(:section_id)
+        .distinct
+        .count(:enrollment_id)
+
+      @next_class_dates = EnrollmentSection
+        .where(section_id: section_ids)
+        .where('date >= ?', Date.current)
+        .group(:section_id)
+        .minimum(:date)
     end
 
     def show
@@ -74,11 +76,67 @@ module Admin
       # Get enrollments for the selected date
       if @selected_date
         @enrollment_sections = @section.enrollment_sections
-                                       .includes(enrollment: { student: :user })
+                                       .includes(:makeup, { makes_up_for: :section }, enrollment: { student: :user })
                                        .where(date: @selected_date)
                                        .order('users.name')
       else
         @enrollment_sections = []
+      end
+
+      # Permiso para marcar asistencia en esta fecha:
+      # - Admin puede marcar cualquier fecha
+      # - Profe solo de hoy en adelante
+      @can_mark_attendance = can?(:take_attendance, @section) &&
+                             @selected_date.present? &&
+                             (current_admin? || @selected_date >= Date.current)
+
+      # Quick-nav fechas: ventana de 8 fechas (3 antes + 5 después de la referencia).
+      # La referencia es @selected_date si existe, si no hoy. Se puede desplazar con dates_offset.
+      sorted_dates = @section_dates.to_a.sort
+      window_size = 8
+      past_count = 3
+
+      ref_date = @selected_date || Date.current
+      ref_index = sorted_dates.index { |d| d >= ref_date } || sorted_dates.size
+
+      offset = params[:dates_offset].to_i
+      start_idx = [ref_index - past_count + offset, 0].max
+      end_idx = [start_idx + window_size, sorted_dates.size].min
+      start_idx = [end_idx - window_size, 0].max
+
+      @quick_dates = sorted_dates[start_idx...end_idx] || []
+      @quick_dates_has_prev = start_idx > 0
+      @quick_dates_has_next = end_idx < sorted_dates.size
+      @quick_dates_prev_offset = offset - window_size
+      @quick_dates_next_offset = offset + window_size
+      @quick_dates_offset = offset
+
+      # Stats agregados del día seleccionado
+      if @selected_date && @enrollment_sections.any?
+        @day_present = @enrollment_sections.count { |es| es.attended == true }
+        @day_absent  = @enrollment_sections.count { |es| es.attended == false }
+        @day_pending = @enrollment_sections.count { |es| es.attended.nil? }
+        marked = @day_present + @day_absent
+        @day_rate = marked.positive? ? ((@day_present.to_f / marked) * 100).round : nil
+      end
+
+      # % asistencia histórica de cada estudiante en esta sección
+      enrollment_ids = @enrollment_sections.map(&:enrollment_id)
+      if enrollment_ids.any?
+        rows = @section.enrollment_sections
+                       .where(enrollment_id: enrollment_ids)
+                       .where.not(attended: nil)
+                       .group(:enrollment_id)
+                       .pluck(
+                         :enrollment_id,
+                         Arel.sql('COUNT(*)'),
+                         Arel.sql('COUNT(CASE WHEN attended = true THEN 1 END)')
+                       )
+        @student_attendance_stats = rows.each_with_object({}) do |(eid, total, present), h|
+          h[eid] = { total: total, present: present, rate: total.positive? ? ((present.to_f / total) * 100).round : nil }
+        end
+      else
+        @student_attendance_stats = {}
       end
     end
 
@@ -161,6 +219,14 @@ module Admin
       authorize! :take_attendance, @section
 
       date = params[:date]
+      parsed_date = Date.parse(date) rescue nil
+
+      if current_teacher? && parsed_date && parsed_date < Date.current
+        redirect_back fallback_location: admin_section_path(@section, date: date),
+                      alert: 'Solo puedes marcar asistencia de hoy en adelante.'
+        return
+      end
+
       attendance_params = params.require(:attendance)
 
       attendance_params.each do |es_id, attrs|

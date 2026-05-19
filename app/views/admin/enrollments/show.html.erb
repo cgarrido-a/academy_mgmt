@@ -1,115 +1,320 @@
+<style>
+  /* === Header tipo ficha === */
+  .enr-header { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+  @media (max-width: 800px) { .enr-header { grid-template-columns: 1fr; } }
+  .enr-header h3 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: #7f8c8d; margin: 0 0 0.85rem 0; padding-bottom: 0.5rem; border-bottom: 1px solid #e9ecef; font-weight: 600; }
+
+  .student-card { display: flex; gap: 1rem; align-items: flex-start; }
+  .student-avatar { width: 72px; height: 72px; border-radius: 50%; background: #3498db; color: white; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.7rem; flex-shrink: 0; }
+  .student-info { flex: 1; min-width: 0; }
+  .student-info .name { font-size: 1.35rem; font-weight: 700; color: #2c3e50; margin-bottom: 0.25rem; }
+  .student-info .id-tag { color: #7f8c8d; font-weight: 400; font-size: 0.9rem; }
+
+  .kv-list { margin-top: 0.85rem; }
+  .kv-row { display: flex; gap: 1rem; padding: 0.35rem 0; font-size: 0.9rem; border-bottom: 1px dashed #f0f0f0; }
+  .kv-row:last-child { border-bottom: none; }
+  .kv-row .k { color: #7f8c8d; min-width: 130px; }
+  .kv-row .v { color: #2c3e50; font-weight: 500; flex: 1; }
+
+  .total-box { margin-top: 1rem; padding: 0.85rem 1rem; background: #f8f9fa; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
+  .total-box .lbl { font-size: 0.78rem; text-transform: uppercase; color: #7f8c8d; letter-spacing: 0.04em; }
+  .total-box .amt { font-size: 1.45rem; font-weight: 700; color: #2c3e50; font-variant-numeric: tabular-nums; }
+  .total-box.debt .amt { color: #e74c3c; }
+  .total-box.clear .amt { color: #27ae60; }
+
+  /* === Pagos === */
+  .pay-table { width: 100%; border-collapse: collapse; }
+  .pay-table th { background: #f8f9fa; color: #2c3e50; font-weight: 600; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.04em; padding: 0.7rem 0.85rem; text-align: left; border-bottom: 2px solid #e9ecef; }
+  .pay-table td { padding: 0.7rem 0.85rem; border-bottom: 1px solid #f0f0f0; }
+  .pay-status { display: inline-block; padding: 0.15rem 0.55rem; border-radius: 10px; font-size: 0.72rem; font-weight: 600; }
+  .pay-status.completed { background: #d1fae5; color: #065f46; }
+  .pay-status.pending   { background: #fff8e6; color: #7a5b13; }
+  .pay-status.refunded  { background: #fee2e2; color: #991b1b; }
+
+  /* === Clases agrupadas por mes === */
+  .month-group { border: 1px solid #e9ecef; border-radius: 8px; margin-bottom: 1rem; overflow: hidden; }
+  .month-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.85rem 1rem; background: #f8f9fa; flex-wrap: wrap; }
+  .month-header .title { font-weight: 600; color: #2c3e50; font-size: 1rem; }
+  .month-summary { display: flex; gap: 0.85rem; flex-wrap: wrap; }
+  .ms-pill { font-size: 0.78rem; padding: 0.18rem 0.6rem; border-radius: 10px; font-weight: 600; }
+  .ms-pill.tot { background: #e8f4fd; color: #2980b9; }
+  .ms-pill.ok  { background: #d1fae5; color: #065f46; }
+  .ms-pill.bad { background: #fee2e2; color: #991b1b; }
+  .ms-pill.pen { background: #f1f3f5; color: #7f8c8d; }
+  .ms-pill.mkp { background: #e0e7ff; color: #3730a3; }
+
+  .class-row { display: grid; grid-template-columns: 60px 110px 1fr auto auto; gap: 1rem; align-items: center; padding: 0.55rem 1rem; border-top: 1px solid #f0f0f0; font-size: 0.9rem; }
+  .class-row:first-of-type { border-top: 1px solid #e9ecef; }
+  .class-row.past { color: #7f8c8d; }
+  .class-row.today { background: #fff8e6; }
+  .class-row.absent { background: #fef6f6; }
+
+  .cr-date { font-weight: 700; color: #2c3e50; font-variant-numeric: tabular-nums; }
+  .cr-date small { display: block; font-weight: 400; color: #7f8c8d; font-size: 0.72rem; text-transform: capitalize; }
+  .cr-section { color: #4b5563; }
+  .cr-section .schedule { font-size: 0.78rem; color: #7f8c8d; }
+  .cr-section a { color: #2c3e50; font-weight: 600; text-decoration: none; }
+  .cr-section a:hover { color: #3498db; text-decoration: underline; }
+
+  .att-pill { display: inline-block; padding: 0.18rem 0.55rem; border-radius: 10px; font-size: 0.74rem; font-weight: 600; white-space: nowrap; }
+  .att-pill.present { background: #d1fae5; color: #065f46; }
+  .att-pill.absent  { background: #fee2e2; color: #991b1b; }
+  .att-pill.pending { background: #f1f3f5; color: #7f8c8d; }
+
+  .kind-tag { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 10px; font-size: 0.7rem; font-weight: 600; margin-left: 0.3rem; }
+  .kind-tag.makeup { background: #e0e7ff; color: #3730a3; }
+  .kind-tag.has-makeup { background: #d1fae5; color: #065f46; }
+
+  .cr-actions { display: flex; gap: 0.3rem; }
+  .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 5px; text-decoration: none; transition: all 0.15s; font-size: 0.85rem; padding: 0; border: none; background: transparent; cursor: pointer; }
+  .icon-btn-view   { color: #3498db; background: #e8f4fd; }
+  .icon-btn-view:hover   { background: #3498db; color: white; }
+  .icon-btn-edit   { color: #7f8c8d; background: #f1f3f5; }
+  .icon-btn-edit:hover   { background: #7f8c8d; color: white; }
+  .icon-btn-makeup { color: #7a5b13; background: #fff8e6; border: 1px solid #f4d68c; }
+  .icon-btn-makeup:hover { background: #f4d68c; }
+  .icon-btn-delete { color: #e74c3c; background: #fdecea; }
+  .icon-btn-delete:hover { background: #e74c3c; color: white; }
+  .icon-btn-delete form { margin: 0; padding: 0; display: contents; }
+
+  @media (max-width: 700px) {
+    .class-row { grid-template-columns: 60px 1fr; gap: 0.5rem; }
+    .class-row .cr-day, .class-row .cr-actions { grid-column: 1 / -1; }
+  }
+
+  .empty-block { text-align: center; padding: 2rem 1rem; color: #7f8c8d; }
+</style>
+
+<%
+  student = @enrollment.student.user
+  initials = student.name.split.first(2).map { |p| p[0] }.join.upcase
+  weekdays_label = @courses.map { |c| @enrollment_sections.select { |es| es.section.course_id == c.id }.map(&:section).uniq.map(&:weekday).uniq.join(', ') }.first
+  teachers_label = @enrollment_sections.map(&:section).uniq.map { |s| s.teacher.user.name }.uniq.join(', ')
+%>
+
+<%# ============================================================ %>
+<%# HEADER %>
+<%# ============================================================ %>
 <div class="card">
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-    <h2>Inscripción #<%= @enrollment.id %></h2>
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap;">
+    <div>
+      <h2 style="margin: 0;">Inscripción #<%= @enrollment.id %></h2>
+      <div style="color: #7f8c8d; font-size: 0.88rem; margin-top: 0.25rem;">
+        Creada el <%= I18n.l(@enrollment.created_at.to_date, format: '%d de %B de %Y') %>
+      </div>
+    </div>
     <div class="actions">
       <%= link_to "Editar", edit_admin_enrollment_path(@enrollment), class: "btn btn-secondary" %>
       <%= link_to "Volver", admin_enrollments_path, class: "btn btn-primary" %>
     </div>
   </div>
 
-  <h3>Información del Estudiante</h3>
-  <div class="form-group">
-    <strong>Nombre:</strong>
-    <p><%= @enrollment.student.user.name %></p>
-  </div>
-
-  <div class="form-group">
-    <strong>Email:</strong>
-    <p><%= @enrollment.student.user.email %></p>
-  </div>
-
-  <h3>Información de Pago</h3>
-  <div class="form-group">
-    <strong>Plan de Pago:</strong>
-    <p><%= @enrollment.weekly_plan.description %> (<%= @enrollment.weekly_plan.number_of_classes %> clases)</p>
-  </div>
-
-  <div class="form-group">
-    <strong>Método de Pago:</strong>
-    <p><%= @enrollment.payment_method.payment_method %></p>
-  </div>
-
-  <div class="form-group">
-    <strong>Monto de Matrícula:</strong>
-    <p>$<%= number_with_delimiter(@enrollment.enrollment_amount) %></p>
-  </div>
-
-  <div class="form-group">
-    <strong>Monto Total (Arancel):</strong>
-    <p>$<%= number_with_delimiter(@enrollment.total_tuition_fee) %></p>
-  </div>
-
-  <div class="form-group">
-    <strong>Fecha de Inscripción:</strong>
-    <p><%= @enrollment.created_at.strftime('%d/%m/%Y %H:%M') %></p>
-  </div>
-</div>
-
-<div class="card">
-  <h2>Clases Programadas (<%= @enrollment.enrollment_sections.count %>)</h2>
-
-  <% if @enrollment.enrollment_sections.any? %>
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; margin-top: 1rem;">
-      <% @enrollment.enrollment_sections.order(:date).each do |enrollment_section| %>
-        <% section = enrollment_section.section %>
-        <div style="border: 1px solid #ddd; border-radius: 8px; padding: 1rem; background: #f8f9fa; position: relative;">
-          <div style="background: #007bff; color: white; padding: 0.5rem; margin: -1rem -1rem 1rem -1rem; border-radius: 8px 8px 0 0; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
-            <span><%= enrollment_section.date.strftime('%d/%m/%Y') %></span>
-            <%= link_to "Editar", edit_admin_enrollment_section_path(enrollment_section),
-                style: "color: white; text-decoration: underline; font-size: 0.9rem; font-weight: normal;" %>
-          </div>
-
-          <div style="margin-bottom: 0.5rem;">
-            <strong>Curso:</strong><br>
-            <%= link_to section.course.title, admin_course_path(section.course), style: "color: #007bff;" %>
-          </div>
-
-          <div style="margin-bottom: 0.5rem;">
-            <strong>Día:</strong> <%= section.weekday %>
-          </div>
-
-          <div style="margin-bottom: 0.5rem;">
-            <strong>Horario:</strong> <%= section.formatted_schedule %>
-          </div>
-
-          <div style="margin-bottom: 0.5rem;">
-            <strong>Profesor:</strong> <%= section.teacher.user.name %>
-          </div>
-
-          <div style="margin-top: 1rem; padding-top: 0.5rem; border-top: 1px solid #ddd; font-size: 0.9rem; color: #666;">
-            Sección #<%= section.id %>
+  <div class="enr-header">
+    <%# === Estudiante === %>
+    <div>
+      <h3>Estudiante</h3>
+      <div class="student-card">
+        <div class="student-avatar"><%= initials %></div>
+        <div class="student-info">
+          <div class="name"><%= student.name %></div>
+          <div class="kv-list">
+            <div class="kv-row"><span class="k">Email</span><span class="v"><%= student.email %></span></div>
+            <% if student.phone.present? %>
+              <div class="kv-row"><span class="k">Teléfono</span><span class="v"><%= student.phone %></span></div>
+            <% end %>
           </div>
         </div>
-      <% end %>
+      </div>
+    </div>
+
+    <%# === Contrato === %>
+    <div>
+      <h3>Contrato</h3>
+      <div class="kv-list">
+        <div class="kv-row">
+          <span class="k">Curso</span>
+          <span class="v"><%= @courses.map(&:title).join(', ') %></span>
+        </div>
+        <div class="kv-row">
+          <span class="k">Plan</span>
+          <span class="v"><%= @enrollment.weekly_plan.plan %> · <%= @enrollment.weekly_plan.number_of_classes %> clases/mes</span>
+        </div>
+        <% if @period_months %>
+          <div class="kv-row">
+            <span class="k">Período</span>
+            <span class="v"><strong><%= @period_months %> mes<%= 'es' if @period_months != 1 %></strong> contratados</span>
+          </div>
+        <% end %>
+        <% if @contract_start && @contract_end %>
+          <div class="kv-row">
+            <span class="k">Vigencia</span>
+            <span class="v"><%= I18n.l(@contract_start, format: '%d/%m/%Y') %> — <%= I18n.l(@contract_end, format: '%d/%m/%Y') %></span>
+          </div>
+        <% end %>
+        <div class="kv-row">
+          <span class="k">Profesor(es)</span>
+          <span class="v"><%= teachers_label %></span>
+        </div>
+        <div class="kv-row">
+          <span class="k">Método de pago</span>
+          <span class="v"><%= @enrollment.payment_method.payment_method %></span>
+        </div>
+        <div class="kv-row">
+          <span class="k">Matrícula</span>
+          <span class="v">$<%= number_with_delimiter(@enrollment.enrollment_amount) %></span>
+        </div>
+        <div class="kv-row">
+          <span class="k">Arancel total</span>
+          <span class="v">$<%= number_with_delimiter(@enrollment.total_tuition_fee) %></span>
+        </div>
+      </div>
+
+      <div class="total-box <%= @balance.positive? ? 'debt' : 'clear' %>">
+        <div>
+          <div class="lbl">Total contrato</div>
+          <% if @balance.positive? %>
+            <div style="font-size: 0.78rem; color: #e74c3c; margin-top: 0.2rem;">Saldo pendiente $<%= number_with_delimiter(@balance) %></div>
+          <% else %>
+            <div style="font-size: 0.78rem; color: #27ae60; margin-top: 0.2rem;">Saldado completamente</div>
+          <% end %>
+        </div>
+        <div class="amt">$<%= number_with_delimiter(@total_to_pay) %></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%# ============================================================ %>
+<%# PAGOS %>
+<%# ============================================================ %>
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+    <h2 style="margin: 0;">Historial de pagos</h2>
+    <% unless @enrollment.enrollment_fee_paid? %>
+      <%= link_to "Registrar pago de matrícula",
+            new_admin_payment_path(enrollment_id: @enrollment.id, payment_type: 'enrollment_fee'),
+            class: "btn btn-success" %>
+    <% end %>
+  </div>
+
+  <% if @payments.any? %>
+    <div style="overflow-x: auto;">
+      <table class="pay-table">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Concepto</th>
+            <th style="text-align: right;">Monto</th>
+            <th>Método</th>
+            <th>Estado</th>
+            <th>Referencia</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @payments.each do |p| %>
+            <tr>
+              <td><%= I18n.l(p.payment_date, format: '%d/%m/%Y') %></td>
+              <td><%= p.payment_type == 'enrollment_fee' ? 'Matrícula' : p.payment_type.humanize %></td>
+              <td style="text-align: right; font-variant-numeric: tabular-nums;"><strong>$<%= number_with_delimiter(p.amount) %></strong></td>
+              <td><%= p.payment_method.payment_method %></td>
+              <td><span class="pay-status <%= p.status %>"><%= p.status %></span></td>
+              <td style="color: #7f8c8d; font-size: 0.82rem;"><%= p.reference_number %></td>
+              <td><%= link_to "Ver", admin_payment_path(p), class: "btn btn-primary", style: "padding: 0.25rem 0.6rem; font-size: 0.8rem;" %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
     </div>
   <% else %>
-    <p style="color: #666; font-style: italic;">No hay clases programadas para esta inscripción.</p>
+    <div class="empty-block">No hay pagos registrados para esta inscripción.</div>
   <% end %>
 </div>
 
+<%# ============================================================ %>
+<%# CLASES (agrupadas por mes) %>
+<%# ============================================================ %>
 <div class="card">
-  <h2>Historial de Pagos</h2>
-
-  <% enrollment_fee_payment = @enrollment.enrollment_fee_payment %>
-  <% if enrollment_fee_payment %>
-    <div style="background: #e8f5e9; padding: 1rem; border-radius: 4px; margin-bottom: 1rem;">
-      <strong>Pago de Matrícula</strong>
-      <p>Monto: <strong>$<%= number_with_delimiter(enrollment_fee_payment.amount) %></strong></p>
-      <p>Fecha: <%= enrollment_fee_payment.payment_date.strftime('%d/%m/%Y') %></p>
-      <p>Método: <%= enrollment_fee_payment.payment_method.payment_method %></p>
-      <%= link_to "Ver Detalle", admin_payment_path(enrollment_fee_payment), class: "btn btn-primary" %>
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+    <h2 style="margin: 0;">Clases</h2>
+    <div style="font-size: 0.88rem; color: #7f8c8d;">
+      <strong style="color: #3498db; font-size: 1rem;"><%= @plan_attendance_rate ? "#{@plan_attendance_rate}%" : '—' %></strong>
+      de asistencia al plan · <%= @regular_present + @makeups_present %>/<%= @regular_total %> clases asistidas
     </div>
-  <% else %>
-    <div style="background: #fff3cd; padding: 1rem; border-radius: 4px; margin-bottom: 1rem;">
-      <p style="margin: 0;">⚠️ No se ha registrado el pago de matrícula</p>
-      <%= link_to "Registrar Pago de Matrícula", new_admin_payment_path(enrollment_id: @enrollment.id, payment_type: 'enrollment_fee'), class: "btn btn-success", style: "margin-top: 0.5rem;" %>
-    </div>
-  <% end %>
-
-  <div style="margin-top: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 4px;">
-    <strong>Total Pagado:</strong>
-    <span style="font-size: 1.5rem; color: #27ae60; font-weight: bold;">
-      $<%= number_with_delimiter(@enrollment.total_paid) %>
-    </span>
   </div>
+
+  <% if @classes_by_month.any? %>
+    <% today = Date.current %>
+    <% @classes_by_month.sort.each do |month_start, classes| %>
+      <% present_count = classes.count { |es| es.attended == true } %>
+      <% absent_count  = classes.count { |es| es.attended == false } %>
+      <% pending_count = classes.count { |es| es.attended.nil? } %>
+      <% makeup_count  = classes.count(&:makeup?) %>
+
+      <div class="month-group">
+        <div class="month-header">
+          <div class="title"><%= I18n.l(month_start, format: '%B %Y').capitalize %></div>
+          <div class="month-summary">
+            <span class="ms-pill tot"><%= classes.size %> clases</span>
+            <% if present_count.positive? %><span class="ms-pill ok"><%= present_count %> asistidas</span><% end %>
+            <% if absent_count.positive? %><span class="ms-pill bad"><%= absent_count %> faltas</span><% end %>
+            <% if pending_count.positive? %><span class="ms-pill pen"><%= pending_count %> pendientes</span><% end %>
+            <% if makeup_count.positive? %><span class="ms-pill mkp"><%= makeup_count %> recuperatorios</span><% end %>
+          </div>
+        </div>
+
+        <% classes.each do |es| %>
+          <% section = es.section %>
+          <% row_class = [] %>
+          <% row_class << 'past'   if es.date < today %>
+          <% row_class << 'today'  if es.date == today %>
+          <% row_class << 'absent' if es.attended == false %>
+          <div class="class-row <%= row_class.join(' ') %>">
+            <div class="cr-date">
+              <%= es.date.strftime('%d/%m') %>
+              <small><%= I18n.l(es.date, format: '%a').capitalize %></small>
+            </div>
+            <div class="cr-day">
+              <span style="font-weight: 600; color: #2c3e50;"><%= section.weekday %></span>
+              <div style="font-size: 0.78rem; color: #7f8c8d;"><%= section.formatted_schedule %></div>
+            </div>
+            <div class="cr-section">
+              <%= link_to section.course.title, admin_section_path(section, date: es.date) %>
+              <% if es.makeup? %>
+                <span class="kind-tag makeup" title="Recupera la falta del <%= I18n.l(es.makes_up_for.date, format: '%d/%m/%Y') %>">🔁 Recuperatorio</span>
+              <% elsif es.attended == false && es.makeup.present? %>
+                <span class="kind-tag has-makeup" title="Se recupera el <%= I18n.l(es.makeup.date, format: '%d/%m/%Y') %>">↪ Recuperado</span>
+              <% end %>
+              <div class="schedule"><%= section.teacher.user.name %></div>
+            </div>
+            <div>
+              <% if es.attended == true %>
+                <span class="att-pill present">Presente</span>
+              <% elsif es.attended == false %>
+                <span class="att-pill absent">Ausente</span>
+              <% else %>
+                <span class="att-pill pending">Pendiente</span>
+              <% end %>
+            </div>
+            <div class="cr-actions">
+              <%= link_to "👁", admin_section_path(section, date: es.date), class: "icon-btn icon-btn-view", title: "Ver sección" %>
+              <% if es.attended == false && es.regular? && es.makeup.blank? && can?(:makeup, es) %>
+                <%= link_to "🔁", makeup_admin_enrollment_section_path(es), class: "icon-btn icon-btn-makeup", title: "Asignar recuperatorio" %>
+              <% end %>
+              <% if can?(:update, es) && es.attended.nil? %>
+                <%= link_to "✎", edit_admin_enrollment_section_path(es), class: "icon-btn icon-btn-edit", title: "Editar fecha/sección" %>
+              <% end %>
+              <% if can?(:destroy, es) %>
+                <%= button_to "🗑", admin_enrollment_section_path(es), method: :delete,
+                      form: { data: { turbo_confirm: "¿Eliminar esta clase?" } },
+                      class: "icon-btn icon-btn-delete", title: "Eliminar" %>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  <% else %>
+    <div class="empty-block">No hay clases programadas para esta inscripción.</div>
+  <% end %>
 </div>

@@ -4,12 +4,61 @@ module Admin
     before_action :set_enrollment, only: [:show, :edit, :update, :destroy]
 
     def index
+      @q = params[:q].to_s.strip
       @enrollments = Enrollment.includes(student: :user, sections: :course, weekly_plan: [], payment_method: [])
                                .order(created_at: :desc)
+      if @q.present?
+        like = "%#{@q.downcase}%"
+        @enrollments = @enrollments.joins(student: :user)
+                                   .where('LOWER(users.name) LIKE :q OR LOWER(users.email) LIKE :q', q: like)
+      end
     end
 
     def show
-      # @tuition_fee = @enrollment.tuition_fee # Removed: tuition_fees table no longer exists
+      @enrollment_sections = @enrollment.enrollment_sections
+                                        .includes(:makeup, { makes_up_for: :section }, section: [:course, teacher: :user])
+                                        .order(:date)
+      @payments = @enrollment.payments.includes(:payment_method, :processed_by).order(payment_date: :desc, created_at: :desc)
+
+      regulars = @enrollment_sections.select(&:regular?)
+      makeups  = @enrollment_sections.select(&:makeup?)
+
+      @regular_total       = regulars.size
+      @regular_present     = regulars.count { |es| es.attended == true }
+      @regular_absent      = regulars.count { |es| es.attended == false }
+      @regular_pending     = regulars.count { |es| es.attended.nil? }
+      @makeups_total       = makeups.size
+      @makeups_present     = makeups.count { |es| es.attended == true }
+      @makeups_absent      = makeups.count { |es| es.attended == false }
+      @makeups_pending     = makeups.count { |es| es.attended.nil? }
+
+      # % asistencia al plan: (regulares presentes + makeups presentes) / regulares totales
+      @plan_attendance_rate =
+        if @regular_total.positive?
+          ((@regular_present + @makeups_present).to_f / @regular_total * 100).round
+        end
+
+      # Pago / deuda
+      @total_paid    = @payments.where(status: 'completed').sum(:amount)
+      @total_to_pay  = @enrollment.enrollment_amount.to_i + @enrollment.total_tuition_fee.to_i
+      @balance       = @total_to_pay - @total_paid
+
+      # Período derivado: cuántas "mensualidades" se contrataron
+      plan_classes_per_month = @enrollment.weekly_plan.number_of_classes
+      @period_months =
+        if plan_classes_per_month.to_i.positive? && @regular_total.positive?
+          (@regular_total.to_f / plan_classes_per_month).round
+        end
+
+      @courses = @enrollment_sections.map(&:section).map(&:course).uniq
+
+      # Rango del contrato (primera y última clase regular)
+      regular_dates = regulars.map(&:date)
+      @contract_start = regular_dates.min
+      @contract_end   = regular_dates.max
+
+      # Agrupar clases por mes (para la vista compacta)
+      @classes_by_month = @enrollment_sections.group_by { |es| es.date.beginning_of_month }
     end
 
     def new

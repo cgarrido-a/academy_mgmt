@@ -1,8 +1,19 @@
 <div class="card">
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-    <h2>Inscripciones</h2>
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <h2 style="margin: 0;">Inscripciones <span style="color: #7f8c8d; font-weight: 400; font-size: 0.95rem;">(<%= @enrollments.size %>)</span></h2>
     <%= link_to "Nueva Inscripción", new_admin_enrollment_path, class: "btn btn-success" %>
   </div>
+
+  <%= form_with url: admin_enrollments_path, method: :get, local: true, style: "margin-bottom: 1.25rem;" do |f| %>
+    <div style="display: flex; gap: 0.5rem; max-width: 500px;">
+      <%= text_field_tag :q, @q, placeholder: 'Buscar por nombre o email del alumno…',
+            style: "flex: 1; padding: 0.55rem 0.85rem; border: 1px solid #dee2e6; border-radius: 6px; font-size: 0.95rem;" %>
+      <%= submit_tag "Buscar", class: "btn btn-primary" %>
+      <% if @q.present? %>
+        <%= link_to "Limpiar", admin_enrollments_path, class: "btn btn-secondary" %>
+      <% end %>
+    </div>
+  <% end %>
 
   <% if @enrollments.any? %>
     <table>
@@ -42,6 +53,12 @@
       </tbody>
     </table>
   <% else %>
-    <p>No hay inscripciones registradas.</p>
+    <p style="color: #7f8c8d; text-align: center; padding: 2rem;">
+      <% if @q.present? %>
+        No se encontraron inscripciones para "<%= @q %>".
+      <% else %>
+        No hay inscripciones registradas.
+      <% end %>
+    </p>
   <% end %>
 </div>

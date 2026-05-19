@@ -52,6 +52,20 @@ module Admin
         .group(:section_id, :date)
         .count
 
+      # Estado de asistencia por (section, date): cuántos presentes, ausentes, total
+      @attendance_status_by_section_date = EnrollmentSection
+        .where(section_id: section_ids, date: start_date..end_date)
+        .group(:section_id, :date)
+        .pluck(
+          :section_id, :date,
+          Arel.sql('COUNT(*)'),
+          Arel.sql('COUNT(CASE WHEN attended = true THEN 1 END)'),
+          Arel.sql('COUNT(CASE WHEN attended = false THEN 1 END)')
+        )
+        .each_with_object({}) do |(sid, d, total, present, absent), h|
+          h[[sid, d]] = { total: total, present: present, absent: absent }
+        end
+
       @calendar_weeks = build_calendar_weeks(@calendar_date)
 
       # Navigation
@@ -133,9 +147,6 @@ module Admin
       @total_sections = Section.count
       @total_students = Student.count
       @total_enrollments = Enrollment.count
-      @recent_enrollments = Enrollment.includes(student: :user, sections: :course)
-                                       .order(created_at: :desc)
-                                       .limit(10)
 
       # Monthly teacher report
       @current_date = Date.current
@@ -158,18 +169,17 @@ module Admin
           Arel.sql('users.name'),
           Arel.sql('COUNT(DISTINCT enrollment_sections.section_id)'),
           Arel.sql('COUNT(DISTINCT enrollment_sections.date)'),
-          Arel.sql('COUNT(*)'),
           Arel.sql('COUNT(DISTINCT enrollment_sections.enrollment_id)'),
           Arel.sql('COUNT(CASE WHEN enrollment_sections.attended = true THEN 1 END)'),
           Arel.sql('COUNT(CASE WHEN enrollment_sections.attended = false THEN 1 END)')
         )
 
-      @teacher_report = teacher_data.map do |teacher_id, name, sections, class_dates, total_entries, students, present, absent|
+      @teacher_report = teacher_data.map do |teacher_id, name, sections, class_dates, students, present, absent|
         registered = present + absent
         rate = registered > 0 ? ((present.to_f / registered) * 100).round(0) : nil
         {
           teacher_id: teacher_id, name: name, sections: sections,
-          class_dates: class_dates, total_entries: total_entries,
+          class_dates: class_dates,
           students: students, present: present, absent: absent, rate: rate
         }
       end.sort_by { |t| t[:name] }
@@ -177,7 +187,6 @@ module Admin
       @report_totals = {
         sections: @teacher_report.sum { |t| t[:sections] },
         class_dates: @teacher_report.sum { |t| t[:class_dates] },
-        total_entries: @teacher_report.sum { |t| t[:total_entries] },
         students: @teacher_report.sum { |t| t[:students] },
         present: @teacher_report.sum { |t| t[:present] },
         absent: @teacher_report.sum { |t| t[:absent] }

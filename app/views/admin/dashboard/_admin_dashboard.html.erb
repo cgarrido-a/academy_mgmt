@@ -48,7 +48,6 @@
           <th>Docente</th>
           <th style="text-align: center;">Secciones</th>
           <th style="text-align: center;">Clases dictadas</th>
-          <th style="text-align: center;">Total registros</th>
           <th style="text-align: center;">Alumnos</th>
           <th style="text-align: center;">Presentes</th>
           <th style="text-align: center;">Ausentes</th>
@@ -61,7 +60,6 @@
             <td><strong><%= t[:name] %></strong></td>
             <td style="text-align: center;"><%= t[:sections] %></td>
             <td style="text-align: center;"><%= t[:class_dates] %></td>
-            <td style="text-align: center;"><%= t[:total_entries] %></td>
             <td style="text-align: center;"><%= t[:students] %></td>
             <td style="text-align: center; color: #27ae60; font-weight: 600;"><%= t[:present] %></td>
             <td style="text-align: center; color: #e74c3c; font-weight: 600;"><%= t[:absent] %></td>
@@ -85,7 +83,6 @@
           <td>Total</td>
           <td style="text-align: center;"><%= @report_totals[:sections] %></td>
           <td style="text-align: center;"><%= @report_totals[:class_dates] %></td>
-          <td style="text-align: center;"><%= @report_totals[:total_entries] %></td>
           <td style="text-align: center;"><%= @report_totals[:students] %></td>
           <td style="text-align: center; color: #27ae60;"><%= @report_totals[:present] %></td>
           <td style="text-align: center; color: #e74c3c;"><%= @report_totals[:absent] %></td>
@@ -101,40 +98,5 @@
     </table>
   <% else %>
     <p style="color: #7f8c8d; text-align: center; padding: 2rem;">No hay actividad docente para este mes.</p>
-  <% end %>
-</div>
-
-<div class="card">
-  <h2>Inscripciones Recientes</h2>
-
-  <% if @recent_enrollments.any? %>
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Estudiante</th>
-          <th>Curso</th>
-          <th>Monto</th>
-          <th>Fecha</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% @recent_enrollments.each do |enrollment| %>
-          <tr>
-            <td>#<%= enrollment.id %></td>
-            <td><%= enrollment.student.user.name %></td>
-            <td><%= enrollment.sections.map { |s| s.course.title }.uniq.join(', ') %></td>
-            <td>$<%= number_with_delimiter(enrollment.enrollment_amount) %></td>
-            <td><%= enrollment.created_at.strftime('%d/%m/%Y') %></td>
-            <td>
-              <%= link_to "Ver", admin_enrollment_path(enrollment), class: "btn btn-primary" %>
-            </td>
-          </tr>
-        <% end %>
-      </tbody>
-    </table>
-  <% else %>
-    <p>No hay inscripciones recientes.</p>
   <% end %>
 </div>

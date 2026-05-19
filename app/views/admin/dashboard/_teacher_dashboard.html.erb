@@ -122,23 +122,73 @@
 
   <div class="monthly-calendar">
     <div class="calendar-weekdays">
-      <% %w[Lun Mar Mie Jue Vie Sab Dom].each do |day| %>
+      <% %w[Lun Mar Mie Jue Vie].each do |day| %>
         <div class="weekday-header"><%= day %></div>
+      <% end %>
+      <% %w[Sab Dom].each do |day| %>
+        <div class="weekday-header weekend"><%= day %></div>
       <% end %>
     </div>
 
     <div class="calendar-body">
+      <% today = Date.current %>
       <% @calendar_weeks.each do |week| %>
         <% week.each do |day| %>
-          <div class="calendar-cell <%= 'other-month' unless day[:in_month] %> <%= 'today' if day[:is_today] %>">
+          <%
+            cell_classes = []
+            cell_classes << 'other-month' unless day[:in_month]
+            cell_classes << 'today'       if day[:is_today]
+            cell_classes << 'weekend'     if [0, 6].include?(day[:date].wday)
+          %>
+          <div class="calendar-cell <%= cell_classes.join(' ') %>">
             <div class="cell-date"><%= day[:date].day %></div>
             <div class="cell-sections">
               <% day[:sections].each do |section| %>
-                <% student_count = @students_by_section_date[[section.id, day[:date]]] || 0 %>
-                <%= link_to admin_section_path(section, date: day[:date]), class: "calendar-section" do %>
-                  <span class="section-name"><%= truncate(section.course.title, length: 15) %></span>
+                <%
+                  student_count = @students_by_section_date[[section.id, day[:date]]] || 0
+                  next if student_count.zero? && !day[:is_today]
+                  status = @attendance_status_by_section_date[[section.id, day[:date]]]
+                  marked  = status ? status[:present] + status[:absent] : 0
+                  total   = status ? status[:total] : student_count
+
+                  state =
+                    if total.zero?
+                      'empty'
+                    elsif day[:is_today]
+                      'today'
+                    elsif day[:date] > today
+                      'upcoming'
+                    elsif marked == total && total.positive?
+                      'done'
+                    elsif day[:date] <= today
+                      'pending'
+                    else
+                      'upcoming'
+                    end
+
+                  dot_class = case state
+                              when 'done'     then 'done'
+                              when 'pending'  then 'pending'
+                              else 'upcoming'
+                              end
+                %>
+                <%= link_to admin_section_path(section, date: day[:date]),
+                      class: "calendar-section state-#{state}",
+                      title: state == 'done'    ? "Asistencia completa (#{status[:present]}/#{total})" :
+                             state == 'pending' ? "Pendiente de marcar (#{total - marked} sin asistencia)" :
+                             "#{total} alumnos" do %>
+                  <span class="section-name"><%= truncate(section.course.title, length: 18) %></span>
                   <span class="section-schedule"><%= section.formatted_schedule %></span>
-                  <span class="section-students"><%= student_count %> alumnos</span>
+                  <span class="section-students">
+                    <span class="att-dot <%= dot_class %>"></span>
+                    <% if state == 'done' %>
+                      ✓ <%= status[:present] %>/<%= total %>
+                    <% elsif state == 'pending' %>
+                      <%= total - marked %>/<%= total %> sin marcar
+                    <% else %>
+                      <%= total %> alumno<%= 's' if total != 1 %>
+                    <% end %>
+                  </span>
                 <% end %>
               <% end %>
             </div>
@@ -146,5 +196,12 @@
         <% end %>
       <% end %>
     </div>
+  </div>
+
+  <div class="calendar-legend-row">
+    <span class="legend-item"><span class="legend-swatch state-today"></span> Hoy</span>
+    <span class="legend-item"><span class="legend-swatch state-upcoming"></span> Próximas</span>
+    <span class="legend-item"><span class="legend-swatch state-pending"></span> Pendiente de marcar</span>
+    <span class="legend-item"><span class="legend-swatch state-done"></span> Asistencia completa</span>
   </div>
 </div>

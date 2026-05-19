@@ -55,8 +55,7 @@ module Api
           formatted_schedule: section.formatted_schedule,
           weekday: section.weekday,
           total_places: section.places,
-          enrolled_students: section.enrollments.count,
-          available_places: section.available_places
+          enrolled_students: section.enrollments.count
         }
       end
 

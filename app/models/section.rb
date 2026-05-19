@@ -15,15 +15,6 @@ class Section < ApplicationRecord
   validates :weekday, presence: true
   validate :schedule_format
 
-  # Instance methods
-  def available_places
-    places - enrollments.distinct.count
-  end
-
-  def has_available_places?
-    available_places > 0
-  end
-
   # Calculate available places for a specific date
   def available_places_for_date(date)
     enrolled_count = enrollment_sections.where(date: date).count

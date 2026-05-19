@@ -31,6 +31,8 @@ module Admin
 
       if @user.teacher.present?
         load_teacher_data
+      elsif @user.student.present?
+        load_student_data
       end
     end
 
@@ -99,6 +101,41 @@ module Admin
       return 'student' if user.student.present?
       return 'admin' if user.admin_user.present?
       'none'
+    end
+
+    def load_student_data
+      student = @user.student
+      @student_enrollments = student.enrollments
+                                    .includes(:weekly_plan, :payment_method, :payments,
+                                              enrollment_sections: { section: :course })
+                                    .order(created_at: :desc)
+
+      # Agregados de asistencia: regular = clases del plan; makeup = recuperatorios
+      regular_total = 0
+      regular_present = 0
+      makeup_present = 0
+      total_to_pay = 0
+      total_paid = 0
+      makeup_total = 0
+
+      @student_enrollments.each do |enr|
+        regulars = enr.enrollment_sections.select(&:regular?)
+        makeups  = enr.enrollment_sections.select(&:makeup?)
+        regular_total   += regulars.size
+        regular_present += regulars.count { |es| es.attended == true }
+        makeup_total    += makeups.size
+        makeup_present  += makeups.count { |es| es.attended == true }
+
+        total_to_pay += enr.enrollment_amount.to_i + enr.total_tuition_fee.to_i
+        total_paid   += enr.payments.select { |p| p.status == 'completed' }.sum(&:amount).to_i
+      end
+
+      @student_total_classes     = regular_total
+      @student_attendance_rate   = regular_total.positive? ? ((regular_present + makeup_present).to_f / regular_total * 100).round : nil
+      @student_makeup_total      = makeup_total
+      @student_total_to_pay      = total_to_pay
+      @student_total_paid        = total_paid
+      @student_balance           = total_to_pay - total_paid
     end
 
     def load_teacher_data

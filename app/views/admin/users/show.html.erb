@@ -34,23 +34,10 @@
     </div>
   <% end %>
 
-  <% if @user.student %>
+  <% if @user.student && @user.phone.present? %>
     <div class="form-group">
-      <strong>Inscripciones:</strong>
-      <% enrollments = @user.student.enrollments %>
-      <% if enrollments.any? %>
-        <ul>
-          <% enrollments.each do |enrollment| %>
-            <li>
-              <%= link_to enrollment.sections.map { |s| s.course.title }.uniq.join(', '), admin_enrollment_path(enrollment) %> -
-              <%= enrollment.sections.map { |s| s.formatted_schedule }.join(', ') %>
-              (Monto: $<%= number_with_delimiter(enrollment.enrollment_amount) %>)
-            </li>
-          <% end %>
-        </ul>
-      <% else %>
-        <p>No tiene inscripciones actualmente.</p>
-      <% end %>
+      <strong>Teléfono:</strong>
+      <p><%= @user.phone %></p>
     </div>
   <% end %>
 
@@ -66,6 +53,104 @@
     <p><%= @user.created_at.strftime('%d/%m/%Y %H:%M') %></p>
   </div>
 </div>
+
+<% if @user.student %>
+  <style>
+    .stu-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.85rem; margin-bottom: 1.5rem; }
+    .stu-stat { background: white; border: 1px solid #e9ecef; border-radius: 8px; padding: 0.95rem 1rem; }
+    .stu-stat .label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; color: #7f8c8d; margin-bottom: 0.4rem; }
+    .stu-stat .value { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; color: #2c3e50; }
+    .stu-stat .sub { font-size: 0.78rem; color: #7f8c8d; margin-top: 0.35rem; }
+    .stu-stat.attendance .value { color: #3498db; }
+    .stu-stat.makeups    .value { color: #5b21b6; }
+    .stu-stat.balance.debt  .value { color: #e74c3c; }
+    .stu-stat.balance.clear .value { color: #27ae60; }
+
+    .enr-card { display: grid; grid-template-columns: 1fr auto; gap: 1rem; padding: 1rem; border: 1px solid #e9ecef; border-radius: 8px; margin-bottom: 0.85rem; background: white; align-items: center; }
+    .enr-card-info h4 { margin: 0 0 0.35rem 0; font-size: 1rem; color: #2c3e50; font-weight: 600; }
+    .enr-card-meta { color: #7f8c8d; font-size: 0.85rem; line-height: 1.5; }
+    .enr-card-meta strong { color: #2c3e50; font-weight: 600; }
+    .enr-card-actions { display: flex; gap: 0.5rem; align-items: center; }
+    .balance-tag { display: inline-block; padding: 0.18rem 0.55rem; border-radius: 10px; font-size: 0.75rem; font-weight: 600; }
+    .balance-tag.debt { background: #fee2e2; color: #991b1b; }
+    .balance-tag.clear { background: #d1fae5; color: #065f46; }
+  </style>
+
+  <% if @student_enrollments.any? %>
+    <div class="stu-stats">
+      <div class="stu-stat attendance">
+        <div class="label">Asistencia agregada</div>
+        <div class="value"><%= @student_attendance_rate ? "#{@student_attendance_rate}%" : '—' %></div>
+        <div class="sub">Sobre <%= @student_total_classes %> clases del plan</div>
+      </div>
+      <div class="stu-stat">
+        <div class="label">Inscripciones</div>
+        <div class="value"><%= @student_enrollments.size %></div>
+        <div class="sub">Total histórico</div>
+      </div>
+      <div class="stu-stat makeups">
+        <div class="label">Recuperatorios</div>
+        <div class="value"><%= @student_makeup_total %></div>
+      </div>
+      <div class="stu-stat balance <%= @student_balance.positive? ? 'debt' : 'clear' %>">
+        <div class="label">Saldo</div>
+        <div class="value">
+          <% if @student_balance.positive? %>
+            $<%= number_with_delimiter(@student_balance) %>
+          <% else %>
+            ✓ Al día
+          <% end %>
+        </div>
+        <div class="sub">$<%= number_with_delimiter(@student_total_paid) %> de $<%= number_with_delimiter(@student_total_to_pay) %></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Inscripciones (<%= @student_enrollments.size %>)</h2>
+      <% @student_enrollments.each do |enr| %>
+        <%
+          courses = enr.enrollment_sections.map { |es| es.section.course }.uniq
+          regulars = enr.enrollment_sections.select(&:regular?)
+          enr_present = regulars.count { |es| es.attended == true }
+          enr_total = regulars.size
+          enr_rate = enr_total.positive? ? ((enr_present + enr.enrollment_sections.select(&:makeup?).count { |m| m.attended == true }).to_f / enr_total * 100).round : nil
+          enr_paid = enr.payments.select { |p| p.status == 'completed' }.sum(&:amount).to_i
+          enr_total_pay = enr.enrollment_amount.to_i + enr.total_tuition_fee.to_i
+          enr_balance = enr_total_pay - enr_paid
+        %>
+        <div class="enr-card">
+          <div class="enr-card-info">
+            <h4>
+              <%= link_to "Inscripción ##{enr.id}", admin_enrollment_path(enr), style: "color: #2c3e50; text-decoration: none;" %>
+              · <%= courses.map(&:title).join(', ') %>
+            </h4>
+            <div class="enr-card-meta">
+              Plan: <strong><%= enr.weekly_plan.plan %></strong>
+              · <%= enr.payment_method.payment_method %>
+              · Inscrito <%= I18n.l(enr.created_at.to_date, format: '%d/%m/%Y') %>
+              <br>
+              Asistencia: <strong><%= enr_rate ? "#{enr_rate}%" : '—' %></strong>
+              (<%= enr_present %>/<%= enr_total %>)
+              · Saldo:
+              <% if enr_balance.positive? %>
+                <span class="balance-tag debt">Debe $<%= number_with_delimiter(enr_balance) %></span>
+              <% else %>
+                <span class="balance-tag clear">Al día</span>
+              <% end %>
+            </div>
+          </div>
+          <div class="enr-card-actions">
+            <%= link_to "Ver inscripción", admin_enrollment_path(enr), class: "btn btn-primary" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="card">
+      <p style="color: #7f8c8d; text-align: center; padding: 1.5rem;">Este alumno no tiene inscripciones registradas.</p>
+    </div>
+  <% end %>
+<% end %>
 
 <% if @user.teacher && @teacher_sections.present? %>
   <!-- Estadísticas del Docente -->

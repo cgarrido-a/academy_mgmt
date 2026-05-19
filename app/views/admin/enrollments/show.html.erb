@@ -286,6 +286,15 @@
                 <span class="kind-tag has-makeup" title="Se recupera el <%= I18n.l(es.makeup.date, format: '%d/%m/%Y') %>">↪ Recuperado</span>
               <% end %>
               <div class="schedule"><%= section.teacher.user.name %></div>
+              <% if es.makeup? && es.makeup_reason.present? %>
+                <div style="font-size: 0.78rem; color: #5b21b6; margin-top: 0.2rem; font-style: italic;">
+                  💬 <%= es.makeup_reason %>
+                </div>
+              <% elsif es.attended == false && es.makeup&.makeup_reason.present? %>
+                <div style="font-size: 0.78rem; color: #065f46; margin-top: 0.2rem; font-style: italic;">
+                  💬 <%= es.makeup.makeup_reason %>
+                </div>
+              <% end %>
             </div>
             <div>
               <% if es.attended == true %>

@@ -264,12 +264,15 @@
                                   style: "color: #2c3e50; text-decoration: none;",
                                   title: "Ver inscripción" %>
                             <% if es.makeup? && es.makes_up_for %>
-                              <span class="makeup-badge is-makeup" title="Recupera la falta del <%= I18n.l(es.makes_up_for.date, format: '%d/%m/%Y') %> en <%= es.makes_up_for.section.course.title %>">🔁 Recuperatorio</span>
+                              <span class="makeup-badge is-makeup" title="Recupera la falta del <%= I18n.l(es.makes_up_for.date, format: '%d/%m/%Y') %> en <%= es.makes_up_for.section.course.title %><%= " — Motivo: #{es.makeup_reason}" if es.makeup_reason.present? %>">🔁 Recuperatorio</span>
                             <% elsif es.attended == false && es.makeup.present? %>
                               <span class="makeup-badge has-makeup" title="Recuperado el <%= I18n.l(es.makeup.date, format: '%d/%m/%Y') %> en <%= es.makeup.section.course.title %>">↪ Recuperado <%= I18n.l(es.makeup.date, format: '%d/%m') %></span>
                             <% end %>
                           </strong>
                           <span class="student-email"><%= es.enrollment.student.user.email %></span>
+                          <% if es.makeup? && es.makeup_reason.present? %>
+                            <div style="font-size: 0.78rem; color: #5b21b6; margin-top: 0.15rem; font-style: italic;">💬 <%= es.makeup_reason %></div>
+                          <% end %>
                           <% if es.attended == false && es.regular? && es.makeup.blank? && can?(:makeup, es) %>
                             <%= link_to makeup_admin_enrollment_section_path(es), class: "makeup-link" do %>
                               🔁 Asignar recuperatorio
@@ -350,12 +353,15 @@
                                 style: "color: #2c3e50; text-decoration: none;",
                                 title: "Ver inscripción" %>
                           <% if es.makeup? && es.makes_up_for %>
-                            <span class="makeup-badge is-makeup" title="Recupera la falta del <%= I18n.l(es.makes_up_for.date, format: '%d/%m/%Y') %> en <%= es.makes_up_for.section.course.title %>">🔁 Recuperatorio</span>
+                            <span class="makeup-badge is-makeup" title="Recupera la falta del <%= I18n.l(es.makes_up_for.date, format: '%d/%m/%Y') %> en <%= es.makes_up_for.section.course.title %><%= " — Motivo: #{es.makeup_reason}" if es.makeup_reason.present? %>">🔁 Recuperatorio</span>
                           <% elsif es.attended == false && es.makeup.present? %>
                             <span class="makeup-badge has-makeup" title="Recuperado el <%= I18n.l(es.makeup.date, format: '%d/%m/%Y') %> en <%= es.makeup.section.course.title %>">↪ Recuperado <%= I18n.l(es.makeup.date, format: '%d/%m') %></span>
                           <% end %>
                         </strong>
                         <span class="student-email"><%= es.enrollment.student.user.email %></span>
+                        <% if es.makeup? && es.makeup_reason.present? %>
+                          <div style="font-size: 0.78rem; color: #5b21b6; margin-top: 0.15rem; font-style: italic;">💬 <%= es.makeup_reason %></div>
+                        <% end %>
                         <% if es.attended == false && es.regular? && es.makeup.blank? && can?(:makeup, es) %>
                           <%= link_to makeup_admin_enrollment_section_path(es), class: "makeup-link" do %>
                             🔁 Asignar recuperatorio

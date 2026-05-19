@@ -1,6 +1,9 @@
 class EnrollmentSection < ApplicationRecord
   KINDS = %w[regular makeup].freeze
 
+  # El admin puede saltarse la regla "dentro del período del plan" para hacer excepciones.
+  attr_accessor :skip_period_rule
+
   # Associations
   belongs_to :enrollment
   belongs_to :section
@@ -16,6 +19,7 @@ class EnrollmentSection < ApplicationRecord
   validate :section_has_available_places_for_date
   validate :makeup_origin_is_an_absence
   validate :makeup_belongs_to_same_enrollment
+  validate :makeup_within_contract_period
 
   # Scopes
   scope :regular, -> { where(kind: 'regular') }
@@ -27,6 +31,13 @@ class EnrollmentSection < ApplicationRecord
 
   def makeup?
     kind == 'makeup'
+  end
+
+  # Período del contrato = rango entre la primera y última clase regular del enrollment.
+  def self.contract_window_for(enrollment)
+    dates = enrollment.enrollment_sections.regular.pluck(:date)
+    return [nil, nil] if dates.empty?
+    [dates.min, dates.max]
   end
 
   private
@@ -57,6 +68,22 @@ class EnrollmentSection < ApplicationRecord
 
     if makes_up_for.enrollment_id != enrollment_id
       errors.add(:makes_up_for, 'debe pertenecer al mismo estudiante (misma inscripción)')
+    end
+  end
+
+  # El recuperatorio debe estar dentro del período del plan contratado.
+  # El admin puede saltarse esta regla seteando skip_period_rule = true.
+  def makeup_within_contract_period
+    return unless makeup?
+    return if skip_period_rule
+    return if date.blank? || enrollment.blank?
+
+    contract_start, contract_end = self.class.contract_window_for(enrollment)
+    return if contract_start.blank? || contract_end.blank?
+
+    unless date >= contract_start && date <= contract_end
+      errors.add(:date,
+                 "debe estar dentro del período del plan contratado (#{contract_start.strftime('%d/%m/%Y')} – #{contract_end.strftime('%d/%m/%Y')})")
     end
   end
 end

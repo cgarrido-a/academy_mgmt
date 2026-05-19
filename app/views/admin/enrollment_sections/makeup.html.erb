@@ -42,14 +42,32 @@
       (<%= @origin_section.weekday %> <%= @origin_section.formatted_schedule %>)
       el <strong><%= I18n.l(@enrollment_section.date, format: '%A %d de %B, %Y').capitalize %></strong>.
     </p>
+    <% if @contract_start && @contract_end %>
+      <p style="margin-top: 0.5rem; font-size: 0.9rem;">
+        <span class="label" style="display: inline; margin: 0;">Vigencia del plan:</span>
+        <strong><%= I18n.l(@contract_start, format: '%d/%m/%Y') %></strong>
+        →
+        <strong><%= I18n.l(@contract_end, format: '%d/%m/%Y') %></strong>
+      </p>
+    <% end %>
   </div>
+
+  <% if current_admin? %>
+    <div style="background: #fef3c7; border: 1px solid #f4d68c; border-radius: 6px; padding: 0.6rem 1rem; margin-bottom: 1rem; font-size: 0.85rem; color: #7a5b13;">
+      ⚠️ <strong>Modo administrador:</strong> puedes asignar recuperatorios <em>fuera</em> del período del plan (excepciones). Los docentes están limitados al período contratado.
+    </div>
+  <% end %>
 
   <h3 style="font-size: 1.05rem; color: #2c3e50; margin-bottom: 0.5rem;">Fechas disponibles en <%= @origin_section.course.title %></h3>
   <p style="color: #7f8c8d; font-size: 0.88rem; margin-bottom: 1rem;">
-    Mostrando próximas 8 semanas en otras secciones del mismo curso.
+    <% if current_admin? %>
+      Mostrando próximas 8 semanas en otras secciones del mismo curso.
+    <% else %>
+      Mostrando fechas hasta el fin del plan contratado (<%= I18n.l(@contract_end, format: '%d/%m/%Y') if @contract_end %>) en otras secciones del mismo curso.
+    <% end %>
     Los chips deshabilitados indican falta de cupo, alumno ya inscrito ese día, o sección de otro profesor.
     <% if current_teacher? %>
-      <br>🔒 <em>Solo puedes asignar recuperatorios en tus propias secciones. Las de otros profes se muestran como referencia para que puedas informar al alumno.</em>
+      <br>🔒 <em>Solo puedes asignar recuperatorios en tus propias secciones y dentro del período del plan. Las de otros profes se muestran como referencia para que puedas informar al alumno.</em>
     <% end %>
   </p>
 
@@ -80,6 +98,10 @@
                                   "Esta sección la dicta otro profesor — coordina con el admin"
                                 elsif !d[:has_room]
                                   "Sin cupo o el alumno ya está inscrito"
+                                elsif d[:out_of_contract] && !current_admin?
+                                  "Fuera del período del plan contratado"
+                                elsif d[:out_of_contract] && current_admin?
+                                  "Fuera del período del plan — solo admin puede usarla (excepción)"
                                 else
                                   ""
                                 end %>

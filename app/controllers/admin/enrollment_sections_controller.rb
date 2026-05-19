@@ -98,6 +98,8 @@ module Admin
         makes_up_for: @enrollment_section,
         makeup_reason: makeup_params[:makeup_reason]
       )
+      # Admin puede asignar recuperatorios fuera del período del plan (excepciones).
+      @makeup.skip_period_rule = true if current_admin?
 
       if @makeup.save
         redirect_to admin_section_path(target_section, date: new_date),
@@ -187,8 +189,10 @@ module Admin
       candidates = course.sections.includes(:teacher => :user).where.not(id: @origin_section.id)
       my_teacher_id = current_user.teacher&.id
 
+      @contract_start, @contract_end = EnrollmentSection.contract_window_for(@enrollment)
+
       from = Date.current
-      to = from + 8.weeks
+      to = @contract_end && !current_admin? ? [@contract_end, from + 8.weeks].min : from + 8.weeks
 
       section_ids = candidates.map(&:id)
       seat_counts = if section_ids.any?
@@ -220,12 +224,16 @@ module Admin
           break if d > to
           taken = seat_counts[[section.id, d]] || 0
           has_room = taken < section.places && !already_enrolled.include?([section.id, d])
+          out_of_contract = @contract_start && @contract_end && (d < @contract_start || d > @contract_end)
+          # El profe queda bloqueado fuera del período; el admin puede saltarse.
+          period_block = out_of_contract && !current_admin?
           dates << {
             date: d,
             taken: taken,
             places: section.places,
             has_room: has_room,
-            usable: mine && has_room
+            out_of_contract: out_of_contract,
+            usable: mine && has_room && !period_block
           }
         end
         { section: section, dates: dates, mine: mine }

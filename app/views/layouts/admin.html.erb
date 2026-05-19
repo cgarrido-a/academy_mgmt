@@ -282,10 +282,14 @@
       <% end %>
 
       <% if user_signed_in? %>
-        <span style="margin-left: 1rem; color: rgba(255,255,255,0.7);">
-          <%= current_user.email %>
-        </span>
-        <%= button_to "Cerrar Sesión", destroy_user_session_path, method: :delete, class: "btn btn-secondary", style: "display: inline-block; padding: 0.3rem 0.8rem;" %>
+        <div class="dropdown" style="margin-left: 1rem;">
+          <a><%= current_user.name.presence || current_user.email %> ▾</a>
+          <div class="dropdown-content">
+            <%= link_to "Mi perfil", edit_admin_profile_path %>
+            <%= button_to "Cerrar sesión", destroy_user_session_path, method: :delete,
+                  style: "background: transparent; border: none; color: white; padding: 0.75rem 1rem; text-align: left; width: 100%; cursor: pointer; font-size: 1rem;" %>
+          </div>
+        </div>
       <% end %>
     </nav>
   </div>

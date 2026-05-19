@@ -42,6 +42,11 @@ Rails.application.routes.draw do
   namespace :admin do
     root "dashboard#index"
     get 'export', to: 'dashboard#export', as: :export_financial_report
+
+    resource :profile, only: [:edit], controller: 'profiles' do
+      patch :personal
+      patch :password
+    end
     resources :courses do
       member do
         get :attendance

@@ -8,11 +8,11 @@ class Admin::TeacherPaymentsController < Admin::ApplicationController
                           .sort
                           .reverse
 
-    if params[:month].present?
-      @selected_month = Date.parse(params[:month])
-    else
-      @selected_month = @available_months.first || Date.current.beginning_of_month
-    end
+    @selected_month = if params[:month].present?
+                        Date.parse(params[:month])
+                      else
+                        Date.current.beginning_of_month
+                      end
 
     @selected_status = params[:status]
 
@@ -51,17 +51,15 @@ class Admin::TeacherPaymentsController < Admin::ApplicationController
     attended = attended.where(sections: { course_id: @selected_course }) if @selected_course
     attended = attended.includes(enrollment: { student: :user, weekly_plan: [] }, section: :course).to_a
 
-    session_counts = session_counts_for(attended)
-
     @enrollment_rows = attended.group_by(&:enrollment).map do |enrollment, sections|
-      total = session_counts[enrollment.id].to_i
-      price_per_class = total.zero? ? 0.0 : enrollment.total_tuition_fee.to_f / total
+      attended_value = sections.sum { |es| price_per_class(es) }
       {
         enrollment: enrollment,
         attended_count: sections.size,
-        total_sessions: total,
-        price_per_class: price_per_class,
-        attended_value: price_per_class * sections.size,
+        plan: enrollment.weekly_plan,
+        price_per_class: sections.first ? price_per_class(sections.first) : 0.0,
+        has_mixed_prices: sections.map { |es| price_per_class(es) }.uniq.size > 1,
+        attended_value: attended_value,
         courses: sections.map { |s| s.section.course }.uniq
       }
     end
@@ -110,25 +108,33 @@ class Admin::TeacherPaymentsController < Admin::ApplicationController
       .where(sections: { teacher_id: teacher_id })
   end
 
-  def session_counts_for(attended_sections)
-    enrollment_ids = attended_sections.map(&:enrollment_id).uniq
-    EnrollmentSection.where(enrollment_id: enrollment_ids).group(:enrollment_id).count
+  # Precio por clase = plan.price (o saturday_price) / plan.number_of_classes.
+  # Lo cobrado al profe NO depende del descuento por payment_period
+  # (eso lo absorbe la academia, no el profe).
+  def price_per_class(enrollment_section)
+    plan = enrollment_section.enrollment.weekly_plan
+    section = enrollment_section.section
+    classes_per_month = plan.number_of_classes.to_i
+    return 0.0 if classes_per_month.zero?
+
+    base = if section.weekday == 'Sábado' && plan.saturday_price.to_i.positive?
+             plan.saturday_price
+           else
+             plan.price
+           end
+    base.to_f / classes_per_month
   end
 
   def build_teacher_rows(month)
     attended = EnrollmentSection
                  .where(attended: true, date: month.beginning_of_month..month.end_of_month)
-                 .includes(:enrollment, section: { teacher: :user })
-
-    session_counts = session_counts_for(attended)
+                 .includes(enrollment: :weekly_plan, section: { teacher: :user })
 
     rows = {}
     attended.each do |es|
       teacher = es.section.teacher
-      count = session_counts[es.enrollment_id].to_i
-      next if count.zero?
-
-      price_per_class = es.enrollment.total_tuition_fee.to_f / count
+      ppc = price_per_class(es)
+      next if ppc.zero?
 
       row = rows[teacher.id] ||= {
         teacher: teacher,
@@ -138,7 +144,7 @@ class Admin::TeacherPaymentsController < Admin::ApplicationController
         tuition_raw: 0.0
       }
       row[:attended_count] += 1
-      row[:tuition_raw] += price_per_class
+      row[:tuition_raw] += ppc
     end
 
     rows.values.map do |r|
@@ -155,14 +161,11 @@ class Admin::TeacherPaymentsController < Admin::ApplicationController
   end
 
   def compute_teacher_payment(teacher_id, month)
-    attended = attended_sections_scope(teacher_id, month).includes(:enrollment).to_a
-    session_counts = session_counts_for(attended)
+    attended = attended_sections_scope(teacher_id, month)
+                 .includes(enrollment: :weekly_plan)
+                 .to_a
 
-    raw = attended.sum do |es|
-      count = session_counts[es.enrollment_id].to_i
-      count.zero? ? 0 : es.enrollment.total_tuition_fee.to_f / count
-    end
-
+    raw = attended.sum { |es| price_per_class(es) }
     (raw * PAYMENT_PERCENTAGE).round
   end
 end

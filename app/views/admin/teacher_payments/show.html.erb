@@ -45,7 +45,7 @@
           <th>Estudiante</th>
           <th>Curso</th>
           <th>Plan</th>
-          <th style="text-align: center;">Clases</th>
+          <th style="text-align: center;">Asistencias</th>
           <th style="text-align: right;">Precio/Clase</th>
           <th style="text-align: right;">Valor Asistidas</th>
           <th>Acciones</th>
@@ -60,10 +60,27 @@
                 <span style="background: #e8f4fd; color: #2980b9; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 500;"><%= course.title %></span>
               <% end %>
             </td>
-            <td><%= row[:enrollment].weekly_plan.plan %></td>
-            <td style="text-align: center;"><%= row[:attended_count] %>/<%= row[:total_sessions] %></td>
-            <td style="text-align: right;"><%= number_to_currency(row[:price_per_class].round, precision: 0) %></td>
-            <td style="text-align: right; font-weight: 600;"><%= number_to_currency(row[:attended_value].round, precision: 0) %></td>
+            <td>
+              <%= row[:plan].plan %>
+              <div style="font-size: 0.75rem; color: #7f8c8d;"><%= row[:plan].number_of_classes %> clases/mes</div>
+            </td>
+            <td style="text-align: center; font-weight: 600;"><%= row[:attended_count] %></td>
+            <td style="text-align: right;">
+              <% if row[:has_mixed_prices] %>
+                <span title="Mezcla de tarifas regular y sábado">varía</span>
+              <% else %>
+                <%= number_to_currency(row[:price_per_class].round, precision: 0) %>
+                <div style="font-size: 0.72rem; color: #27ae60; font-weight: 500; margin-top: 0.1rem;">
+                  Para el docente: <%= number_to_currency((row[:price_per_class] * Admin::TeacherPaymentsController::PAYMENT_PERCENTAGE).round, precision: 0) %>
+                </div>
+              <% end %>
+            </td>
+            <td style="text-align: right; font-weight: 600;">
+              <%= number_to_currency(row[:attended_value].round, precision: 0) %>
+              <div style="font-size: 0.72rem; color: #27ae60; font-weight: 500; margin-top: 0.1rem;">
+                Para el docente: <%= number_to_currency((row[:attended_value] * Admin::TeacherPaymentsController::PAYMENT_PERCENTAGE).round, precision: 0) %>
+              </div>
+            </td>
             <td>
               <%= link_to 'Ver', admin_enrollment_path(row[:enrollment]), class: 'btn btn-primary', style: "padding: 0.3rem 0.75rem; font-size: 0.85rem;" %>
             </td>

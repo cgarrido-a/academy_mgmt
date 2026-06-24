@@ -91,21 +91,47 @@ Para testing, usa estas tarjetas de Transbank:
 
 ### Ambiente de Producción
 
-Para producción, necesitas:
+Las credenciales de producción se guardan en **Rails encrypted credentials**
+(`config/credentials/production.yml.enc`), no en variables de entorno. Esto
+evita que las claves vivan en texto plano en el servidor o en paneles de
+hosting.
 
 1. **Registrarte en Transbank Developers**
    - Ir a https://www.transbankdevelopers.cl/
    - Crear una cuenta
    - Solicitar credenciales de producción
 
-2. **Configurar Variables de Entorno**
+2. **Guardar las credenciales encriptadas**
+
+   Desde una máquina con Ruby/Rails (o vía el contenedor Docker de la app):
    ```bash
-   export TRANSBANK_COMMERCE_CODE=tu_codigo_de_comercio
-   export TRANSBANK_API_KEY=tu_api_key
+   EDITOR="code --wait" bin/rails credentials:edit --environment production
    ```
 
-3. **Verificar Configuración**
-   El initializer detectará automáticamente el ambiente de producción y usará las credenciales desde las variables de entorno.
+   Estructura esperada del archivo:
+   ```yaml
+   transbank:
+     commerce_code: <tu commerce code de producción>
+     api_key: <tu api key de producción>
+   ```
+
+   Este comando genera/actualiza dos archivos:
+   - `config/credentials/production.yml.enc` — encriptado, **se commitea** al repo.
+   - `config/credentials/production.key` — la llave de desencriptación. **NO se commitea** (está en `.gitignore`). Guárdala en un gestor de secretos.
+
+3. **Configurar el servidor de producción**
+
+   Setear la variable de entorno `RAILS_MASTER_KEY` con el contenido de
+   `config/credentials/production.key`. Rails la usará para desencriptar el
+   archivo de credenciales al arrancar.
+
+4. **Verificar Configuración**
+
+   El initializer (`config/initializers/transbank.rb`) detecta el ambiente
+   automáticamente: en producción lee desde
+   `Rails.application.credentials.dig(:transbank, ...)` y falla con un error
+   explícito si faltan las claves. En desarrollo/test sigue usando las
+   credenciales de integración de Transbank.
 
 ## Rutas
 

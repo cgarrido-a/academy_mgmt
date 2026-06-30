@@ -21,33 +21,32 @@ module TransbankConfig
   PRODUCTION_API_KEY = ENV['TRANSBANK_API_KEY']
   PRODUCTION_BASE_URL = 'https://webpay3g.transbank.cl'
 
+  # Use production credentials only when running in production AND both
+  # production credentials are actually present. This prevents silently
+  # sending blank credentials to Transbank if an ENV var is missing.
+  def self.use_production?
+    Rails.env.production? && PRODUCTION_COMMERCE_CODE.present? && PRODUCTION_API_KEY.present?
+  end
+
   def self.commerce_code
-    # TEMPORARY: Force integration credentials for testing
-    # TODO: Remove this and use production credentials when ready
-    INTEGRATION_COMMERCE_CODE
-    # Rails.env.production? ? PRODUCTION_COMMERCE_CODE : INTEGRATION_COMMERCE_CODE
+    use_production? ? PRODUCTION_COMMERCE_CODE : INTEGRATION_COMMERCE_CODE
   end
 
   def self.api_key
-    # TEMPORARY: Force integration credentials for testing
-    # TODO: Remove this and use production credentials when ready
-    INTEGRATION_API_KEY
-    # Rails.env.production? ? PRODUCTION_API_KEY : INTEGRATION_API_KEY
+    use_production? ? PRODUCTION_API_KEY : INTEGRATION_API_KEY
   end
 
   def self.base_url
-    # TEMPORARY: Force integration URL for testing
-    # TODO: Remove this and use production URL when ready
-    INTEGRATION_BASE_URL
-    # Rails.env.production? ? PRODUCTION_BASE_URL : INTEGRATION_BASE_URL
+    use_production? ? PRODUCTION_BASE_URL : INTEGRATION_BASE_URL
   end
 
   def self.environment
-    # TEMPORARY: Force integration environment for testing
-    # TODO: Remove this and use production when ready
-    :integration
-    # Rails.env.production? ? :production : :integration
+    use_production? ? :production : :integration
   end
 end
 
 Rails.logger.info "Transbank configuration loaded for #{TransbankConfig.environment} environment"
+if Rails.env.production? && !TransbankConfig.use_production?
+  Rails.logger.warn "Transbank: running in Rails production but FALLING BACK to integration " \
+                    "credentials (TRANSBANK_COMMERCE_CODE / TRANSBANK_API_KEY missing or blank)."
+end

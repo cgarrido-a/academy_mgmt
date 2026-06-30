@@ -35,16 +35,23 @@ module Students
       )
 
       # Initialize Webpay Plus transaction
-      tx = Transbank::Webpay::WebpayPlus::Transaction.new(
+      # NOTE: SDK 5.x expects an options object (responding to commerce_code,
+      # api_key, environment, timeout) and POSITIONAL args for #create.
+      require 'ostruct'
+
+      options = OpenStruct.new(
         commerce_code: TransbankConfig.commerce_code,
         api_key: TransbankConfig.api_key,
-        environment: TransbankConfig.environment
+        environment: TransbankConfig.environment,
+        timeout: 15000
       )
+
+      tx = Transbank::Webpay::WebpayPlus::Transaction.new(options)
       response = tx.create(
-        buy_order: buy_order,
-        session_id: session.id.to_s,
-        amount: @enrollment.total_tuition_fee.to_i,
-        return_url: transbank_return_url
+        buy_order,
+        session.id.to_s,
+        @enrollment.total_tuition_fee.to_i,
+        transbank_return_url
       )
 
       # Update transaction with token

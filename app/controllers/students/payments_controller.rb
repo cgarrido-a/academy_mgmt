@@ -1,9 +1,10 @@
 module Students
   class PaymentsController < ApplicationController
+    before_action :authenticate_user!
     before_action :set_student
     before_action :set_enrollment, only: [:pay_enrollment_fee]
 
-    # GET /student/payments
+    # GET /students/payments
     def index
       @enrollments = @student.enrollments.includes(:sections, :weekly_plan, :payment_method)
       @pending_enrollment_fees = @enrollments.reject(&:enrollment_fee_paid?)
@@ -12,7 +13,7 @@ module Students
       @pending_installments = []
     end
 
-    # POST /student/payments/pay_enrollment_fee/:enrollment_id
+    # POST /students/payments/pay_enrollment_fee/:enrollment_id
     def pay_enrollment_fee
       if @enrollment.enrollment_fee_paid?
         render json: {
@@ -84,9 +85,12 @@ module Students
     private
 
     def set_student
-      # TODO: Replace with actual authentication
-      # For now, get student from params or session
-      @student = Student.find(params[:student_id] || session[:student_id] || 1)
+      # El estudiante siempre es el usuario autenticado; nunca se toma de params.
+      @student = current_user.student
+
+      unless @student
+        redirect_to unauthorized_path, alert: 'No tienes un perfil de estudiante.'
+      end
     end
 
     def set_enrollment

@@ -1,452 +1,253 @@
 # Integración con Transbank Webpay Plus
 
-Este documento describe cómo funciona la integración con Transbank Webpay Plus para pagos online.
+Este documento describe cómo funciona la integración con Transbank Webpay Plus para
+pagos online. Refleja el comportamiento real del código; ver también
+`docs/arquitectura.md` para el panorama general del proyecto.
 
 ## Descripción General
 
-El sistema permite a los estudiantes pagar sus matrículas a través de Transbank Webpay Plus, procesando automáticamente los pagos y actualizando los estados correspondientes.
+El sistema cobra la matrícula/arancel de una inscripción a través de Transbank Webpay
+Plus. Existen **dos entradas** al mismo flujo de pago:
 
-## Flujo de Pago
+1. **Inscripción nueva desde la SPA** (`POST /api/v1/enrollments`): se inicia el pago
+   **antes** de crear la inscripción. La inscripción se materializa recién cuando el
+   pago se confirma en el callback.
+2. **Pago de una inscripción ya existente** (`POST /students/payments/pay_enrollment_fee/:enrollment_id`):
+   la inscripción ya existe en la base de datos y solo falta pagar su arancel.
 
-### Flujo Principal: Inscripción + Pago de Matrícula
+Ambos terminan en el mismo callback (`/transbank/callback`), que confirma la
+transacción con Transbank y crea el/los `Payment` correspondientes.
 
-```
-1. Estudiante → Completa formulario de inscripción en el frontend
-2. Frontend → POST /api/v1/enrollments (crea enrollment + inicia pago)
-3. Backend → Crea Student (si no existe)
-4. Backend → Crea Enrollment
-5. Backend → Crea TransbankTransaction (status: pending)
-6. Backend → Inicia transacción con Transbank API
-7. Backend → Retorna JSON con datos del enrollment + URL de Transbank
-8. Frontend → Redirige al estudiante a Transbank (window.location.href)
-9. Estudiante → Completa el pago en Transbank
-10. Transbank → Redirige al callback /transbank/callback (en backend)
-11. Backend → Confirma la transacción con Transbank
-12. Backend → Si aprobada:
-   - Crea registro Payment para la matrícula
-   - Actualiza TransbankTransaction (status: authorized)
-   - Marca enrollment_fee_paid = true
-13. Backend → Redirige a página de éxito/fallo (puede ser en frontend)
-```
+## Flujo 1 — Inscripción nueva desde la SPA (principal)
 
-
-### Con Vistas de Rails (Monolito)
+Punto clave: **no se crea Student ni Enrollment al iniciar el pago**. El controller lo
+dice explícitamente (*"Initialize Transbank payment WITHOUT creating enrollments.
+Enrollments will be created after successful payment"*). Los datos de la inscripción se
+guardan como JSON en `enrollment_data` y se usan luego para crear todo.
 
 ```
-1. Estudiante → Ve sus pagos pendientes en /student/payments
-2. Estudiante → Hace clic en "Pagar con Webpay"
-3. Sistema → Crea TransbankTransaction (status: pending)
-4. Sistema → Inicia transacción con Transbank API
-5. Estudiante → Redirigido a Transbank para ingresar datos de tarjeta
-6. Estudiante → Completa el pago en Transbank
-7. Transbank → Redirige al callback /transbank/callback
-8. Sistema → Confirma la transacción con Transbank
-9. Sistema → Si aprobada:
-   - Crea registro Payment
-   - Actualiza TransbankTransaction (status: authorized)
-10. Estudiante → Redirigido a página de éxito/fallo
+1. Frontend (SPA) → POST /api/v1/enrollments  (body: { enrollments: [ {...}, ... ] })
+2. Backend → Calcula el monto total sumando cada enrollment (WeeklyPlan + PaymentPeriod)
+3. Backend → tx.create(...) con Transbank → obtiene token + url
+4. Backend → Crea TransbankTransaction (status: pending, enrollment_id: nil,
+             enrollment_data: { enrollments: [...] }, buy_order: "PEND-{timestamp}")
+5. Backend → Responde JSON con { success, message, transbank_payment: {...} }
+6. Frontend → Redirige el navegador a transbank_payment.full_url
+7. Cliente → Paga en Transbank
+8. Transbank → Redirige a BACKEND_URL/transbank/callback (con token_ws)
+9. Backend → tx.commit(token)
+10. Backend → Si aprobado (response_code == 0): mark_as_authorized!
+    - Crea la(s) inscripción(es) desde enrollment_data (vía EnrollmentCreator)
+    - Crea un Payment (status: completed) por cada inscripción
+    - Actualiza la TransbankTransaction (status: authorized, code, tarjeta, etc.)
+11. Backend → Redirige a FRONTEND_URL/payment/success (o /failure si rechazado/cancelado)
 ```
 
-## Modelos
+### Request
 
-### TransbankTransaction
-Almacena información de cada intento de pago:
-- `token`: Token único de Transbank
-- `buy_order`: Orden de compra generada
-- `amount`: Monto de la transacción
-- `status`: pending, authorized, failed, nullified
-- `authorization_code`: Código de autorización de Transbank (si aprobada)
-- `raw_response`: Respuesta completa de Transbank
+`POST /api/v1/enrollments` espera **un array** bajo la clave `enrollments`. Cada
+elemento acepta (ver `Api::V1::EnrollmentsController#enrollments_params`):
 
-### Payment (actualizado)
-- Se crea automáticamente cuando TransbankTransaction es autorizada
-- `reference_number` contiene el `authorization_code` de Transbank
-- `notes` incluye el `buy_order` para trazabilidad
-
-## Configuración
-
-### Ambiente de Integración (Desarrollo/Testing)
-
-El ambiente de integración usa credenciales de prueba de Transbank:
-- **Commerce Code**: 597055555532
-- **API Key**: 579B532A7440BB0C9079DED94D31EA1615BACEB56610332264630D42D0A36B1C
-
-Estas credenciales están configuradas automáticamente en `config/initializers/transbank.rb`.
-
-### Tarjetas de Prueba
-
-Para testing, usa estas tarjetas de Transbank:
-
-**Tarjetas de Débito:**
-- Número: 4051 8856 0044 6623
-- CVV: 123
-- Fecha: cualquier fecha futura
-- RUT: 11.111.111-1
-- Clave: 123
-
-**Tarjetas de Crédito:**
-- Redcompra: 4051 8842 3993 7763
-- Mastercard: 5186 0595 3805 6286
-- Visa: 4051 8856 0044 6623
-
-### Ambiente de Producción
-
-Para producción, necesitas:
-
-1. **Registrarte en Transbank Developers**
-   - Ir a https://www.transbankdevelopers.cl/
-   - Crear una cuenta
-   - Solicitar credenciales de producción
-
-2. **Configurar Variables de Entorno**
-   ```bash
-   export TRANSBANK_COMMERCE_CODE=tu_codigo_de_comercio
-   export TRANSBANK_API_KEY=tu_api_key
-   ```
-
-3. **Verificar Configuración**
-   El initializer detectará automáticamente el ambiente de producción y usará las credenciales desde las variables de entorno.
-
-## Rutas
-
-### API de Inscripción (Frontend Separado)
-- `POST /api/v1/enrollments` - Crear inscripción e iniciar pago de matrícula
-
-### Para Estudiantes
-- `GET /student/payments` - Ver pagos pendientes
-- `POST /student/payments/pay_enrollment_fee/:enrollment_id` - Iniciar pago de matrícula (si ya existe enrollment)
-
-### Callbacks de Transbank
-- `GET/POST /transbank/callback` - Callback de Transbank (recibe confirmación)
-- `GET /transbank/result/success` - Página de éxito
-- `GET /transbank/result/failure` - Página de fallo
-
-## Integración con Frontend Separado
-
-### Respuesta JSON de las APIs
-
-El endpoint `pay_enrollment_fee` retorna JSON:
-
-**Respuesta Exitosa (200 OK):**
 ```json
 {
-  "url": "https://webpay3gint.transbank.cl/webpayserver/initTransaction",
-  "token": "01ab89c...",
-  "full_url": "https://webpay3gint.transbank.cl/webpayserver/initTransaction?token_ws=01ab89c...",
-  "buy_order": "ENR-123-20251117",
-  "amount": 50000
-}
-```
-
-**Respuesta de Error (422 o 500):**
-```json
-{
-  "error": "La matrícula ya ha sido pagada."
-}
-```
-
-### Ejemplo de Integración Frontend
-
-#### 1. Crear Inscripción e Iniciar Pago (Flujo Principal)
-
-**JavaScript / Fetch API:**
-
-```javascript
-// Crear enrollment y obtener URL de pago
-async function createEnrollmentAndPay(enrollmentData) {
-  try {
-    const response = await fetch('/api/v1/enrollments', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      credentials: 'include',
-      body: JSON.stringify({
-        enrollment: {
-          name: enrollmentData.name,
-          email: enrollmentData.email,
-          section_ids: enrollmentData.section_ids,
-          payment_plan_id: enrollmentData.payment_plan_id,
-          payment_method_id: 2, // Webpay Plus
-          enrollment_amount: enrollmentData.enrollment_amount
-        }
-      })
-    });
-
-    const data = await response.json();
-
-    if (data.success && data.transbank_payment) {
-      // Guardar enrollment_id por si se necesita después
-      localStorage.setItem('enrollment_id', data.enrollment_id);
-
-      // Redirigir a Transbank para pagar
-      window.location.href = data.transbank_payment.full_url;
-    } else {
-      // Mostrar errores
-      console.error('Errores:', data.errors);
-      alert('Error al crear la inscripción');
+  "enrollments": [
+    {
+      "name": "Juan Pérez",
+      "email": "juan@example.com",
+      "phone": "+56912345678",
+      "start_date": "2026-03-02",
+      "weekly_plan_id": 1,
+      "payment_method_id": 2,
+      "payment_period_id": 1,
+      "section_ids": [3, 4],
+      "section_dates": { "3": ["2026-03-02", "..."] }
     }
-  } catch (error) {
-    console.error('Error:', error);
-    alert('Error al conectar con el servidor');
-  }
-}
-
-// Ejemplo de uso
-const enrollmentData = {
-  name: 'Juan Pérez',
-  email: 'juan@example.com',
-  section_ids: [1, 2], // IDs de las secciones/cursos
-  payment_plan_id: 1,
-  enrollment_amount: 50000
-};
-
-createEnrollmentAndPay(enrollmentData);
-```
-
-**React Example:**
-
-```jsx
-import { useState } from 'react';
-
-function EnrollmentForm() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    section_ids: [],
-    payment_plan_id: '',
-    enrollment_amount: 0
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch('/api/v1/enrollments', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({ enrollment: formData })
-      });
-
-      const data = await response.json();
-
-      if (data.success && data.transbank_payment) {
-        // Guardar enrollment_id
-        localStorage.setItem('enrollment_id', data.enrollment_id);
-
-        // Redirigir a Transbank
-        window.location.href = data.transbank_payment.full_url;
-      } else {
-        setError(data.errors || 'Error al crear la inscripción');
-      }
-    } catch (err) {
-      setError('Error al procesar la inscripción');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit}>
-      <input
-        type="text"
-        placeholder="Nombre completo"
-        value={formData.name}
-        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-        required
-      />
-      <input
-        type="email"
-        placeholder="Email"
-        value={formData.email}
-        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-        required
-      />
-      {/* Más campos del formulario... */}
-
-      <button type="submit" disabled={loading}>
-        {loading ? 'Procesando...' : 'Inscribirse y Pagar'}
-      </button>
-
-      {error && <div className="error">{JSON.stringify(error)}</div>}
-    </form>
-  );
+  ]
 }
 ```
 
-**Respuesta del Backend:**
+Notas:
+- Usa `weekly_plan_id` y `payment_period_id` (no existe `payment_plan_id`).
+- `section_ids` (array) o `section_id` (único); `section_dates` permite fechas
+  específicas por sección en vez de generarlas desde `start_date`.
+- El monto total se calcula en el backend con `WeeklyPlan#calculate_final_price` /
+  `determine_base_price` (aplica precio de sábado y descuento del período).
+
+### Respuesta
 
 ```json
 {
   "success": true,
-  "message": "Enrollment created successfully",
-  "enrollment_id": 123,
-  "data": {
-    "id": 123,
-    "student": {
-      "id": 45,
-      "name": "Juan Pérez",
-      "email": "juan@example.com"
-    },
-    "sections": [...],
-    "payment_plan": {...},
-    "enrollment_amount": 50000
-  },
+  "message": "Transacción iniciada. Complete el pago para finalizar la inscripción",
   "transbank_payment": {
     "url": "https://webpay3gint.transbank.cl/webpayserver/initTransaction",
     "token": "01ab89c...",
     "full_url": "https://webpay3gint.transbank.cl/webpayserver/initTransaction?token_ws=01ab89c...",
-    "buy_order": "ENR-123-20251117",
-    "amount": 50000
+    "buy_order": "PEND-1733452718",
+    "amount": 50000,
+    "transaction_id": 42
   }
 }
 ```
 
-### Configuración CORS
+En error responde `{ "success": false, "error": "..." }` con status 500.
 
-Para que el frontend pueda comunicarse con el backend desde otro dominio:
+**Importante:** la respuesta **no** incluye `enrollment_id` ni datos del estudiante,
+porque la inscripción todavía no existe en este punto. El frontend solo debe redirigir a
+`transbank_payment.full_url`.
 
-**Ya está configurado en `config/initializers/cors.rb`:**
-```ruby
-Rails.application.config.middleware.insert_before 0, Rack::Cors do
-  allow do
-    origins '*' # En desarrollo
-    # En producción: origins 'https://tu-frontend.com'
+### Ejemplo de integración (SPA)
 
-    resource '*',
-      headers: :any,
-      methods: [:get, :post, :put, :patch, :delete, :options, :head],
-      credentials: true
-  end
-end
+```javascript
+async function createEnrollmentAndPay(enrollments) {
+  const response = await fetch(`${BACKEND_URL}/api/v1/enrollments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ enrollments }) // ← array bajo la clave "enrollments"
+  });
+
+  const data = await response.json();
+  if (data.success) {
+    window.location.href = data.transbank_payment.full_url;
+  } else {
+    console.error(data.error);
+  }
+}
 ```
 
-**Para producción**, cambia `origins '*'` por el dominio específico de tu frontend:
+## Flujo 2 — Pago de una inscripción existente
+
+`POST /students/payments/pay_enrollment_fee/:enrollment_id`
+(`Students::PaymentsController`). La inscripción ya existe; este endpoint solo inicia el
+cobro de su arancel.
+
+- **Requiere usuario autenticado** (`authenticate_user!`). El estudiante es
+  `current_user.student` — ya **no** se acepta un `student_id` por parámetro.
+- Valida `enrollment.enrollment_fee_paid?`; si ya está pagada responde 422.
+- Crea la `TransbankTransaction` (con `enrollment` asociado, `buy_order`
+  `ENR{id}-FEE-{timestamp}`), inicia la transacción y responde JSON con
+  `{ url, token, full_url, buy_order, amount }`.
+- El callback es el mismo que el del flujo 1.
+
+`GET /students/payments` lista las inscripciones del estudiante autenticado y las
+matrículas pendientes (`enrollments.reject(&:enrollment_fee_paid?)`).
+
+> `enrollment_fee_paid?` es un **método derivado** (consulta los `payments` de tipo
+> `enrollment_fee`); **no** existe una columna `enrollment_fee_paid` que se "marque".
+
+## Modelos
+
+### TransbankTransaction
+- `token`: token único de Transbank.
+- `buy_order`: orden de compra (`PEND-...` para pagos de inscripción nueva; `ENR...-FEE-...`
+  para inscripción existente).
+- `amount`, `status` (`pending` / `authorized` / `failed` / `nullified`).
+- `enrollment_id`: puede ser `nil` mientras está `pending` en el flujo 1.
+- `enrollment_data`: JSON con los datos de la(s) inscripción(es) a crear tras el pago.
+- `authorization_code`, `card_number`, `response_code`, `raw_response`, `error_message`.
+- `mark_as_authorized!(response)`: crea inscripción(es) + Payment(s) y marca `authorized`
+  (todo dentro de una transacción de BD). Soporta múltiples inscripciones.
+
+### Payment
+- Se crea automáticamente cuando la `TransbankTransaction` se autoriza.
+- `reference_number` = `authorization_code` de Transbank; `notes` incluye el `buy_order`.
+- `status: completed` al crearse desde el callback.
+
+## Configuración
+
+### Credenciales (`config/initializers/transbank.rb`)
+
+`TransbankConfig.use_production?` es `true` **solo** si `Rails.env.production?` **y**
+ambas envs (`TRANSBANK_COMMERCE_CODE`, `TRANSBANK_API_KEY`) están presentes. Si no, cae
+a las credenciales de **integración**:
+
+- **Commerce Code**: `597055555532`
+- **API Key**: `579B532A7440BB0C9079DED94D31EA1615BACEB56610332264630D42D0A36B1C`
+
+### Variables de entorno
+
+| Variable | Uso | Obligatoria |
+|----------|-----|-------------|
+| `BACKEND_URL` | URL pública del backend para el `return_url` de Transbank (`/api/v1/enrollments`). Si falta, el endpoint **lanza error** en vez de usar un valor por defecto. | Sí (para el flujo 1) |
+| `FRONTEND_URL` | A dónde redirige el callback tras el pago (`/payment/success` o `/payment/failure`). Default en dev: `http://localhost:5173`. | En prod |
+| `TRANSBANK_COMMERCE_CODE` / `TRANSBANK_API_KEY` | Credenciales de producción. | En prod |
+
+> En dev, `BACKEND_URL` debe apuntar a una URL alcanzable por Transbank (p. ej. un túnel
+> de Cloudflare). Ver el host comentado en `config/environments/development.rb`.
+
+### Tarjetas de prueba (ambiente de integración)
+
+**Débito:** `4051 8856 0044 6623` · CVV `123` · fecha futura · RUT `11.111.111-1` · clave `123`
+**Crédito:** Redcompra `4051 8842 3993 7763` · Mastercard `5186 0595 3805 6286` · Visa `4051 8856 0044 6623`
+
+### CORS (`config/initializers/cors.rb`)
+
+No usa `origins '*'`. Hay una allowlist explícita con `credentials: true`:
+
 ```ruby
-origins 'https://tu-frontend.com', 'https://www.tu-frontend.com'
+allowed_origins = [
+  'http://localhost:3000',   # CRA / Next.js
+  'http://localhost:5173',   # Vite
+  'http://localhost:4200',   # Angular
+  'http://localhost:8080',   # Vue CLI
+  'https://www.gustarte.cl', # Producción
+  'https://gustarte.cl',
+  ENV['FRONTEND_URL']
+].compact
 ```
+
+Para agregar un dominio de producción, añádelo a esa lista o setea `FRONTEND_URL`.
+
+## Rutas
+
+- `POST /api/v1/enrollments` — inicia pago de inscripción nueva (flujo 1).
+- `GET  /students/payments` — inscripciones y matrículas pendientes del estudiante (autenticado).
+- `POST /students/payments/pay_enrollment_fee/:enrollment_id` — pago de inscripción existente (flujo 2).
+- `GET/POST /transbank/callback` — callback de Transbank.
+- `GET /transbank/result/success` · `GET /transbank/result/failure` — páginas de resultado
+  (el callback normalmente redirige a la SPA en `FRONTEND_URL`).
 
 ## Seguridad
 
-### CSRF Protection
-El callback de Transbank tiene `skip_before_action :verify_authenticity_token` porque Transbank hace la llamada desde su servidor.
+- **CSRF**: `TransbankController#callback` y `Api::V1::BaseController` tienen
+  `skip_before_action :verify_authenticity_token` (llamadas server-to-server / API).
+- **Autenticación**: `Students::PaymentsController` exige `authenticate_user!` y usa
+  `current_user.student`. `Api::V1::EnrollmentsController` es público (no autentica) — el
+  cobro real ocurre en Transbank.
+- **Token único** por transacción, validado en el callback.
+- **Cancelación**: el callback maneja el caso `TBK_ORDEN_COMPRA` sin `token_ws` (usuario
+  canceló) marcando la transacción como `failed`.
 
-### Validación de Token
-Cada transacción tiene un token único que se valida en el callback.
+## Panel de administración
 
-### Timeout
-Las transacciones pendientes por más de 30 minutos pueden considerarse expiradas.
-
-## Actualización Automática de Estados
-
-Cuando un pago es autorizado:
-
-1. **TransbankTransaction** → `status: 'authorized'`
-2. **Payment** → Nuevo registro creado
-3. **Enrollment** → Se actualiza `enrollment_fee_paid` a `true`
-
-## Testing
-
-### Probar Pago Exitoso
-1. Ir a `/student/payments?student_id=1`
-2. Clic en "Pagar con Webpay"
-3. Usar tarjeta de prueba
-4. Verificar redirección a página de éxito
-5. Verificar que se creó Payment y se actualizó status
-
-### Probar Pago Rechazado
-1. Usar una tarjeta inválida o cancelar en Transbank
-2. Verificar redirección a página de fallo
-3. Verificar que TransbankTransaction quedó con `status: 'failed'`
-
-## Monitoreo
-
-### Ver Transacciones en Admin
-Agrega al panel de administración:
-```ruby
-# En admin/payments_controller.rb
-def index
-  @payments = Payment.includes(:enrollment).order(created_at: :desc)
-  @transbank_transactions = TransbankTransaction.includes(:enrollment).order(created_at: :desc).limit(50)
-end
-```
-
-### Logs
-Todas las transacciones se registran en `Rails.logger`:
-- Inicio de transacción
-- Callback recibido
-- Resultado (éxito/fallo)
-- Errores
+`/admin/transbank_transactions` (solo lectura) muestra estadísticas (total / autorizadas
+/ pendientes / fallidas / monto autorizado), filtros por estado, tabla con estudiante,
+monto, buy order, estado, código de autorización y últimos 4 dígitos; y una vista de
+detalle con la respuesta cruda de Transbank y el enlace al `Payment` generado.
 
 ## Troubleshooting
 
-### Error: "Token no recibido"
-- Verificar que Transbank esté redirigiendo correctamente
-- Revisar URL de callback en configuración
+- **"Token no recibido"** → Transbank no está redirigiendo con `token_ws`; revisar el
+  `return_url` (`BACKEND_URL`).
+- **"Transacción no encontrada"** → el token no existe en la BD; la transacción no se
+  creó bien antes de redirigir.
+- **Pago exitoso pero no se crea el Payment / la inscripción** → revisar logs; verificar
+  que `mark_as_authorized!` corrió sin error y que `enrollment_data` era válido para
+  `EnrollmentCreator`.
+- **`KeyError: key not found: "BACKEND_URL"`** al iniciar un pago desde la SPA → falta
+  definir `BACKEND_URL`.
 
-### Error: "Transacción no encontrada"
-- El token no existe en la base de datos
-- Verificar que se creó correctamente antes de redirigir
+## Próximas mejoras
 
-### Pago exitoso pero no se crea Payment
-- Revisar logs del servidor
-- Verificar que `mark_as_authorized!` se ejecutó sin errores
-- Revisar transacciones en la base de datos
-
-## Próximas Mejoras
-
-- [ ] Agregar notificaciones por email al estudiante
-- [ ] Agregar comprobante de pago en PDF
-- [x] Agregar panel de administración para ver todas las transacciones
-- [ ] Agregar anulación de pagos (refund)
-- [ ] Agregar webhooks para notificaciones asíncronas
-- [ ] Agregar retry automático para transacciones fallidas
-
-## Panel de Administración
-
-El sistema incluye un panel completo en `/admin/transbank_transactions` con:
-
-### Características del Panel:
-- ✅ **Estadísticas en tiempo real**:
-  - Total de transacciones
-  - Transacciones autorizadas
-  - Transacciones pendientes
-  - Transacciones fallidas
-  - Monto total autorizado
-
-- ✅ **Filtros por estado**:
-  - Todas las transacciones
-  - Solo autorizadas
-  - Solo pendientes
-  - Solo fallidas
-
-- ✅ **Tabla completa con**:
-  - ID y fecha de transacción
-  - Estudiante
-  - Tipo de pago (matrícula)
-  - Monto
-  - Buy order
-  - Estado
-  - Código de autorización
-  - Últimos 4 dígitos de tarjeta
-
-- ✅ **Vista detallada de cada transacción**:
-  - Información completa de la transacción
-  - Detalles de autorización (si aplica)
-  - Información del estudiante
-  - Respuesta completa de Transbank (JSON)
-  - Enlace al payment generado (si fue autorizada)
-  - Mensaje de error (si falló)
+- [ ] Notificación por email al estudiante tras el pago.
+- [ ] Comprobante de pago en PDF.
+- [x] Panel de administración de transacciones.
+- [ ] Anulación / refund de pagos.
+- [ ] Expiración automática de transacciones `pending` antiguas.
 
 ## Referencias
 
-- [Documentación Transbank Webpay Plus](https://www.transbankdevelopers.cl/producto/webpay)
-- [SDK Ruby Transbank](https://github.com/TransbankDevelopers/transbank-sdk-ruby)
-- [Ejemplos de Integración](https://www.transbankdevelopers.cl/documentacion/como_empezar)
+- [Webpay Plus](https://www.transbankdevelopers.cl/producto/webpay)
+- [SDK Ruby](https://github.com/TransbankDevelopers/transbank-sdk-ruby)
+- [Cómo empezar](https://www.transbankdevelopers.cl/documentacion/como_empezar)

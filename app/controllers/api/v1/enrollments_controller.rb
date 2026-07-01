@@ -125,9 +125,11 @@ module Api
       end
 
       def transbank_callback_url
-        # This should point to your backend callback URL
-        # Adjust the host/domain as needed for your environment
-        backend_url = ENV['BACKEND_URL'] || 'https://decided-east-calling-threatening.trycloudflare.com'
+        # URL pública del backend que Transbank invoca tras el pago. Debe ser
+        # alcanzable desde internet (dominio de producción o túnel en dev).
+        backend_url = ENV.fetch('BACKEND_URL') do
+          raise 'La variable de entorno BACKEND_URL debe estar definida para el callback de Transbank'
+        end
         "#{backend_url}/transbank/callback"
       end
     end

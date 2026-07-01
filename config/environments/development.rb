@@ -62,7 +62,9 @@ Rails.application.configure do
   # Suppress logger output for asset requests.
   config.assets.quiet = true
 
-  config.hosts << "springs-bra-pioneer-bolt.trycloudflare.com"
+  # Túnel de Cloudflare para exponer el backend en dev (p. ej. para el callback de
+  # Transbank). Descomentar y reemplazar por el host actual del túnel cuando se use.
+  # config.hosts << "springs-bra-pioneer-bolt.trycloudflare.com"
 
   # Configure default URL options for URL helpers
   config.action_controller.default_url_options = {

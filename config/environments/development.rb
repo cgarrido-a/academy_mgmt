@@ -41,6 +41,14 @@ Rails.application.configure do
 
   config.action_mailer.perform_caching = false
 
+  # En dev no enviamos correo de verdad: se guardan en ActionMailer::Base.deliveries
+  # y se pueden previsualizar en http://localhost:3000/rails/mailers
+  config.action_mailer.delivery_method = :test
+  config.action_mailer.default_url_options = {
+    host: ENV["BACKEND_HOST"] || "localhost",
+    port: ENV["BACKEND_PORT"] || 3000
+  }
+
   # Print deprecation notices to the Rails logger.
   config.active_support.deprecation = :log
 

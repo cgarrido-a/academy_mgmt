@@ -65,6 +65,17 @@ class TransbankController < ApplicationController
           Rails.logger.info "Enrollment created: #{transaction_record.enrollment_id}" if transaction_record.enrollment_id.present?
         end
 
+        # Enviar correo de confirmación por cada pago (una matrícula por correo).
+        # Se hace fuera de la transacción de mark_as_authorized! y no debe romper
+        # el flujo de pago si el envío falla.
+        Array(payments).each do |payment|
+          begin
+            PaymentMailer.confirmation(payment).deliver_later
+          rescue => e
+            Rails.logger.error "No se pudo encolar el correo de confirmación (payment #{payment&.id}): #{e.message}"
+          end
+        end
+
         redirect_to_frontend_success(transaction_record, payments)
       else
         # Transaction rejected

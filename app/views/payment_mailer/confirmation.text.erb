@@ -1,0 +1,25 @@
+¡Pago confirmado!
+
+Hola <%= @user.name %>, recibimos tu pago correctamente. Aquí están los datos de tu matrícula.
+
+PAGO
+- Monto pagado: $<%= number_with_delimiter(@payment.amount.to_i) %>
+- Fecha: <%= l(@payment.payment_date, format: '%d/%m/%Y') rescue @payment.payment_date %>
+<% if @payment.reference_number.present? -%>
+- Código de autorización: <%= @payment.reference_number %>
+<% end -%>
+
+MATRÍCULA #<%= @enrollment.id %>
+- Curso(s): <%= @courses.map(&:title).join(', ') %>
+- Plan: <%= @enrollment.weekly_plan.plan %>
+- Total clases: <%= @class_dates.size %>
+<% @sections.each do |section| -%>
+- <%= section.course.title %>: <%= section.weekday %>, <%= section.formatted_schedule %>
+<% end -%>
+<% if @class_dates.any? -%>
+
+Fechas de tus clases:
+<%= @class_dates.map { |d| l(d, format: '%d/%m/%Y') rescue d.strftime('%d/%m/%Y') }.join(', ') %>
+<% end -%>
+
+Este es un correo automático de confirmación. Si tienes dudas sobre tu matrícula, responde a este mensaje.

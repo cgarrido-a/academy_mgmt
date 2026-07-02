@@ -34,57 +34,52 @@
     <% end %>
   </div>
 
-  <% if user.new_record? %>
+  <div class="form-group">
+    <%= label_tag :roles, "Roles" %>
+    <small style="display: block; color: #7f8c8d; margin-bottom: 0.5rem;">
+      Un usuario puede tener más de un rol (por ejemplo, docente y administrador).
+      Los roles ya asignados no se pueden quitar desde aquí.
+    </small>
+    <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+      <% %w[teacher student admin].each do |role_key| %>
+        <% already = assigned_role_keys(user).include?(role_key) %>
+        <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: normal;">
+          <%= check_box_tag 'user[roles][]', role_key, already,
+                id: "role_#{role_key}", disabled: already, onchange: 'toggleRoleFields()' %>
+          <%= role_badge(role_key) %>
+          <% if already %><small style="color: #7f8c8d;">(ya asignado)</small><% end %>
+        </label>
+      <% end %>
+    </div>
+  </div>
+
+  <div id="teacher_fields" style="display: none;">
     <div class="form-group">
-      <%= label_tag :role, "Rol" %>
-      <%= select_tag 'user[role]', options_for_select([
-        ['Seleccionar rol', ''],
-        ['Estudiante', 'student'],
-        ['Profesor', 'teacher'],
-        ['Administrador', 'admin']
-      ]), required: true, id: 'user_role', onchange: 'toggleRoleFields()' %>
+      <%= label_tag 'user[profession]', "Profesión (para docentes)" %>
+      <%= text_field_tag 'user[profession]', user.teacher&.profession, placeholder: "Ej: Ingeniera, Licenciada, etc." %>
     </div>
+  </div>
 
-    <div id="teacher_fields" style="display: none;">
-      <div class="form-group">
-        <%= label_tag 'user[profession]', "Profesión (para profesores)" %>
-        <%= text_field_tag 'user[profession]', '', placeholder: "Ej: Ingeniero, Licenciado, etc." %>
-      </div>
+  <div id="admin_fields" style="display: none;">
+    <div class="form-group">
+      <%= label_tag 'user[admin_type]', "Tipo de Admin" %>
+      <%= select_tag 'user[admin_type]', options_for_select([
+        ['Seleccionar tipo', ''],
+        ['Super Admin', 'super'],
+        ['Admin Regular', 'regular']
+      ], user.admin_user&.admin_type) %>
     </div>
+  </div>
 
-    <div id="admin_fields" style="display: none;">
-      <div class="form-group">
-        <%= label_tag 'user[admin_type]', "Tipo de Admin" %>
-        <%= select_tag 'user[admin_type]', options_for_select([
-          ['Seleccionar tipo', ''],
-          ['Super Admin', 'super'],
-          ['Admin Regular', 'regular']
-        ]) %>
-      </div>
-    </div>
-
-    <script>
-      function toggleRoleFields() {
-        const role = document.getElementById('user_role').value;
-        const teacherFields = document.getElementById('teacher_fields');
-        const adminFields = document.getElementById('admin_fields');
-
-        // Ocultar todos los campos
-        teacherFields.style.display = 'none';
-        adminFields.style.display = 'none';
-
-        // Mostrar campos según rol
-        if (role === 'teacher') {
-          teacherFields.style.display = 'block';
-        } else if (role === 'admin') {
-          adminFields.style.display = 'block';
-        }
-      }
-
-      // Ejecutar al cargar la página
-      document.addEventListener('DOMContentLoaded', toggleRoleFields);
-    </script>
-  <% end %>
+  <script>
+    function toggleRoleFields() {
+      var teacher = document.getElementById('role_teacher');
+      var admin = document.getElementById('role_admin');
+      document.getElementById('teacher_fields').style.display = (teacher && teacher.checked) ? 'block' : 'none';
+      document.getElementById('admin_fields').style.display = (admin && admin.checked) ? 'block' : 'none';
+    }
+    document.addEventListener('DOMContentLoaded', toggleRoleFields);
+  </script>
 
   <div class="actions">
     <%= f.submit user.new_record? ? "Crear Usuario" : "Actualizar Usuario", class: "btn btn-success" %>

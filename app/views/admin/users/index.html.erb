@@ -47,12 +47,9 @@
             <td><%= user.name %></td>
             <td><%= user.email %></td>
             <td>
-              <% if user.teacher %>
-                <span style="background: #3498db; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">👨‍🏫 Profesor</span>
-              <% elsif user.student %>
-                <span style="background: #27ae60; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">🎓 Estudiante</span>
-              <% elsif user.admin_user %>
-                <span style="background: #e74c3c; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">⚙️ Admin</span>
+              <% roles = assigned_role_keys(user) %>
+              <% if roles.any? %>
+                <% roles.each do |role_key| %><%= role_badge(role_key) %><% end %>
               <% else %>
                 <span style="background: #95a5a6; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">Sin rol</span>
               <% end %>

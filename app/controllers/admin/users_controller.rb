@@ -27,13 +27,10 @@ module Admin
     end
 
     def show
-      @role = determine_role(@user)
-
-      if @user.teacher.present?
-        load_teacher_data
-      elsif @user.student.present?
-        load_student_data
-      end
+      # Un usuario puede tener varios roles: cargamos los datos de cada uno
+      # de forma independiente.
+      load_teacher_data if @user.teacher.present?
+      load_student_data if @user.student.present?
     end
 
     def new
@@ -43,42 +40,30 @@ module Admin
     def create
       @user = User.new(user_params)
 
-      if @user.save
-        begin
-          # Create the corresponding role record
-          case params[:user][:role]
-          when 'student'
-            @user.create_student!
-          when 'teacher'
-            @user.create_teacher!(profession: params[:user][:profession])
-          when 'admin'
-            @user.create_admin_user!(admin_type: params[:user][:admin_type])
-          end
-
-          redirect_to admin_users_path, notice: 'Usuario creado exitosamente.'
-        rescue ActiveRecord::RecordInvalid => e
-          flash.now[:alert] = "Error al crear el rol: #{e.message}"
-          render :new, status: :unprocessable_entity
-        rescue => e
-          flash.now[:alert] = "Error: #{e.message}"
-          render :new, status: :unprocessable_entity
-        end
-      else
-        render :new, status: :unprocessable_entity
+      User.transaction do
+        @user.save!
+        sync_roles!(@user)
       end
+
+      redirect_to admin_user_path(@user), notice: 'Usuario creado exitosamente.'
+    rescue ActiveRecord::RecordInvalid => e
+      @user.errors.add(:base, e.message) if @user.errors.empty?
+      render :new, status: :unprocessable_entity
     end
 
     def edit
-      @role = determine_role(@user)
     end
 
     def update
-      if @user.update(user_params)
-        redirect_to admin_user_path(@user), notice: 'Usuario actualizado exitosamente.'
-      else
-        @role = determine_role(@user)
-        render :edit, status: :unprocessable_entity
+      User.transaction do
+        @user.update!(user_params)
+        sync_roles!(@user)
       end
+
+      redirect_to admin_user_path(@user), notice: 'Usuario actualizado exitosamente.'
+    rescue ActiveRecord::RecordInvalid => e
+      @user.errors.add(:base, e.message) if @user.errors.empty?
+      render :edit, status: :unprocessable_entity
     end
 
     def destroy
@@ -93,14 +78,29 @@ module Admin
     end
 
     def user_params
-      params.require(:user).permit(:name, :email, :password)
+      permitted = params.require(:user).permit(:name, :email, :password)
+      # En edición, dejar la contraseña en blanco significa "no cambiarla".
+      permitted.delete(:password) if permitted[:password].blank?
+      permitted
     end
 
-    def determine_role(user)
-      return 'teacher' if user.teacher.present?
-      return 'student' if user.student.present?
-      return 'admin' if user.admin_user.present?
-      'none'
+    # Asigna los roles marcados en el formulario. Es aditivo: crea los registros
+    # de rol que falten, pero NO elimina roles existentes (quitar docente o
+    # estudiante haría dependent: :destroy en cascada). También actualiza la
+    # profesión / tipo de admin de los roles ya presentes.
+    def sync_roles!(user)
+      selected = Array(params.dig(:user, :roles))
+
+      user.create_student!                                            if selected.include?('student') && user.student.nil?
+      user.create_teacher!(profession: params.dig(:user, :profession)) if selected.include?('teacher') && user.teacher.nil?
+      user.create_admin_user!(admin_type: params.dig(:user, :admin_type)) if selected.include?('admin') && user.admin_user.nil?
+
+      if user.teacher && params.dig(:user, :profession).present?
+        user.teacher.update!(profession: params[:user][:profession])
+      end
+      if user.admin_user && params.dig(:user, :admin_type).present?
+        user.admin_user.update!(admin_type: params[:user][:admin_type])
+      end
     end
 
     def load_student_data

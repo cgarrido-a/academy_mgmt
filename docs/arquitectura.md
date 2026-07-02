@@ -183,8 +183,9 @@ app/
 config/initializers/  # transbank.rb, cors.rb, devise.rb, ...
 ```
 
-No hay jobs en background propios (solo `ApplicationJob`) ni mailers personalizados
-(solo `ApplicationMailer`) al momento de escribir este documento.
+No hay jobs en background propios (solo `ApplicationJob`). El único mailer de dominio es
+`PaymentMailer#confirmation`, que envía la confirmación de pago + datos de matrícula tras
+autorizarse una transacción de Transbank (ver `TransbankController#callback`).
 
 ## Notas de configuración
 
@@ -194,3 +195,26 @@ No hay jobs en background propios (solo `ApplicationJob`) ni mailers personaliza
 - **Credenciales / seeds**: `db/seeds.rb` crea usuarios de prueba con contraseñas fijas
   (ver el recuerdo *Seed credentials*).
 - El esquema real vive en `db/schema.rb` (fuente de verdad de la estructura de tablas).
+
+### Envío de correo
+
+ActionMailer usa SMTP en producción con todos los valores tomados de variables de entorno
+(agnóstico del proveedor). En desarrollo usa `delivery_method = :test` (no envía) y los
+correos se previsualizan en `http://localhost:3000/rails/mailers`.
+
+Proveedor elegido: **Resend**. Requiere verificar el dominio `gustarte.cl` (SPF + DKIM en
+el DNS) para buena entregabilidad. Variables de entorno a definir en el hosting:
+
+| Variable | Valor (Resend) |
+|----------|----------------|
+| `SMTP_ADDRESS` | `smtp.resend.com` |
+| `SMTP_PORT` | `587` |
+| `SMTP_USERNAME` | `resend` |
+| `SMTP_PASSWORD` | API key de Resend |
+| `SMTP_DOMAIN` | `gustarte.cl` |
+| `MAIL_FROM` | `no-reply@gustarte.cl` |
+| `BACKEND_HOST` | `gustarte.cl` |
+
+Opcionales: `SMTP_AUTHENTICATION` (def. `plain`), `SMTP_ENABLE_STARTTLS_AUTO` (def.
+`true`), `MAIL_RAISE_DELIVERY_ERRORS` (def. `true`). No hay `.env` ni `dotenv`: las
+variables se setean directamente en el entorno de despliegue.

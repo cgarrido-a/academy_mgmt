@@ -34,17 +34,32 @@ el pago, redirige de vuelta a la SPA (`FRONTEND_URL/payment/success|failure`).
 
 ## Roles y autorización
 
-Un `User` (Devise) tiene **uno** de tres perfiles vía asociaciones `has_one`:
-`admin_user`, `teacher` o `student`. El registro público está deshabilitado —
-**solo los administradores crean usuarios**.
+Un `User` (Devise) puede tener **uno o varios** de tres perfiles, vía asociaciones
+`has_one` independientes: `admin_user`, `teacher` y `student`. Es decir, una misma
+persona puede ser, por ejemplo, docente **y** administrador a la vez. El registro
+público está deshabilitado — **solo los administradores crean usuarios**.
 
-Las reglas están centralizadas en `app/models/ability.rb` (CanCanCan):
+Las reglas están centralizadas en `app/models/ability.rb` (CanCanCan), evaluadas con
+precedencia `admin_user` → `teacher` → `student` (`if/elsif`):
 
-- **Admin** (`user.admin_user`): `can :manage, :all`.
+- **Admin** (`user.admin_user`): `can :manage, :all`. Como el admin puede todo, si además
+  es docente conserva el acceso total; el registro `Teacher` sigue siendo necesario para
+  poder asignarle secciones y que tenga su dashboard/pagos de docente.
 - **Teacher** (`user.teacher`): solo lectura del dashboard; lectura de sus cursos y
   secciones asignadas; tomar asistencia en sus secciones; ver estudiantes inscritos
   en ellas; gestionar recuperatorios de esas secciones.
 - **Student** / invitado: sin acceso al panel admin.
+
+### Gestión de roles desde el panel (`/admin/users`)
+
+El formulario de alta/edición usa **checkboxes** (uno por rol), así que se pueden asignar
+varios roles a la misma persona. El listado y el detalle muestran todos los badges de rol
+(un admin+docente aparece en ambos filtros). La asignación es **aditiva**: la interfaz
+crea los roles marcados que falten pero **no permite quitarlos**, porque quitar `teacher`
+o `student` dispararía `dependent: :destroy` en cascada (borraría secciones o
+inscripciones). Para remover un rol se hace deliberadamente por consola —
+`user.admin_user.destroy` es seguro (no arrastra dependencias); `teacher`/`student` no.
+Ver `Admin::UsersController#sync_roles!`.
 
 `Admin::ApplicationController` fuerza `authenticate_user!` + `check_admin_or_teacher_access!`
 y captura `CanCan::AccessDenied` redirigiendo a `unauthorized_path`. La API v1

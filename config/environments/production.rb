@@ -84,7 +84,7 @@ Rails.application.configure do
   config.action_mailer.perform_deliveries = true
   config.action_mailer.raise_delivery_errors = ENV.fetch("MAIL_RAISE_DELIVERY_ERRORS", "true") == "true"
   config.action_mailer.default_url_options = {
-    host: ENV.fetch("BACKEND_HOST", "gustarte.cl"),
+    host: ENV.fetch("BACKEND_HOST", "admin.gustarte.cl"),
     protocol: "https"
   }
   config.action_mailer.smtp_settings = {

@@ -213,7 +213,7 @@ el DNS) para buena entregabilidad. Variables de entorno a definir en el hosting:
 | `SMTP_PASSWORD` | API key de Resend |
 | `SMTP_DOMAIN` | `gustarte.cl` |
 | `MAIL_FROM` | `no-reply@gustarte.cl` |
-| `BACKEND_HOST` | `gustarte.cl` |
+| `BACKEND_HOST` | `admin.gustarte.cl` |
 
 Opcionales: `SMTP_AUTHENTICATION` (def. `plain`), `SMTP_ENABLE_STARTTLS_AUTO` (def.
 `true`), `MAIL_RAISE_DELIVERY_ERRORS` (def. `true`). No hay `.env` ni `dotenv`: las

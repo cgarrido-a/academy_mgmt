@@ -1,4 +1,8 @@
 <div style="font-family: Arial, Helvetica, sans-serif; color: #2c3e50; max-width: 600px; margin: 0 auto;">
+  <%= image_tag attachments["banner-email-gustarte.png"].url,
+        alt: "Gustarte — Te damos la bienvenida",
+        style: "display: block; width: 100%; max-width: 600px; height: auto; margin: 0 auto 16px;" %>
+
   <h2 style="color: #27ae60; margin-bottom: 0.25rem;">✓ ¡Pago confirmado!</h2>
   <p style="margin-top: 0;">Hola <%= @user.name %>, recibimos tu pago correctamente. Aquí están los datos de tu matrícula.</p>
 
@@ -13,17 +17,17 @@
         <td style="padding: 4px 0; color: #7f8c8d;">Fecha</td>
         <td style="padding: 4px 0; text-align: right;"><%= l(@payment.payment_date, format: '%d/%m/%Y') rescue @payment.payment_date %></td>
       </tr>
-      <% if @payment.reference_number.present? %>
+      <% if @buy_order.present? %>
         <tr>
           <td style="padding: 4px 0; color: #7f8c8d;">Código de autorización</td>
-          <td style="padding: 4px 0; text-align: right;"><%= @payment.reference_number %></td>
+          <td style="padding: 4px 0; text-align: right;"><%= @buy_order %></td>
         </tr>
       <% end %>
     </table>
   </div>
 
   <div style="background: #f4f6f7; border-radius: 8px; padding: 16px; margin: 16px 0;">
-    <h3 style="margin: 0 0 8px 0;">Matrícula #<%= @enrollment.id %></h3>
+    <h3 style="margin: 0 0 8px 0;">Matrícula</h3>
     <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
       <tr>
         <td style="padding: 4px 0; color: #7f8c8d;">Curso(s)</td>
@@ -35,25 +39,31 @@
       </tr>
       <tr>
         <td style="padding: 4px 0; color: #7f8c8d;">Total clases</td>
-        <td style="padding: 4px 0; text-align: right;"><%= @class_dates.size %></td>
+        <td style="padding: 4px 0; text-align: right;"><%= @classes.size %></td>
       </tr>
     </table>
 
-    <% @sections.each do |section| %>
-      <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e0e0e0;">
-        <strong><%= section.course.title %></strong> — <%= section.weekday %>, <%= section.formatted_schedule %>
-      </div>
-    <% end %>
-
-    <% if @class_dates.any? %>
-      <p style="margin: 12px 0 4px 0; color: #7f8c8d; font-size: 13px;">Fechas de tus clases:</p>
-      <p style="margin: 0; font-size: 13px;">
-        <%= @class_dates.map { |d| l(d, format: '%d/%m/%Y') rescue d.strftime('%d/%m/%Y') }.join(' · ') %>
-      </p>
+    <% if @classes.any? %>
+      <p style="margin: 16px 0 10px 0; padding-top: 14px; border-top: 1px solid #e0e0e0; color: #7f8c8d; font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px;">Tus clases</p>
+      <% @classes.each do |c| %>
+        <table role="presentation" cellpadding="0" cellspacing="0" style="width: 100%; border-collapse: separate; margin-bottom: 8px;">
+          <tr>
+            <td style="width: 54px; background: #27ae60; color: #ffffff; text-align: center; border-radius: 8px 0 0 8px; padding: 8px 0;">
+              <div style="font-size: 20px; font-weight: bold; line-height: 1.1;"><%= c[:day] %></div>
+              <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;"><%= c[:month] %></div>
+            </td>
+            <td style="background: #ffffff; border: 1px solid #e0e0e0; border-left: none; border-radius: 0 8px 8px 0; padding: 8px 14px;">
+              <div style="font-size: 14px; font-weight: bold; color: #2c3e50;"><%= c[:weekday] %></div>
+              <div style="font-size: 13px; color: #7f8c8d;"><%= c[:schedule] %></div>
+            </td>
+          </tr>
+        </table>
+      <% end %>
     <% end %>
   </div>
 
   <p style="color: #7f8c8d; font-size: 13px; margin-top: 24px;">
-    Este es un correo automático de confirmación. Si tienes dudas sobre tu matrícula, responde a este mensaje.
+    Este es un correo automático de confirmación. Si tienes dudas sobre tu matrícula, escríbenos al WhatsApp
+    <a href="https://wa.me/56923718373" style="color: #27ae60; text-decoration: none;">+56 9 2371 8373</a>.
   </p>
 </div>

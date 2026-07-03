@@ -5,21 +5,20 @@ Hola <%= @user.name %>, recibimos tu pago correctamente. Aquí están los datos 
 PAGO
 - Monto pagado: $<%= number_with_delimiter(@payment.amount.to_i) %>
 - Fecha: <%= l(@payment.payment_date, format: '%d/%m/%Y') rescue @payment.payment_date %>
-<% if @payment.reference_number.present? -%>
-- Código de autorización: <%= @payment.reference_number %>
+<% if @buy_order.present? -%>
+- Código de autorización: <%= @buy_order %>
 <% end -%>
 
-MATRÍCULA #<%= @enrollment.id %>
+MATRÍCULA
 - Curso(s): <%= @courses.map(&:title).join(', ') %>
 - Plan: <%= @enrollment.weekly_plan.plan %>
-- Total clases: <%= @class_dates.size %>
-<% @sections.each do |section| -%>
-- <%= section.course.title %>: <%= section.weekday %>, <%= section.formatted_schedule %>
-<% end -%>
-<% if @class_dates.any? -%>
+- Total clases: <%= @classes.size %>
+<% if @classes.any? -%>
 
-Fechas de tus clases:
-<%= @class_dates.map { |d| l(d, format: '%d/%m/%Y') rescue d.strftime('%d/%m/%Y') }.join(', ') %>
+Tus clases:
+<% @classes.each do |c| -%>
+- <%= [c[:weekday], c[:schedule]].compact.join(' ') %> — <%= l(c[:date], format: '%d/%m/%Y') rescue c[:date].strftime('%d/%m/%Y') %>
+<% end -%>
 <% end -%>
 
-Este es un correo automático de confirmación. Si tienes dudas sobre tu matrícula, responde a este mensaje.
+Este es un correo automático de confirmación. Si tienes dudas sobre tu matrícula, escríbenos al WhatsApp +56 9 2371 8373 (https://wa.me/56923718373).

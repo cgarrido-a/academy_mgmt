@@ -5,7 +5,7 @@ module Admin
     before_action :load_courses, only: [:new, :create, :edit, :update]
 
     def index
-      @weekly_plans = WeeklyPlan.includes(:course).order('weekly_classes ASC NULLS LAST, plan ASC')
+      @weekly_plans = WeeklyPlan.includes(:course).order('course_id ASC NULLS LAST, id ASC')
     end
 
     def show

@@ -1,8 +1,24 @@
 <div class="card">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-    <h2>Planes Semanales</h2>
+    <h2>Planes Semanales <span style="color: #7f8c8d; font-weight: 400; font-size: 0.95rem;">(<%= @weekly_plans.size %>)</span></h2>
     <%= link_to "Nuevo Plan", new_admin_weekly_plan_path, class: "btn btn-success" %>
   </div>
+
+  <%= form_with url: admin_weekly_plans_path, method: :get, local: true, style: "margin-bottom: 1.25rem;" do %>
+    <div style="display: flex; gap: 0.5rem; max-width: 500px; align-items: center;">
+      <%= select_tag :course_id,
+            options_for_select(
+              [["Todos los cursos", ""], ["Sin curso asignado", "none"]] +
+              @courses.map { |c| [c.title, c.id.to_s] },
+              @course_id),
+            onchange: "this.form.requestSubmit()",
+            style: "flex: 1; padding: 0.55rem 0.85rem; border: 1px solid #dee2e6; border-radius: 6px; font-size: 0.95rem;" %>
+      <%= submit_tag "Filtrar", class: "btn btn-primary" %>
+      <% if @course_id %>
+        <%= link_to "Limpiar", admin_weekly_plans_path, class: "btn btn-secondary" %>
+      <% end %>
+    </div>
+  <% end %>
 
   <% if @weekly_plans.any? %>
     <table>

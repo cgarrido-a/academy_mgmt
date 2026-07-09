@@ -5,7 +5,14 @@ module Admin
     before_action :load_courses, only: [:new, :create, :edit, :update]
 
     def index
+      @courses = Course.order(:title)
+      @course_id = params[:course_id].presence
       @weekly_plans = WeeklyPlan.includes(:course).order('course_id ASC NULLS LAST, id ASC')
+      if @course_id == 'none'
+        @weekly_plans = @weekly_plans.where(course_id: nil)
+      elsif @course_id
+        @weekly_plans = @weekly_plans.where(course_id: @course_id)
+      end
     end
 
     def show

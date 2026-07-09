@@ -2,9 +2,10 @@ module Admin
   class WeeklyPlansController < Admin::ApplicationController
     load_and_authorize_resource
     before_action :set_weekly_plan, only: [:show, :edit, :update, :destroy]
+    before_action :load_courses, only: [:new, :create, :edit, :update]
 
     def index
-      @weekly_plans = WeeklyPlan.all.order('weekly_classes ASC NULLS LAST, plan ASC')
+      @weekly_plans = WeeklyPlan.includes(:course).order('weekly_classes ASC NULLS LAST, plan ASC')
     end
 
     def show
@@ -51,8 +52,12 @@ module Admin
       @weekly_plan = WeeklyPlan.find(params[:id])
     end
 
+    def load_courses
+      @courses = Course.order(:title)
+    end
+
     def weekly_plan_params
-      params.require(:weekly_plan).permit(:plan, :description, :price, :saturday_price, :enrollment_fee, :weekly_classes, :number_of_classes, :event_type)
+      params.require(:weekly_plan).permit(:plan, :description, :price, :saturday_price, :enrollment_fee, :weekly_classes, :number_of_classes, :event_type, :course_id)
     end
   end
 end

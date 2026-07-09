@@ -1,5 +1,9 @@
 class WeeklyPlan < ApplicationRecord
   # Associations
+  # Cada plan pertenece a un curso (ej: "Mensual óleo", "Mensual acuarela").
+  # optional: los planes creados antes de esta feature quedan sin curso hasta
+  # que se asignen manualmente desde el panel.
+  belongs_to :course, optional: true
   has_many :enrollments
 
   # Enums

@@ -73,9 +73,11 @@ User ──has_one── AdminUser / Teacher / Student
         Teacher ────┤            └──── Student
           │ has_many                     │ has_many
           ▼                              ▼
-        Section ◄──── Course          Enrollment ──► WeeklyPlan (plan/precio)
-          │ has_many    (has_many        │           ──► PaymentPeriod (descuento)
-          │              sections)        │           ──► PaymentMethod
+        Section ◄──── Course          Enrollment ──► WeeklyPlan ──► Course
+          │ has_many    │ has_many        │           (plan/precio; pertenece
+          │             └──► WeeklyPlan    │            a un Course)
+          │                               │           ──► PaymentPeriod (descuento)
+          │                               │           ──► PaymentMethod
           │                               │ has_many
           └──────► EnrollmentSection ◄────┘ has_many ─► Payment
                    (una fila por CLASE:            └──► TransbankTransaction
@@ -84,9 +86,10 @@ User ──has_one── AdminUser / Teacher / Student
 
 Entidades clave:
 
-- **Course** → tiene muchas **Sections**. Una Section pertenece a un Course y a un
-  Teacher; tiene `places` (cupos), `weekday` y un `schedule` (JSON, un solo bloque
-  `start_time`/`end_time`).
+- **Course** → tiene muchas **Sections** y muchos **WeeklyPlans**
+  (`has_many :weekly_plans, dependent: :nullify`). Una Section pertenece a un Course
+  y a un Teacher; tiene `places` (cupos), `weekday` y un `schedule` (JSON, un solo
+  bloque `start_time`/`end_time`).
 - **Enrollment** — la inscripción de un Student. Referencia un `WeeklyPlan`, un
   `PaymentPeriod` (implícito vía cálculo) y un `PaymentMethod`; guarda
   `enrollment_amount` y `total_tuition_fee` ya calculados.
@@ -97,6 +100,11 @@ Entidades clave:
 - **WeeklyPlan** — el "producto"/plan: precio, `saturday_price`, `enrollment_fee`,
   `number_of_classes`, `weekly_classes`, `event_type` (`trial`/`special_event`).
   Contiene la lógica de precio final (`calculate_final_price`, `determine_base_price`).
+  Pertenece a un **Course** (`belongs_to :course, optional: true`), de modo que cada
+  curso tiene sus propios planes (ej: "Mensual óleo", "Mensual acuarela"). Es
+  `optional` para permitir planes sin curso asignado; esos no se ofrecen en la
+  matrícula hasta asignarles un curso. El flujo de inscripción (admin y API
+  `/api/v1/weekly_plans?course_id=`) filtra los planes por el curso elegido.
 - **PaymentPeriod** — `months` + `discount_percentage` (descuento por pagar varios meses).
 - **PaymentMethod** — catálogo (efectivo, transferencia, Webpay, etc.).
 - **Payment** — pago registrado (`payment_type: enrollment_fee`;
@@ -131,6 +139,10 @@ Reglas validadas en el modelo:
 5. Crea el `Payment` de inscripción **solo** para métodos offline (efectivo/transferencia);
    para pagos con tarjeta/Webpay el pago se crea después, en el callback de Transbank.
 
+En el formulario admin (`admin/enrollments/_form.html.erb`) el orden es **curso → plan →
+secciones**: al elegir un curso, el selector de plan se rellena por JS con solo los
+`WeeklyPlan` de ese curso.
+
 ### Pago en línea — Transbank Webpay Plus
 
 Config en `config/initializers/transbank.rb` (`TransbankConfig`): usa credenciales de
@@ -159,9 +171,10 @@ Soporta **múltiples inscripciones** en una sola transacción (`enrollment_data.
   enrollments, enrollment_sections (edición + `makeup`/`assign_makeup`), users,
   weekly_plans, payment_periods, payment_methods, payments (+ `export` CSV),
   transbank_transactions, teacher_payments, profile. Root del sitio (`/`) apunta aquí.
-- `/api/v1/*` — courses, sections (`calendar`, `preview_class_dates`), weekly_plans,
-  payment_periods, payment_methods, enrollments (`create`), teachers (`dashboard`),
-  users (`find_by_email`). Consumida por la SPA.
+- `/api/v1/*` — courses, sections (`calendar`, `preview_class_dates`), weekly_plans
+  (acepta `?course_id=` para filtrar por curso), payment_periods, payment_methods,
+  enrollments (`create`), teachers (`dashboard`), users (`find_by_email`). Consumida
+  por la SPA.
 - `/students/payments` — pago de la cuota de inscripción por parte del estudiante.
 - `/transbank/*` — callback y páginas de resultado.
 - `/users/*` — Devise (login, recuperación de contraseña; sin registro).

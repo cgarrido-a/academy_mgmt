@@ -9,6 +9,7 @@
       <thead>
         <tr>
           <th>ID</th>
+          <th>Curso</th>
           <th>Plan</th>
           <th>Clases/Semana</th>
           <th>Total Clases</th>
@@ -24,6 +25,7 @@
         <% @weekly_plans.each do |plan| %>
           <tr>
             <td><%= plan.id %></td>
+            <td><%= plan.course&.title || '<span style="color: #e67e22;">Sin curso</span>'.html_safe %></td>
             <td><%= plan.plan %></td>
             <td><%= plan.weekly_classes || '-' %></td>
             <td><%= plan.number_of_classes || '<span style="color: #e74c3c;">Sin configurar</span>'.html_safe %></td>

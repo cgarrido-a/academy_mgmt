@@ -2,8 +2,10 @@ module Api
   module V1
     class WeeklyPlansController < BaseController
       # GET /api/v1/weekly_plans
+      # Optional filter: ?course_id=ID returns only that course's plans.
       def index
-        weekly_plans = WeeklyPlan.all
+        weekly_plans = WeeklyPlan.includes(:course).all
+        weekly_plans = weekly_plans.where(course_id: params[:course_id]) if params[:course_id].present?
 
         render json: {
           success: true,
@@ -23,7 +25,9 @@ module Api
           enrollment_fee: plan.enrollment_fee,
           weekly_classes: plan.weekly_classes,
           number_of_classes: plan.number_of_classes,
-          event_type: plan.event_type
+          event_type: plan.event_type,
+          course_id: plan.course_id,
+          course_title: plan.course&.title
         }
       end
     end

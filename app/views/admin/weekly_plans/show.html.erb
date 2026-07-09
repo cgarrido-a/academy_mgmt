@@ -8,6 +8,11 @@
   </div>
 
   <div class="form-group">
+    <strong>Curso:</strong>
+    <p><%= @weekly_plan.course&.title || 'Sin curso asignado' %></p>
+  </div>
+
+  <div class="form-group">
     <strong>Plan:</strong>
     <p><%= @weekly_plan.plan %></p>
   </div>

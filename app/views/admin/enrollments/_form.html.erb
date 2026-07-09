@@ -65,9 +65,9 @@
   <div class="form-group">
     <%= f.label :weekly_plan_id, "Plan de Pago" %>
     <%= f.select :weekly_plan_id,
-        options_from_collection_for_select(weekly_plans, :id, :plan, enrollment.weekly_plan_id),
-        { prompt: "Seleccione un plan de pago" },
-        { required: true, id: 'weekly_plan_select' } %>
+        [],
+        { prompt: "Seleccione un curso primero" },
+        { required: true, id: 'weekly_plan_select', disabled: true } %>
     <small id="plan_info" style="color: #666; display: none;">Seleccione <span id="weekly_classes_count">1</span> sección(es) en el horario</small>
   </div>
 
@@ -376,7 +376,7 @@
       let availableDatesData = [];
       let selectedSectionIds = new Set(<%= enrollment.section_ids.to_json.html_safe %>);
       let allSections = [];
-      let weeklyPlans = <%= weekly_plans.to_json(only: [:id, :plan, :number_of_classes, :price, :enrollment_fee, :weekly_classes]).html_safe %>;
+      let weeklyPlans = <%= weekly_plans.to_json(only: [:id, :plan, :number_of_classes, :price, :enrollment_fee, :weekly_classes, :course_id]).html_safe %>;
       let paymentPeriods = <%= payment_periods.to_json(only: [:id, :months, :discount_percentage, :description]).html_safe %>;
 
       // Enrollment data for edit mode
@@ -945,6 +945,51 @@
       // Make functions available globally
       window.toggleSection = toggleSection;
 
+      // Rebuild the weekly plan dropdown to show only plans belonging to the
+      // selected course. Plans without a course are never shown here.
+      function populatePlansForCourse(courseId, selectedPlanId) {
+        weeklyPlanSelect.innerHTML = '';
+
+        if (!courseId) {
+          weeklyPlanSelect.innerHTML = '<option value="">Seleccione un curso primero</option>';
+          weeklyPlanSelect.disabled = true;
+          return;
+        }
+
+        const plansForCourse = weeklyPlans.filter(p => String(p.course_id) === String(courseId));
+
+        // In edit mode, keep the already-selected plan even if it belongs to a
+        // different (or no) course, so legacy enrollments remain editable.
+        if (selectedPlanId) {
+          const already = weeklyPlans.find(p => String(p.id) === String(selectedPlanId));
+          if (already && !plansForCourse.some(p => p.id === already.id)) {
+            plansForCourse.push(already);
+          }
+        }
+
+        if (plansForCourse.length === 0) {
+          weeklyPlanSelect.innerHTML = '<option value="">No hay planes para este curso</option>';
+          weeklyPlanSelect.disabled = true;
+          return;
+        }
+
+        const prompt = document.createElement('option');
+        prompt.value = '';
+        prompt.textContent = 'Seleccione un plan de pago';
+        weeklyPlanSelect.appendChild(prompt);
+
+        plansForCourse.forEach(p => {
+          const option = document.createElement('option');
+          option.value = p.id;
+          option.textContent = p.plan;
+          if (selectedPlanId && String(p.id) === String(selectedPlanId)) {
+            option.selected = true;
+          }
+          weeklyPlanSelect.appendChild(option);
+        });
+        weeklyPlanSelect.disabled = false;
+      }
+
       // Function to check and show sections when both course and plan are selected
       async function checkAndShowSections() {
         const courseId = courseSelect.value;
@@ -1006,15 +1051,17 @@
           allSections = [];
           generatedDatesSection.style.display = 'none';
 
+          // Rebuild the plan dropdown for this course, then reset all
+          // plan-dependent UI by firing the plan change handler (no plan selected).
+          populatePlansForCourse(courseId);
+          weeklyPlanSelect.dispatchEvent(new Event('change'));
+
           if (!courseId) {
             sectionsContainer.style.display = 'none';
             startDatesContainer.style.display = 'none';
             calendarContainer.innerHTML = '<p style="color: #666; font-style: italic; text-align: center; padding: 40px;">Primero seleccione un curso y un plan de pago</p>';
             return;
           }
-
-          // Check if plan is also selected
-          await checkAndShowSections();
         });
       }
 
@@ -1259,6 +1306,12 @@
       async function initializeFormOnLoad() {
         // Initialize user fields first
         initializeUserFieldsForEdit();
+
+        // If a course is preselected (edit mode), populate its plans and
+        // preselect the enrollment's plan so the select reflects saved data.
+        if (courseSelect.value) {
+          populatePlansForCourse(courseSelect.value, enrollmentData.weekly_plan_id);
+        }
 
         // Check if we're in edit mode
         if (enrollmentData.id && courseSelect.value && weeklyPlanSelect.value) {

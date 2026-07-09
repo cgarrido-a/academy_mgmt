@@ -1,3 +1,19 @@
+<style>
+  .plans-table th, .plans-table td { vertical-align: middle; }
+  .plans-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .plans-table .plan-name { min-width: 160px; font-weight: 600; color: #2c3e50; }
+  .plans-table .sub { display: block; font-size: 0.8rem; color: #7f8c8d; font-weight: 400; margin-top: 0.15rem; }
+  .plans-table .actions { display: flex; gap: 0.4rem; flex-wrap: nowrap; align-items: center; justify-content: flex-end; }
+  .plans-table .actions form { margin: 0; }
+  .plans-table .actions .btn { padding: 0.35rem 0.7rem; font-size: 0.85rem; line-height: 1.2; }
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .badge { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.8rem; font-weight: 500; }
+  .badge-course { background: #eaf2fb; color: #2471a3; }
+  .badge-none { background: #fdebd0; color: #b9770e; }
+  .badge-event { background: #f4ecf7; color: #7d3c98; margin-left: 0.4rem; }
+  .muted { color: #b2bec3; }
+</style>
+
 <div class="card">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
     <h2>Planes Semanales <span style="color: #7f8c8d; font-weight: 400; font-size: 0.95rem;">(<%= @weekly_plans.size %>)</span></h2>
@@ -21,46 +37,58 @@
   <% end %>
 
   <% if @weekly_plans.any? %>
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Curso</th>
-          <th>Plan</th>
-          <th>Clases/Semana</th>
-          <th>Total Clases</th>
-          <th>Precio Mensual</th>
-          <th>Precio Sábado</th>
-          <th>Matrícula</th>
-          <th>Tipo Evento</th>
-          <th>Inscripciones</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% @weekly_plans.each do |plan| %>
+    <div class="table-scroll">
+      <table class="plans-table">
+        <thead>
           <tr>
-            <td><%= plan.id %></td>
-            <td><%= plan.course&.title || '<span style="color: #e67e22;">Sin curso</span>'.html_safe %></td>
-            <td><%= plan.plan %></td>
-            <td><%= plan.weekly_classes || '-' %></td>
-            <td><%= plan.number_of_classes || '<span style="color: #e74c3c;">Sin configurar</span>'.html_safe %></td>
-            <td>$<%= number_with_delimiter(plan.price || 0) %></td>
-            <td>$<%= number_with_delimiter(plan.saturday_price || 0) %></td>
-            <td>$<%= number_with_delimiter(plan.enrollment_fee || 0) %></td>
-            <td><%= plan.event_type&.titleize || '-' %></td>
-            <td><%= plan.enrollments.count %></td>
-            <td>
-              <div class="actions">
-                <%= link_to "Ver", admin_weekly_plan_path(plan), class: "btn btn-primary" %>
-                <%= link_to "Editar", edit_admin_weekly_plan_path(plan), class: "btn btn-secondary" %>
-                <%= button_to "Eliminar", admin_weekly_plan_path(plan), method: :delete, data: { confirm: "¿Estás seguro?" }, class: "btn btn-danger" %>
-              </div>
-            </td>
+            <th>ID</th>
+            <th>Curso</th>
+            <th>Plan</th>
+            <th class="num">Clases</th>
+            <th class="num">Precio mensual</th>
+            <th class="num">Matrícula</th>
+            <th class="num">Inscritos</th>
+            <th style="text-align: right;">Acciones</th>
           </tr>
-        <% end %>
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          <% @weekly_plans.each do |plan| %>
+            <tr>
+              <td class="muted">#<%= plan.id %></td>
+              <td>
+                <% if plan.course %>
+                  <span class="badge badge-course"><%= plan.course.title %></span>
+                <% else %>
+                  <span class="badge badge-none">Sin curso</span>
+                <% end %>
+              </td>
+              <td class="plan-name">
+                <%= plan.plan %><% if plan.event_type %><span class="badge badge-event"><%= plan.event_type.titleize %></span><% end %>
+              </td>
+              <td class="num">
+                <%= plan.weekly_classes || '–' %>/sem
+                <span class="sub">
+                  <%= plan.number_of_classes ? "#{plan.number_of_classes} en total" : content_tag(:span, 'Sin configurar', style: 'color:#e74c3c;') %>
+                </span>
+              </td>
+              <td class="num">
+                $<%= number_with_delimiter(plan.price || 0) %>
+                <span class="sub">Sáb $<%= number_with_delimiter(plan.saturday_price || 0) %></span>
+              </td>
+              <td class="num">$<%= number_with_delimiter(plan.enrollment_fee || 0) %></td>
+              <td class="num"><%= plan.enrollments.count %></td>
+              <td>
+                <div class="actions">
+                  <%= link_to "Ver", admin_weekly_plan_path(plan), class: "btn btn-primary" %>
+                  <%= link_to "Editar", edit_admin_weekly_plan_path(plan), class: "btn btn-secondary" %>
+                  <%= button_to "Eliminar", admin_weekly_plan_path(plan), method: :delete, data: { confirm: "¿Estás seguro?" }, class: "btn btn-danger" %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
   <% else %>
     <p>No hay planes de pago registrados. <%= link_to "Crear el primero", new_admin_weekly_plan_path %></p>
   <% end %>

@@ -86,7 +86,8 @@ module Admin
       @month_present = month_es.where(attended: true).count
       @month_absent = month_es.where(attended: false).count
       @month_pending = month_es.where(attended: nil).count
-      @month_attendance_rate = @month_total > 0 ? ((@month_present.to_f / (@month_present + @month_absent)) * 100).round(0) : nil
+      @month_registered = @month_present + @month_absent
+      @month_attendance_rate = @month_registered > 0 ? ((@month_present.to_f / @month_registered) * 100).round(0) : nil
 
       # Per-section attendance for the month
       @section_attendance = month_es

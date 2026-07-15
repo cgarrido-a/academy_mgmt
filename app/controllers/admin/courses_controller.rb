@@ -1,7 +1,7 @@
 module Admin
   class CoursesController < Admin::ApplicationController
     load_and_authorize_resource
-    before_action :set_course, only: [:show, :edit, :update, :destroy]
+    before_action :set_course, only: [:show, :edit, :update, :destroy, :toggle_active]
 
     def index
       @courses = Course.includes(:sections).accessible_by(current_ability)
@@ -41,6 +41,14 @@ module Admin
       redirect_to admin_courses_path, notice: 'Curso eliminado exitosamente.'
     end
 
+    # Activa/desactiva el curso. Desactivado = no se puede inscribir desde el
+    # front publico (la API lo rechaza), pero el admin si puede seguir inscribiendo.
+    def toggle_active
+      @course.update(active: !@course.active)
+      estado = @course.active? ? 'activado' : 'desactivado'
+      redirect_back fallback_location: admin_courses_path, notice: "Curso #{estado} exitosamente."
+    end
+
     def attendance
       @sections = @course.sections.accessible_by(current_ability)
                                   .includes(teacher: :user)
@@ -78,7 +86,7 @@ module Admin
     end
 
     def course_params
-      params.require(:course).permit(:title, :description)
+      params.require(:course).permit(:title, :description, :active)
     end
   end
 end

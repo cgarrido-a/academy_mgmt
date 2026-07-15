@@ -50,6 +50,7 @@ Rails.application.routes.draw do
     resources :courses do
       member do
         get :attendance
+        patch :toggle_active
       end
     end
     resources :sections do

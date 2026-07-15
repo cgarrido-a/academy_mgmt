@@ -14,6 +14,7 @@
           <th>Título</th>
           <th>Descripción</th>
           <th>Secciones</th>
+          <th>Estado</th>
           <th>Acciones</th>
         </tr>
       </thead>
@@ -25,10 +26,21 @@
             <td><%= truncate(course.description, length: 50) %></td>
             <td><%= course.sections.count %></td>
             <td>
+              <% if course.active? %>
+                <span style="color:#10b981;font-weight:600;">Activo</span>
+              <% else %>
+                <span style="color:#ef4444;font-weight:600;">Inactivo</span>
+              <% end %>
+            </td>
+            <td>
               <div class="actions">
                 <%= link_to "Ver", admin_course_path(course), class: "btn btn-primary" %>
                 <% if can? :update, course %>
                   <%= link_to "Editar", edit_admin_course_path(course), class: "btn btn-secondary" %>
+                  <%= button_to (course.active? ? "Desactivar" : "Activar"),
+                        toggle_active_admin_course_path(course),
+                        method: :patch,
+                        class: "btn #{course.active? ? 'btn-secondary' : 'btn-success'}" %>
                 <% end %>
                 <% if can? :destroy, course %>
                   <%= button_to "Eliminar", admin_course_path(course), method: :delete, data: { confirm: "¿Estás seguro?" }, class: "btn btn-danger" %>

@@ -3,9 +3,21 @@ module Api
     class EnrollmentsController < BaseController
       # POST /api/v1/enrollments
       def create
+        enrollments = enrollments_params
+
+        # Las inscripciones a cursos inactivos solo se permiten desde el panel admin,
+        # no desde el front publico. Este es el candado real (bloquea POST directos).
+        closed = closed_courses_for(enrollments)
+        if closed.any?
+          return render json: {
+            success: false,
+            error: "Las inscripciones para #{closed.to_sentence} estan cerradas por el momento."
+          }, status: :unprocessable_entity
+        end
+
         # Initialize Transbank payment WITHOUT creating enrollments
         # Enrollments will be created after successful payment
-        transbank_data = initialize_transbank_payment_with_data(enrollments_params)
+        transbank_data = initialize_transbank_payment_with_data(enrollments)
 
         render json: {
           success: true,
@@ -40,6 +52,15 @@ module Api
             section_dates: {}
           )
         end
+      end
+
+      # Titulos de los cursos (via weekly_plan) cuya inscripcion esta cerrada (inactivos).
+      def closed_courses_for(enrollments_array)
+        plan_ids = enrollments_array.map { |e| e[:weekly_plan_id] }.compact.uniq
+        WeeklyPlan.where(id: plan_ids).includes(:course).filter_map do |wp|
+          course = wp.course
+          course.title if course && !course.active?
+        end.uniq
       end
 
       def initialize_transbank_payment_with_data(enrollments_array)

@@ -7,4 +7,7 @@ class Course < ApplicationRecord
   # Validations
   validates :title, presence: true
   validates :description, presence: true
+
+  # Solo los cursos activos aceptan inscripción desde el front público.
+  scope :active, -> { where(active: true) }
 end

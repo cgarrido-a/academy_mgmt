@@ -20,6 +20,7 @@ module Api
           id: course.id,
           title: course.title,
           description: course.description,
+          active: course.active,
           sections: course.sections.map { |section| section_data(section, date) }
         }
       end

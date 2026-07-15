@@ -59,14 +59,19 @@ module Api
         start_date = Date.parse(params[:start_date])
         weekly_plan = WeeklyPlan.find(params[:weekly_plan_id])
 
-        # If months parameter is provided, calculate number_of_classes based on period
+        # If months parameter is provided, calculate number_of_classes based on period.
+        # OJO: este endpoint genera las fechas de UNA sola sección, y el formulario
+        # lo llama una vez por sección seleccionada. Cada sección aporta 1 clase por
+        # semana, así que por sección corresponden (months × 4) fechas. El factor
+        # weekly_classes NO va aquí: ya viene dado por la cantidad de secciones que
+        # el plan obliga a elegir (weekly_classes secciones). Multiplicarlo también
+        # aquí duplicaba las clases (p. ej. plan de 2 clases/sem mostraba 16 en vez de 8).
         if params[:months].present?
           months = params[:months].to_i
-          weekly_classes = weekly_plan.weekly_classes || 1
-          # Calculate total classes: weekly_classes × weeks_in_period (months × 4)
-          number_of_classes = weekly_classes * (months * 4)
+          weeks_in_period = months * 4
+          number_of_classes = weeks_in_period
         else
-          # Fallback to plan's number_of_classes
+          # Fallback to plan's per-section classes when no period is given.
           number_of_classes = weekly_plan.number_of_classes
         end
 

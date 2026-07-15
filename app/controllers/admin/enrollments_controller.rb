@@ -68,12 +68,13 @@ module Admin
 
     def create
       # Get section_ids and class_dates before they are excluded
-      raw_params = params.require(:enrollment).permit(:student_id, :section_id, :weekly_plan_id, :payment_method_id, :enrollment_amount, :total_tuition_fee, :payment_date, section_ids: [], class_dates: [])
+      raw_params = params.require(:enrollment).permit(:student_id, :section_id, :weekly_plan_id, :payment_method_id, :enrollment_amount, :total_tuition_fee, :payment_date, section_ids: [], class_dates: [], section_class_dates: [])
       section_ids = (raw_params[:section_ids] || []).reject(&:blank?)
       if raw_params[:section_id].present? && section_ids.empty?
         section_ids = [raw_params[:section_id]]
       end
       class_dates = (raw_params[:class_dates] || []).reject(&:blank?)
+      section_class_dates = (raw_params[:section_class_dates] || []).reject(&:blank?)
 
       params_for_enrollment = enrollment_params
 
@@ -150,17 +151,13 @@ module Admin
         end
 
         if @enrollment.save
-          # Create enrollment sections using the selected/edited dates
-          section_ids.each do |section_id|
-            # Create an enrollment_section for each class date
-            class_dates.each do |date_str|
-              date = Date.parse(date_str)
-              EnrollmentSection.create!(
-                enrollment: @enrollment,
-                section_id: section_id,
-                date: date
-              )
-            end
+          # Create enrollment sections pairing each section with its own dates.
+          section_date_pairs(section_ids, class_dates, section_class_dates).each do |section_id, date_str|
+            EnrollmentSection.create!(
+              enrollment: @enrollment,
+              section_id: section_id,
+              date: Date.parse(date_str)
+            )
           end
 
           # Register enrollment fee payment if payment_date is provided
@@ -199,12 +196,13 @@ module Admin
 
     def update
       # Get section_ids and class_dates before they are excluded
-      raw_params = params.require(:enrollment).permit(:student_id, :section_id, :weekly_plan_id, :payment_method_id, :enrollment_amount, :total_tuition_fee, :payment_date, section_ids: [], class_dates: [])
+      raw_params = params.require(:enrollment).permit(:student_id, :section_id, :weekly_plan_id, :payment_method_id, :enrollment_amount, :total_tuition_fee, :payment_date, section_ids: [], class_dates: [], section_class_dates: [])
       section_ids = (raw_params[:section_ids] || []).reject(&:blank?)
       if raw_params[:section_id].present? && section_ids.empty?
         section_ids = [raw_params[:section_id]]
       end
       class_dates = (raw_params[:class_dates] || []).reject(&:blank?)
+      section_class_dates = (raw_params[:section_class_dates] || []).reject(&:blank?)
 
       params_for_enrollment = enrollment_params
 
@@ -226,19 +224,15 @@ module Admin
 
       ActiveRecord::Base.transaction do
         if @enrollment.update(params_for_enrollment)
-          # Update enrollment sections using the selected/edited dates
+          # Update enrollment sections pairing each section with its own dates.
           @enrollment.enrollment_sections.destroy_all
 
-          section_ids.each do |section_id|
-            # Create an enrollment_section for each class date
-            class_dates.each do |date_str|
-              date = Date.parse(date_str)
-              EnrollmentSection.create!(
-                enrollment: @enrollment,
-                section_id: section_id,
-                date: date
-              )
-            end
+          section_date_pairs(section_ids, class_dates, section_class_dates).each do |section_id, date_str|
+            EnrollmentSection.create!(
+              enrollment: @enrollment,
+              section_id: section_id,
+              date: Date.parse(date_str)
+            )
           end
           redirect_to admin_enrollment_path(@enrollment), notice: 'Inscripción actualizada exitosamente.'
         else
@@ -278,6 +272,28 @@ module Admin
     end
 
     private
+
+    # Empareja cada sección con SUS propias fechas.
+    #
+    # El formulario envía pares explícitos "section_id|fecha" en
+    # section_class_dates (una fecha por sección, ya sin mezclar). Si por
+    # compatibilidad no vienen, cae al comportamiento antiguo: cada sección con
+    # todas las fechas. En ambos casos se deduplican los pares (section_id, fecha)
+    # para no violar la unicidad de EnrollmentSection cuando dos secciones caen
+    # en el mismo día (p. ej. dos secciones de Lunes en un plan de 2 clases/sem).
+    def section_date_pairs(section_ids, class_dates, section_class_dates)
+      pairs =
+        if section_class_dates.present?
+          section_class_dates.map { |token| token.split('|', 2) }
+        else
+          section_ids.product(class_dates)
+        end
+
+      pairs
+        .map { |section_id, date_str| [section_id.to_s, date_str] }
+        .reject { |section_id, date_str| section_id.blank? || date_str.blank? }
+        .uniq
+    end
 
     def set_enrollment
       @enrollment = Enrollment.includes(:sections, :enrollment_sections).find(params[:id])

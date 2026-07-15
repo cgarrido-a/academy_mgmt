@@ -385,7 +385,8 @@
         weekly_plan_id: <%= enrollment.weekly_plan_id || 'null' %>,
         enrollment_amount: <%= enrollment.enrollment_amount || 0 %>,
         total_tuition_fee: <%= enrollment.total_tuition_fee || 0 %>,
-        class_dates: <%= enrollment.enrollment_sections.order(:date).pluck(:date).to_json.html_safe %>
+        class_dates: <%= enrollment.enrollment_sections.order(:date).pluck(:date).to_json.html_safe %>,
+        class_section_dates: <%= enrollment.enrollment_sections.order(:date).pluck(:section_id, :date).to_json.html_safe %>
       };
 
       // User search state
@@ -724,7 +725,8 @@
         }
       }
 
-      let selectedClassDates = []; // Store final selected dates
+      let selectedClassDates = []; // Store final selected dates (flat, backward compat)
+      let selectedSectionClassDates = []; // [{ sectionId, date }] — pares sección→fecha
       let availableDatesForSection = []; // Store all available dates from calendar
 
       async function generateClassDatesPreview(months = null) {
@@ -784,6 +786,7 @@
 
             // Store dates for form submission
             selectedClassDates = allAssignedDates.map(d => d.date);
+            selectedSectionClassDates = allAssignedDates.map(d => ({ sectionId: d.sectionId, date: d.date }));
 
             const weeklyClasses = planInfo?.weekly_classes || sectionIds.length;
             const monthsText = months === 1 ? '1 mes' : `${months} meses`;
@@ -845,15 +848,25 @@
 
       function updateClassDatesHiddenFields() {
         // Remove old hidden fields
-        const oldFields = document.querySelectorAll('input[name="enrollment[class_dates][]"]');
-        oldFields.forEach(field => field.remove());
+        document.querySelectorAll('input[name="enrollment[class_dates][]"]').forEach(f => f.remove());
+        document.querySelectorAll('input[name="enrollment[section_class_dates][]"]').forEach(f => f.remove());
 
-        // Add new hidden fields
+        // class_dates[] (plano) se mantiene por compatibilidad.
         selectedClassDates.forEach(date => {
           const input = document.createElement('input');
           input.type = 'hidden';
           input.name = 'enrollment[class_dates][]';
           input.value = date;
+          hiddenFieldsContainer.appendChild(input);
+        });
+
+        // section_class_dates[] emite el par "sección|fecha" para que el
+        // controlador asigne cada fecha a su sección correcta (sin cartesiano).
+        selectedSectionClassDates.forEach(({ sectionId, date }) => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = 'enrollment[section_class_dates][]';
+          input.value = `${sectionId}|${date}`;
           hiddenFieldsContainer.appendChild(input);
         });
       }
@@ -1243,6 +1256,7 @@
         }
 
         selectedClassDates = enrollmentData.class_dates;
+        selectedSectionClassDates = (enrollmentData.class_section_dates || []).map(pair => ({ sectionId: pair[0], date: pair[1] }));
         generatedDatesSection.style.display = 'block';
 
         const weeklyPlan = weeklyPlans.find(p => p.id === enrollmentData.weekly_plan_id);

@@ -221,7 +221,7 @@ module Admin
       date = params[:date]
       parsed_date = Date.parse(date) rescue nil
 
-      if current_teacher? && parsed_date && parsed_date < Date.current
+      if current_teacher? && !current_admin? && parsed_date && parsed_date < Date.current
         redirect_back fallback_location: admin_section_path(@section, date: date),
                       alert: 'Solo puedes marcar asistencia de hoy en adelante.'
         return

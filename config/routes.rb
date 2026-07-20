@@ -56,6 +56,8 @@ Rails.application.routes.draw do
     resources :sections do
       member do
         patch :take_attendance
+        get   :suspend_session
+        post  :apply_suspension
       end
     end
     resources :enrollments do

@@ -1,0 +1,67 @@
+<div class="card">
+  <h2>Suspender clase</h2>
+  <p style="color:#6b7280; margin-top:-0.25rem;">
+    <strong><%= @section.course.title %></strong> ·
+    <%= @section.weekday %> <%= @section.formatted_schedule %> ·
+    <%= I18n.l(@date, format: '%A %d de %B, %Y').capitalize %>
+  </p>
+
+  <div style="background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; padding:0.75rem 1rem; border-radius:6px; margin:1rem 0;">
+    Al suspender, la clase de cada alumno se <strong>corre al final de su plan</strong>
+    (misma sección, la primera fecha con cupo después de su última clase). No cuenta como
+    inasistencia. Si algún alumno no necesita la reposición, puedes anular esa clase después
+    desde su inscripción.
+  </div>
+
+  <%= form_with url: apply_suspension_admin_section_path(@section), method: :post do %>
+    <%= hidden_field_tag :date, @date.iso8601 %>
+
+    <div class="form-group">
+      <%= label_tag :reason, 'Motivo (opcional)' %>
+      <%= text_field_tag :reason, nil, id: 'reason',
+            placeholder: 'Ej: paro de transporte, feriado, profesor enfermo…',
+            style: 'width:100%;' %>
+    </div>
+
+    <table class="students-table" style="margin-top:1rem;">
+      <thead>
+        <tr>
+          <th>Estudiante</th>
+          <th>Clase actual</th>
+          <th>Nueva fecha (reprogramada)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @cohort.each do |es| %>
+          <tr>
+            <td>
+              <strong><%= es.enrollment.student.user.name %></strong><br>
+              <span style="color:#9ca3af; font-size:0.8rem;"><%= es.enrollment.student.user.email %></span>
+            </td>
+            <td>
+              <%= I18n.l(@date, format: '%d/%m/%Y') %>
+              <% if es.makeup? %><span style="color:#5b21b6; font-size:0.8rem;"> · recuperatorio</span><% end %>
+            </td>
+            <td>
+              <% if es.attended.nil? %>
+                <% if (t = @preview[es.id]) %>
+                  <strong style="color:#047857;"><%= I18n.l(t, format: '%A %d/%m/%Y').capitalize %></strong>
+                <% else %>
+                  <span style="color:#b91c1c;">Sin cupo disponible</span>
+                <% end %>
+              <% else %>
+                <span style="color:#9ca3af;">No se mueve (asistencia ya marcada)</span>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+
+    <div class="actions" style="margin-top:1.5rem;">
+      <%= submit_tag 'Confirmar suspensión', class: 'btn btn-danger',
+            data: { turbo_confirm: '¿Suspender esta clase y reprogramar a todos los alumnos al final de su plan?' } %>
+      <%= link_to 'Cancelar', admin_section_path(@section, date: @date), class: 'btn btn-secondary' %>
+    </div>
+  <% end %>
+</div>

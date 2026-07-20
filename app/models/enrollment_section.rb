@@ -9,6 +9,8 @@ class EnrollmentSection < ApplicationRecord
   belongs_to :section
   belongs_to :makes_up_for, class_name: 'EnrollmentSection', optional: true
   has_one    :makeup,       class_name: 'EnrollmentSection', foreign_key: 'makes_up_for_id', dependent: :nullify
+  # Si la clase fue reprogramada por una suspensión de sesión, apunta al registro.
+  belongs_to :class_suspension, optional: true
 
   # Validations
   validates :enrollment, presence: true

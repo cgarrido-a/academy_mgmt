@@ -1,7 +1,7 @@
 module Admin
   class SectionsController < Admin::ApplicationController
     load_and_authorize_resource
-    before_action :set_section, only: [:show, :edit, :update, :destroy]
+    before_action :set_section, only: [:show, :edit, :update, :destroy, :suspend_session, :apply_suspension]
 
     def index
       weekday_order = "CASE weekday WHEN 'Lunes' THEN 1 WHEN 'Martes' THEN 2 WHEN 'Miércoles' THEN 3 WHEN 'Jueves' THEN 4 WHEN 'Viernes' THEN 5 WHEN 'Sábado' THEN 6 WHEN 'Domingo' THEN 7 END"
@@ -247,10 +247,65 @@ module Admin
       redirect_to admin_sections_path, notice: 'Sección eliminada exitosamente.'
     end
 
+    # GET /admin/sections/:id/suspend_session?date=YYYY-MM-DD
+    # Pantalla de confirmación: alumnos afectados + fecha a la que caería cada uno.
+    def suspend_session
+      @date = parse_session_date(params[:date])
+      return if @date.nil?
+
+      @cohort = @section.enrollment_sections
+                        .includes(enrollment: { student: :user })
+                        .where(date: @date)
+                        .order('users.name')
+
+      if @cohort.empty?
+        redirect_to admin_section_path(@section, date: @date),
+                    alert: 'No hay clases en esa fecha para suspender.'
+        return
+      end
+
+      suspender = SessionSuspender.new(section: @section, date: @date, reason: nil, admin_user: current_user)
+      @preview = @cohort.each_with_object({}) do |es, h|
+        h[es.id] = es.attended.nil? ? suspender.target_date_for(es.enrollment) : nil
+      end
+    end
+
+    # POST /admin/sections/:id/apply_suspension
+    def apply_suspension
+      @date = parse_session_date(params[:date])
+      return if @date.nil?
+
+      result = SessionSuspender.new(
+        section: @section,
+        date: @date,
+        reason: params[:reason].presence,
+        admin_user: current_user
+      ).call
+
+      msg = "Clase del #{I18n.l(@date, format: '%d/%m/%Y')} suspendida. " \
+            "#{result.moved.size} alumno(s) reprogramado(s) al final de su plan."
+      if result.skipped.any?
+        msg += " #{result.skipped.size} sin mover (#{result.skipped.map { |s| s[:reason] }.uniq.join(', ')})."
+      end
+      redirect_to admin_section_path(@section, date: @date), notice: msg
+    rescue StandardError => e
+      redirect_to admin_section_path(@section, date: @date),
+                  alert: "No se pudo suspender la clase: #{e.message}"
+    end
+
     private
 
     def set_section
       @section = Section.find(params[:id])
+    end
+
+    # Parsea la fecha de la sesión; si es inválida redirige y devuelve nil
+    # (el caller debe hacer `return if ... .nil?`).
+    def parse_session_date(raw)
+      Date.parse(raw.to_s)
+    rescue ArgumentError, TypeError
+      redirect_to admin_section_path(@section), alert: 'Fecha inválida.'
+      nil
     end
 
     def section_params

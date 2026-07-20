@@ -219,6 +219,10 @@
         <div class="selected-date-info">
           <strong><%= I18n.l(@selected_date, format: '%A %d de %B, %Y').capitalize %></strong>
           <span class="student-count">(<%= @enrollment_sections.size %> alumnos / <%= @section.places %> cupos)</span>
+          <% if current_admin? && @enrollment_sections.any? %>
+            <%= link_to 'Suspender clase', suspend_session_admin_section_path(@section, date: @selected_date),
+                  class: 'btn btn-danger', style: 'margin-left:auto;' %>
+          <% end %>
         </div>
 
         <% if @enrollment_sections.any? %>

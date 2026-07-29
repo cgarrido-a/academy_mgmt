@@ -20,6 +20,7 @@ module Api
           id: plan.id,
           plan: plan.plan,
           description: plan.description,
+          discount_percentage: plan.discount_percentage,
           price: plan.price,
           saturday_price: plan.saturday_price,
           enrollment_fee: plan.enrollment_fee,

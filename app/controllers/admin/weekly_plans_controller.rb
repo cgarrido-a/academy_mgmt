@@ -64,7 +64,7 @@ module Admin
     end
 
     def weekly_plan_params
-      params.require(:weekly_plan).permit(:plan, :description, :price, :saturday_price, :enrollment_fee, :weekly_classes, :number_of_classes, :event_type, :course_id)
+      params.require(:weekly_plan).permit(:plan, :description, :discount_percentage, :price, :saturday_price, :enrollment_fee, :weekly_classes, :number_of_classes, :event_type, :course_id)
     end
   end
 end

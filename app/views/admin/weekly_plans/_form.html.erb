@@ -49,6 +49,12 @@
   </div>
 
   <div class="form-group">
+    <%= f.label :discount_percentage, "Descuento (%)" %>
+    <%= f.number_field :discount_percentage, min: 0, max: 100, placeholder: "Ej: 10, 15, 20" %>
+    <small style="color: #666;">Descuento que este plan ya trae incluido en el precio (solo para mostrarlo en el front como badge). Dejar vacío si no aplica.</small>
+  </div>
+
+  <div class="form-group">
     <%= f.label :enrollment_fee, "Monto Matrícula" %>
     <%= f.number_field :enrollment_fee, min: 0, placeholder: "Ej: 5000" %>
     <small style="color: #666;">Monto fijo de matrícula/inscripción para este plan</small>

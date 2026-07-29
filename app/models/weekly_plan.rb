@@ -17,6 +17,8 @@ class WeeklyPlan < ApplicationRecord
   validates :enrollment_fee, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
   validates :weekly_classes, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
   validates :number_of_classes, presence: true, numericality: { only_integer: true, greater_than: 0 }
+  # Descuento incorporado en el precio del plan; solo informativo (para mostrar en el front).
+  validates :discount_percentage, numericality: { only_integer: true, greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }, allow_nil: true
 
   # Calculate final price with discount applied
   # @param payment_period [PaymentPeriod] The payment period to apply discount from

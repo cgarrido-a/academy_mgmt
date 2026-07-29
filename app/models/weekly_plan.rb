@@ -32,6 +32,10 @@ class WeeklyPlan < ApplicationRecord
   # @param saturday [Boolean, nil] fuerza el precio de sábado; si es nil se detecta de section_ids
   # @return [Integer] The final price with discount applied
   def calculate_final_price(payment_period, section_ids: [], saturday: nil)
+    # Planes especiales (clase de prueba, evento): usan su PROPIO precio, no el modelo
+    # por cantidad de clases (si no, un trial de 1 clase quedaría al precio base/clase).
+    return determine_base_price(section_ids) if event_type.present?
+
     months = (payment_period&.months || 1)
     sat = saturday.nil? ? has_saturday_section?(section_ids) : saturday
 

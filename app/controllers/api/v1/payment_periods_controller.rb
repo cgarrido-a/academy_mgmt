@@ -25,20 +25,33 @@ module Api
         }
 
         if weekly_plan && weekly_plan.number_of_classes.present?
-          total_classes = weekly_plan.number_of_classes * period.months
-          discount      = ClassDiscount.discount_for(total_classes)
-          total         = weekly_plan.calculate_final_price(period, saturday: saturday)
-          base_per_class = weekly_plan.course&.base_price_per_class(saturday: saturday)
-          subtotal      = base_per_class ? (base_per_class * total_classes).round : total
+          total = weekly_plan.calculate_final_price(period, saturday: saturday)
 
-          data[:pricing] = {
-            total_classes: total_classes,
-            discount_percentage: discount,
-            subtotal: subtotal,
-            discount_amount: subtotal - total,
-            total: total,
-            per_class: total_classes.positive? ? (total.to_f / total_classes).round : nil
-          }
+          if weekly_plan.event_type.present?
+            # Clase de prueba / evento: precio propio, sin descuento por cantidad de clases.
+            data[:pricing] = {
+              total_classes: weekly_plan.number_of_classes,
+              discount_percentage: 0,
+              subtotal: total,
+              discount_amount: 0,
+              total: total,
+              per_class: total
+            }
+          else
+            total_classes = weekly_plan.number_of_classes * period.months
+            discount      = ClassDiscount.discount_for(total_classes)
+            base_per_class = weekly_plan.course&.base_price_per_class(saturday: saturday)
+            subtotal      = base_per_class ? (base_per_class * total_classes).round : total
+
+            data[:pricing] = {
+              total_classes: total_classes,
+              discount_percentage: discount,
+              subtotal: subtotal,
+              discount_amount: subtotal - total,
+              total: total,
+              per_class: total_classes.positive? ? (total.to_f / total_classes).round : nil
+            }
+          end
         end
 
         data

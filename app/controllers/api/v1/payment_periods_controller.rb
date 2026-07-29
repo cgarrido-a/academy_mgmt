@@ -1,42 +1,43 @@
 module Api
   module V1
     class PaymentPeriodsController < BaseController
-      # GET /api/v1/payment_periods?weekly_plan_id=1
+      # GET /api/v1/payment_periods?weekly_plan_id=1&saturday=true
+      # Los "períodos" definen las duraciones (meses) disponibles. El precio/descuento
+      # se calcula por cantidad TOTAL de clases (modelo ClassDiscount), no por el período.
       def index
         payment_periods = PaymentPeriod.all.order(months: :asc)
         weekly_plan = params[:weekly_plan_id].present? ? WeeklyPlan.find_by(id: params[:weekly_plan_id]) : nil
+        saturday = ActiveModel::Type::Boolean.new.cast(params[:saturday]) || false
 
         render json: {
           success: true,
-          data: payment_periods.map { |period| payment_period_data(period, weekly_plan) }
+          data: payment_periods.map { |period| payment_period_data(period, weekly_plan, saturday) }
         }
       end
 
       private
 
-      def payment_period_data(period, weekly_plan = nil)
+      def payment_period_data(period, weekly_plan = nil, saturday = false)
         data = {
           id: period.id,
           months: period.months,
-          discount_percentage: period.discount_percentage,
           description: period.description
         }
 
-        # Si se proporciona un plan, calcular el precio total con el modelo aditivo
-        # (frecuencia + período), delegando en WeeklyPlan#calculate_final_price para
-        # tener una sola fuente de verdad con el cobro real.
-        if weekly_plan && weekly_plan.price.present?
-          freq_discount = (weekly_plan.discount_percentage || 0).to_f
-          undiscounted_monthly = freq_discount < 100 ? weekly_plan.price / (1 - freq_discount / 100.0) : weekly_plan.price
-          subtotal = (undiscounted_monthly * period.months).round
-          total = weekly_plan.calculate_final_price(period)
+        if weekly_plan && weekly_plan.number_of_classes.present?
+          total_classes = weekly_plan.number_of_classes * period.months
+          discount      = ClassDiscount.discount_for(total_classes)
+          total         = weekly_plan.calculate_final_price(period, saturday: saturday)
+          base_per_class = weekly_plan.course&.base_price_per_class(saturday: saturday)
+          subtotal      = base_per_class ? (base_per_class * total_classes).round : total
 
           data[:pricing] = {
-            monthly_price: weekly_plan.price,
+            total_classes: total_classes,
+            discount_percentage: discount,
             subtotal: subtotal,
             discount_amount: subtotal - total,
-            freq_discount_percentage: freq_discount,
-            total: total
+            total: total,
+            per_class: total_classes.positive? ? (total.to_f / total_classes).round : nil
           }
         end
 

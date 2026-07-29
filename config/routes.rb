@@ -74,6 +74,7 @@ Rails.application.routes.draw do
     resources :users
     resources :weekly_plans
     resources :payment_periods
+    resources :class_discounts
     resources :payment_methods
     resources :payments do
       collection do

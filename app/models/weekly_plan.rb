@@ -20,30 +20,28 @@ class WeeklyPlan < ApplicationRecord
   # Descuento incorporado en el precio del plan; solo informativo (para mostrar en el front).
   validates :discount_percentage, numericality: { only_integer: true, greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }, allow_nil: true
 
-  # Calculate final price with discount applied.
+  # Calculate final price con el modelo GLOBAL por cantidad de clases:
+  #   precio = precio_base_por_clase(curso) × total_clases × (1 − dcto(total_clases))
+  # donde total_clases = number_of_classes × meses y el descuento sale de ClassDiscount
+  # (el tramo con el mayor number_of_classes <= total_clases). El período (meses) solo
+  # define cuántas clases se compran; NO aporta descuento propio. A 1 mes el precio
+  # coincide con el precio mensual del plan (no cambia nada).
   #
-  # Modelo ADITIVO: el descuento total = descuento por frecuencia (ya incluido en el
-  # precio mensual del plan) + descuento por período (extra por extender los meses).
-  # Reconstruimos el precio "sin descuento" (sacándole la frecuencia al precio del plan)
-  # y aplicamos (frecuencia + período) sobre esa base, de modo que los dos descuentos se
-  # SUMAN. Así el precio por clase queda igual sin importar el camino (más frecuencia o
-  # más meses): 8 clases valen lo mismo como 2x/semana×1 mes o 1x/semana×2 meses.
-  # A 1 mes (período 0%) el precio = precio del plan (no cambia nada).
-  #
-  # @param payment_period [PaymentPeriod] The payment period to apply discount from
-  # @param section_ids [Array<Integer>] Array of section IDs to check for Saturday pricing
+  # @param payment_period [PaymentPeriod] define los meses (su discount_percentage ya no se usa)
+  # @param section_ids [Array<Integer>] para detectar precio de sábado
+  # @param saturday [Boolean, nil] fuerza el precio de sábado; si es nil se detecta de section_ids
   # @return [Integer] The final price with discount applied
-  def calculate_final_price(payment_period, section_ids: [])
-    base_price = determine_base_price(section_ids)
-    return base_price if payment_period.nil? || base_price.nil?
+  def calculate_final_price(payment_period, section_ids: [], saturday: nil)
+    months = (payment_period&.months || 1)
+    sat = saturday.nil? ? has_saturday_section?(section_ids) : saturday
 
-    months = payment_period.months || 1
-    freq_discount   = (discount_percentage || 0).to_f
-    period_discount = payment_period.discount_percentage.to_f
+    base_per_class = course&.base_price_per_class(saturday: sat)
+    # Fallback al precio mensual si no se puede determinar la base por clase.
+    return determine_base_price(section_ids) if base_per_class.nil? || number_of_classes.nil?
 
-    undiscounted_monthly = freq_discount < 100 ? base_price / (1 - freq_discount / 100.0) : base_price
-    total_discount = (freq_discount + period_discount) / 100.0
-    (undiscounted_monthly * months * (1 - total_discount)).round
+    total_classes = number_of_classes * months
+    discount = ClassDiscount.discount_for(total_classes)
+    (base_per_class * total_classes * (1 - discount / 100.0)).round
   end
 
   # Determine the base price based on whether sections are on Saturday
@@ -53,15 +51,18 @@ class WeeklyPlan < ApplicationRecord
     # If no sections provided, cannot determine price by day, return regular price as default
     return price if section_ids.blank?
 
-    # Check if any section is on Saturday
-    sections = Section.where(id: section_ids)
-    has_saturday_section = sections.any? { |section| section.weekday == 'Sábado' }
-
     # Use saturday_price if sections are on Saturday, otherwise use regular price
-    if has_saturday_section
+    if has_saturday_section?(section_ids)
       saturday_price || price # Fallback to price if saturday_price not set
     else
       price
     end
+  end
+
+  # ¿Alguna de las secciones dadas es de sábado?
+  def has_saturday_section?(section_ids)
+    return false if section_ids.blank?
+
+    Section.where(id: section_ids).any? { |section| section.weekday == 'Sábado' }
   end
 end

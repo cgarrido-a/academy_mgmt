@@ -1,0 +1,39 @@
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2>Descuentos por cantidad de clases</h2>
+    <%= link_to "Nuevo tramo", new_admin_class_discount_path, class: "btn btn-success" %>
+  </div>
+
+  <p style="color: #666; margin-bottom: 1rem;">
+    El descuento de una compra sale del tramo cuya cantidad de clases es la mayor que no
+    supera al total de clases (frecuencia × meses). Ej: 20 clases usa el tramo de 16.
+  </p>
+
+  <% if @class_discounts.any? %>
+    <table>
+      <thead>
+        <tr>
+          <th>Desde (clases)</th>
+          <th>Descuento (%)</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @class_discounts.each do |cd| %>
+          <tr>
+            <td><%= cd.number_of_classes %> o más</td>
+            <td><%= cd.discount_percentage %>%</td>
+            <td>
+              <div class="actions">
+                <%= link_to "Editar", edit_admin_class_discount_path(cd), class: "btn btn-secondary" %>
+                <%= button_to "Eliminar", admin_class_discount_path(cd), method: :delete, data: { confirm: "¿Estás seguro?" }, class: "btn btn-danger" %>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p>No hay tramos de descuento registrados. <%= link_to "Crear el primero", new_admin_class_discount_path %></p>
+  <% end %>
+</div>

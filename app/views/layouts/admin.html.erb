@@ -270,8 +270,11 @@
           <a>Planes de Pago ▾</a>
           <div class="dropdown-content">
             <%= link_to "Planes Semanales", admin_weekly_plans_path %>
+            <% if can? :manage, ClassDiscount %>
+              <%= link_to "Descuentos", admin_class_discounts_path %>
+            <% end %>
             <% if can? :manage, PaymentPeriod %>
-              <%= link_to "Descuentos", admin_payment_periods_path %>
+              <%= link_to "Duraciones (meses)", admin_payment_periods_path %>
             <% end %>
           </div>
         </div>

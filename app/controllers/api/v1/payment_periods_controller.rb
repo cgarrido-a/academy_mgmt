@@ -22,18 +22,21 @@ module Api
           description: period.description
         }
 
-        # Si se proporciona un plan, calcular el precio total
+        # Si se proporciona un plan, calcular el precio total con el modelo aditivo
+        # (frecuencia + período), delegando en WeeklyPlan#calculate_final_price para
+        # tener una sola fuente de verdad con el cobro real.
         if weekly_plan && weekly_plan.price.present?
-          monthly_price = weekly_plan.price
-          subtotal = monthly_price * period.months
-          discount_amount = subtotal * (period.discount_percentage / 100.0)
-          total = subtotal - discount_amount
+          freq_discount = (weekly_plan.discount_percentage || 0).to_f
+          undiscounted_monthly = freq_discount < 100 ? weekly_plan.price / (1 - freq_discount / 100.0) : weekly_plan.price
+          subtotal = (undiscounted_monthly * period.months).round
+          total = weekly_plan.calculate_final_price(period)
 
           data[:pricing] = {
-            monthly_price: monthly_price,
+            monthly_price: weekly_plan.price,
             subtotal: subtotal,
-            discount_amount: discount_amount,
-            total: total.round
+            discount_amount: subtotal - total,
+            freq_discount_percentage: freq_discount,
+            total: total
           }
         end
 

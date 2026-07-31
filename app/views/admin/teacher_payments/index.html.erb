@@ -36,62 +36,64 @@
 
 <div class="card">
   <% if @teacher_rows.any? %>
-    <table>
-      <thead>
-        <tr>
-          <th>Docente</th>
-          <th style="text-align: center;">Clases Asistidas</th>
-          <th style="text-align: right;">Valor Clases</th>
-          <th style="text-align: right;">A Pagar (42.5%)</th>
-          <th style="text-align: center;">Estado</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% @teacher_rows.each do |row| %>
+    <div class="table-scroll">
+      <table>
+        <thead>
           <tr>
-            <td><strong><%= row[:name] %></strong></td>
-            <td style="text-align: center;"><%= row[:attended_count] %></td>
-            <td style="text-align: right;"><%= number_to_currency(row[:tuition_total], precision: 0) %></td>
-            <td style="text-align: right; font-weight: 600; color: #2c3e50;"><%= number_to_currency(row[:payment_amount], precision: 0) %></td>
-            <td style="text-align: center;">
-              <%= form_tag toggle_status_admin_teacher_payment_path(row[:teacher]), method: :patch, style: "margin: 0;" do %>
-                <%= hidden_field_tag :month, row[:month].strftime('%Y-%m-%d') %>
-                <%= hidden_field_tag :filter_month, @selected_month&.strftime('%Y-%m-%d') %>
-                <%= hidden_field_tag :filter_status, @selected_status %>
-                <% paid = row[:status] == 'paid' %>
-                <% if paid %>
-                  <%= hidden_field_tag :new_status, 'pending' %>
-                  <button type="submit" style="background: #d4edda; color: #155724; border: 1px solid #c3e6cb; padding: 0.3rem 0.75rem; border-radius: 20px; font-size: 0.85rem; cursor: pointer; font-weight: 600;">
-                    Pagado
-                  </button>
-                <% else %>
-                  <%= hidden_field_tag :new_status, 'paid' %>
-                  <button type="submit" style="background: #fff3cd; color: #856404; border: 1px solid #ffc107; padding: 0.3rem 0.75rem; border-radius: 20px; font-size: 0.85rem; cursor: pointer; font-weight: 600;">
-                    Pendiente
-                  </button>
+            <th>Docente</th>
+            <th style="text-align: center;">Clases Asistidas</th>
+            <th style="text-align: right;">Valor Clases</th>
+            <th style="text-align: right;">A Pagar (42.5%)</th>
+            <th style="text-align: center;">Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @teacher_rows.each do |row| %>
+            <tr>
+              <td><strong><%= row[:name] %></strong></td>
+              <td style="text-align: center;"><%= row[:attended_count] %></td>
+              <td style="text-align: right;"><%= number_to_currency(row[:tuition_total], precision: 0) %></td>
+              <td style="text-align: right; font-weight: 600; color: #2c3e50;"><%= number_to_currency(row[:payment_amount], precision: 0) %></td>
+              <td style="text-align: center;">
+                <%= form_tag toggle_status_admin_teacher_payment_path(row[:teacher]), method: :patch, style: "margin: 0;" do %>
+                  <%= hidden_field_tag :month, row[:month].strftime('%Y-%m-%d') %>
+                  <%= hidden_field_tag :filter_month, @selected_month&.strftime('%Y-%m-%d') %>
+                  <%= hidden_field_tag :filter_status, @selected_status %>
+                  <% paid = row[:status] == 'paid' %>
+                  <% if paid %>
+                    <%= hidden_field_tag :new_status, 'pending' %>
+                    <button type="submit" style="background: #d4edda; color: #155724; border: 1px solid #c3e6cb; padding: 0.3rem 0.75rem; border-radius: 20px; font-size: 0.85rem; cursor: pointer; font-weight: 600;">
+                      Pagado
+                    </button>
+                  <% else %>
+                    <%= hidden_field_tag :new_status, 'paid' %>
+                    <button type="submit" style="background: #fff3cd; color: #856404; border: 1px solid #ffc107; padding: 0.3rem 0.75rem; border-radius: 20px; font-size: 0.85rem; cursor: pointer; font-weight: 600;">
+                      Pendiente
+                    </button>
+                  <% end %>
                 <% end %>
-              <% end %>
-            </td>
-            <td>
-              <%= link_to "Ver detalle", admin_teacher_payment_path(row[:teacher], month: row[:month].strftime('%Y-%m-%d')), class: "btn btn-primary", style: "padding: 0.3rem 0.75rem; font-size: 0.85rem;" %>
-            </td>
-          </tr>
+              </td>
+              <td>
+                <%= link_to "Ver detalle", admin_teacher_payment_path(row[:teacher], month: row[:month].strftime('%Y-%m-%d')), class: "btn btn-primary", style: "padding: 0.3rem 0.75rem; font-size: 0.85rem;" %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+        <% if @selected_month && @teacher_rows.size > 1 %>
+          <tfoot>
+            <tr style="background: #f8f9fa; font-weight: 600;">
+              <td>Total</td>
+              <td style="text-align: center;"><%= @summary[:attended_classes] %></td>
+              <td style="text-align: right;"><%= number_to_currency(@summary[:tuition], precision: 0) %></td>
+              <td style="text-align: right; color: #2c3e50;"><%= number_to_currency(@summary[:payment], precision: 0) %></td>
+              <td></td>
+              <td></td>
+            </tr>
+          </tfoot>
         <% end %>
-      </tbody>
-      <% if @selected_month && @teacher_rows.size > 1 %>
-        <tfoot>
-          <tr style="background: #f8f9fa; font-weight: 600;">
-            <td>Total</td>
-            <td style="text-align: center;"><%= @summary[:attended_classes] %></td>
-            <td style="text-align: right;"><%= number_to_currency(@summary[:tuition], precision: 0) %></td>
-            <td style="text-align: right; color: #2c3e50;"><%= number_to_currency(@summary[:payment], precision: 0) %></td>
-            <td></td>
-            <td></td>
-          </tr>
-        </tfoot>
-      <% end %>
-    </table>
+      </table>
+    </div>
   <% else %>
     <p style="color: #7f8c8d; text-align: center; padding: 2rem;">No hay pagos registrados para este periodo.</p>
   <% end %>

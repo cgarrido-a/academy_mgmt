@@ -1,5 +1,5 @@
 <div class="card">
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+  <div class="page-header">
     <h2><%= @course.title %></h2>
     <div class="actions">
       <% if can? :attendance, @course %>
@@ -19,7 +19,7 @@
 </div>
 
 <div class="card">
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+  <div class="page-header">
     <h2>Secciones</h2>
     <% if can? :create, Section %>
       <%= link_to "Nueva Sección", new_admin_section_path(course_id: @course.id), class: "btn btn-success" %>
@@ -27,37 +27,39 @@
   </div>
 
   <% if @sections.any? %>
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Profesor</th>
-          <th>Horario</th>
-          <th>Día de la semana</th>
-          <th>Cupos</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% @sections.each do |section| %>
+    <div class="table-scroll">
+      <table>
+        <thead>
           <tr>
-            <td><%= section.id %></td>
-            <td><%= section.teacher.user.name %></td>
-            <td><%= section.formatted_schedule %></td>
-            <td><%= section.weekday %></td>
-            <td><%= section.places %></td>
-            <td>
-              <div class="actions">
-                <%= link_to "Ver", admin_section_path(section), class: "btn btn-primary" %>
-                <% if can? :update, section %>
-                  <%= link_to "Editar", edit_admin_section_path(section), class: "btn btn-secondary" %>
-                <% end %>
-              </div>
-            </td>
+            <th>ID</th>
+            <th>Profesor</th>
+            <th>Horario</th>
+            <th>Día de la semana</th>
+            <th>Cupos</th>
+            <th>Acciones</th>
           </tr>
-        <% end %>
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          <% @sections.each do |section| %>
+            <tr>
+              <td><%= section.id %></td>
+              <td><%= section.teacher.user.name %></td>
+              <td><%= section.formatted_schedule %></td>
+              <td><%= section.weekday %></td>
+              <td><%= section.places %></td>
+              <td>
+                <div class="actions">
+                  <%= link_to "Ver", admin_section_path(section), class: "btn btn-primary" %>
+                  <% if can? :update, section %>
+                    <%= link_to "Editar", edit_admin_section_path(section), class: "btn btn-secondary" %>
+                  <% end %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
   <% else %>
     <p>No hay secciones asignadas en este curso.</p>
   <% end %>

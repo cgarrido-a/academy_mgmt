@@ -97,6 +97,29 @@
   .row-tools { display: flex; gap: 0.5rem; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; flex-wrap: wrap; }
   .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 6px; text-decoration: none; color: #3498db; background: #e8f4fd; transition: all 0.15s; }
   .icon-btn:hover { background: #3498db; color: white; }
+
+  /* --- Mobile ---
+     Marcar asistencia es la acción principal en el teléfono, así que los botones
+     Presente/Ausente tienen que verse sin scroll horizontal. Se ocultan las
+     columnas secundarias (Historial y el ícono de ver ficha) para dejarles sitio. */
+  @media (max-width: 600px) {
+    .students-table th:nth-child(2), .students-table td:nth-child(2),
+    .students-table th:nth-child(4), .students-table td:nth-child(4) { display: none; }
+    .students-table th:nth-child(3) { width: auto !important; }
+    .students-table th, .students-table td { padding: 0.55rem 0.35rem; }
+    .students-table th { font-size: 0.68rem; }
+    .seg-attendance .seg-btn { padding: 0.3rem 0.5rem; font-size: 0.75rem; }
+    .student-name strong { font-size: 0.9rem; }
+    .student-email { font-size: 0.72rem; overflow-wrap: anywhere; }
+    .status-badge { font-size: 0.72rem; padding: 0.2rem 0.5rem; }
+
+    .day-stats { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+    .day-stat { padding: 0.6rem 0.7rem; }
+    .day-stat .value { font-size: 1.3rem; }
+    .section-hero-info h2 { font-size: 1.2rem; }
+    .quick-dates { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .quick-date, .quick-arrow, .quick-dates-label { flex: 0 0 auto; }
+  }
 </style>
 
 <% teacher_name = @section.teacher.user.name %>
@@ -245,12 +268,105 @@
                 </div>
               </div>
 
+              <div class="table-scroll">
+                <table class="students-table">
+                  <thead>
+                    <tr>
+                      <th>Estudiante</th>
+                      <th style="width: 180px;">Historial</th>
+                      <th style="text-align: center; width: 200px;">Asistencia</th>
+                      <% if can? :manage, Enrollment %>
+                        <th style="width: 60px;"></th>
+                      <% end %>
+                    </tr>
+                  </thead>
+                  <tbody id="students-tbody">
+                    <% @enrollment_sections.each do |es| %>
+                      <% stats = @student_attendance_stats[es.enrollment_id] %>
+                      <% current = es.attended.nil? ? nil : (es.attended ? 'present' : 'absent') %>
+                      <tr class="attendance-row" data-student-name="<%= es.enrollment.student.user.name.downcase %>">
+                        <td>
+                          <div class="student-name">
+                            <strong>
+                              <%= link_to es.enrollment.student.user.name, admin_enrollment_path(es.enrollment),
+                                    style: "color: #2c3e50; text-decoration: none;",
+                                    title: "Ver inscripción" %>
+                              <% if es.makeup? && es.makes_up_for %>
+                                <span class="makeup-badge is-makeup" title="Recupera la falta del <%= I18n.l(es.makes_up_for.date, format: '%d/%m/%Y') %> en <%= es.makes_up_for.section.course.title %><%= " — Motivo: #{es.makeup_reason}" if es.makeup_reason.present? %>">🔁 Recuperatorio</span>
+                              <% elsif es.attended == false && es.makeup.present? %>
+                                <span class="makeup-badge has-makeup" title="Recuperado el <%= I18n.l(es.makeup.date, format: '%d/%m/%Y') %> en <%= es.makeup.section.course.title %>">↪ Recuperado <%= I18n.l(es.makeup.date, format: '%d/%m') %></span>
+                              <% end %>
+                            </strong>
+                            <span class="student-email"><%= es.enrollment.student.user.email %></span>
+                            <% if es.makeup? && es.makeup_reason.present? %>
+                              <div style="font-size: 0.78rem; color: #5b21b6; margin-top: 0.15rem; font-style: italic;">💬 <%= es.makeup_reason %></div>
+                            <% end %>
+                            <% if es.attended == false && es.regular? && es.makeup.blank? && can?(:makeup, es) %>
+                              <%= link_to makeup_admin_enrollment_section_path(es), class: "makeup-link" do %>
+                                🔁 Asignar recuperatorio
+                              <% end %>
+                            <% end %>
+                          </div>
+                        </td>
+                        <td>
+                          <% if stats && stats[:rate] %>
+                            <% fill = stats[:rate] >= 75 ? 'good' : (stats[:rate] >= 50 ? 'mid' : 'poor') %>
+                            <div class="hist-rate">
+                              <span><strong><%= stats[:present] %></strong>/<%= stats[:total] %></span>
+                              <div class="hist-bar"><div class="hist-fill <%= fill %>" style="width: <%= stats[:rate] %>%;"></div></div>
+                              <span><%= stats[:rate] %>%</span>
+                            </div>
+                          <% else %>
+                            <span class="hist-empty">Sin registros previos</span>
+                          <% end %>
+                        </td>
+                        <td style="text-align: center;">
+                          <%= hidden_field_tag "attendance[#{es.id}][attended]", current == 'present' ? '1' : '0', id: "attendance_value_#{es.id}", data: { row: es.id } %>
+                          <div class="seg-attendance" data-row="<%= es.id %>">
+                            <button type="button" class="seg-btn <%= 'active-present' if current == 'present' %>" data-action="present" onclick="setAttendance(<%= es.id %>, true)">Presente</button>
+                            <button type="button" class="seg-btn <%= 'active-absent' if current == 'absent' %>" data-action="absent" onclick="setAttendance(<%= es.id %>, false)">Ausente</button>
+                          </div>
+                        </td>
+                        <% if can? :manage, Enrollment %>
+                          <td>
+                            <%= link_to "👁", admin_enrollment_path(es.enrollment), class: "icon-btn", title: "Ver inscripción" %>
+                          </td>
+                        <% end %>
+                      </tr>
+                    <% end %>
+                  </tbody>
+                </table>
+              </div>
+
+              <div style="margin-top: 1rem;">
+                <%= submit_tag "Guardar Asistencia", class: "btn btn-success", style: "width: 100%; padding: 0.75rem; font-size: 1.05rem;" %>
+              </div>
+            <% end %>
+          <% else %>
+            <%# Read-only view: profe en fecha pasada, o sin permiso para tomar asistencia %>
+            <% if can?(:take_attendance, @section) && current_teacher? && @selected_date < Date.current %>
+              <div class="lock-banner">
+                🔒 La asistencia de fechas pasadas es de sólo lectura. Pide al admin si necesitas modificarla.
+              </div>
+            <% end %>
+
+            <% if @day_present || @day_absent %>
+              <div class="day-stats">
+                <div class="day-stat present"><div class="label">Presentes</div><div class="value"><%= @day_present || 0 %></div></div>
+                <div class="day-stat absent"><div class="label">Ausentes</div><div class="value"><%= @day_absent || 0 %></div></div>
+                <div class="day-stat pending"><div class="label">Pendientes</div><div class="value"><%= @day_pending || 0 %></div></div>
+                <div class="day-stat rate"><div class="label">Asistencia</div><div class="value"><%= @day_rate ? "#{@day_rate}%" : '—' %></div></div>
+              </div>
+            <% end %>
+
+            <input type="text" id="student-search" class="student-search" placeholder="🔍 Buscar estudiante..." oninput="filterStudents(this.value)" />
+            <div class="table-scroll">
               <table class="students-table">
                 <thead>
                   <tr>
                     <th>Estudiante</th>
                     <th style="width: 180px;">Historial</th>
-                    <th style="text-align: center; width: 200px;">Asistencia</th>
+                    <th style="text-align: center; width: 120px;">Asistencia</th>
                     <% if can? :manage, Enrollment %>
                       <th style="width: 60px;"></th>
                     <% end %>
@@ -259,8 +375,7 @@
                 <tbody id="students-tbody">
                   <% @enrollment_sections.each do |es| %>
                     <% stats = @student_attendance_stats[es.enrollment_id] %>
-                    <% current = es.attended.nil? ? nil : (es.attended ? 'present' : 'absent') %>
-                    <tr class="attendance-row" data-student-name="<%= es.enrollment.student.user.name.downcase %>">
+                    <tr data-student-name="<%= es.enrollment.student.user.name.downcase %>">
                       <td>
                         <div class="student-name">
                           <strong>
@@ -297,110 +412,22 @@
                         <% end %>
                       </td>
                       <td style="text-align: center;">
-                        <%= hidden_field_tag "attendance[#{es.id}][attended]", current == 'present' ? '1' : '0', id: "attendance_value_#{es.id}", data: { row: es.id } %>
-                        <div class="seg-attendance" data-row="<%= es.id %>">
-                          <button type="button" class="seg-btn <%= 'active-present' if current == 'present' %>" data-action="present" onclick="setAttendance(<%= es.id %>, true)">Presente</button>
-                          <button type="button" class="seg-btn <%= 'active-absent' if current == 'absent' %>" data-action="absent" onclick="setAttendance(<%= es.id %>, false)">Ausente</button>
-                        </div>
+                        <% if es.attended == true %>
+                          <span class="status-badge status-present">✓ Presente</span>
+                        <% elsif es.attended == false %>
+                          <span class="status-badge status-absent">✗ Ausente</span>
+                        <% else %>
+                          <span class="status-badge status-pending">Sin marcar</span>
+                        <% end %>
                       </td>
                       <% if can? :manage, Enrollment %>
-                        <td>
-                          <%= link_to "👁", admin_enrollment_path(es.enrollment), class: "icon-btn", title: "Ver inscripción" %>
-                        </td>
+                        <td><%= link_to "👁", admin_enrollment_path(es.enrollment), class: "icon-btn", title: "Ver inscripción" %></td>
                       <% end %>
                     </tr>
                   <% end %>
                 </tbody>
               </table>
-
-              <div style="margin-top: 1rem;">
-                <%= submit_tag "Guardar Asistencia", class: "btn btn-success", style: "width: 100%; padding: 0.75rem; font-size: 1.05rem;" %>
-              </div>
-            <% end %>
-          <% else %>
-            <%# Read-only view: profe en fecha pasada, o sin permiso para tomar asistencia %>
-            <% if can?(:take_attendance, @section) && current_teacher? && @selected_date < Date.current %>
-              <div class="lock-banner">
-                🔒 La asistencia de fechas pasadas es de sólo lectura. Pide al admin si necesitas modificarla.
-              </div>
-            <% end %>
-
-            <% if @day_present || @day_absent %>
-              <div class="day-stats">
-                <div class="day-stat present"><div class="label">Presentes</div><div class="value"><%= @day_present || 0 %></div></div>
-                <div class="day-stat absent"><div class="label">Ausentes</div><div class="value"><%= @day_absent || 0 %></div></div>
-                <div class="day-stat pending"><div class="label">Pendientes</div><div class="value"><%= @day_pending || 0 %></div></div>
-                <div class="day-stat rate"><div class="label">Asistencia</div><div class="value"><%= @day_rate ? "#{@day_rate}%" : '—' %></div></div>
-              </div>
-            <% end %>
-
-            <input type="text" id="student-search" class="student-search" placeholder="🔍 Buscar estudiante..." oninput="filterStudents(this.value)" />
-            <table class="students-table">
-              <thead>
-                <tr>
-                  <th>Estudiante</th>
-                  <th style="width: 180px;">Historial</th>
-                  <th style="text-align: center; width: 120px;">Asistencia</th>
-                  <% if can? :manage, Enrollment %>
-                    <th style="width: 60px;"></th>
-                  <% end %>
-                </tr>
-              </thead>
-              <tbody id="students-tbody">
-                <% @enrollment_sections.each do |es| %>
-                  <% stats = @student_attendance_stats[es.enrollment_id] %>
-                  <tr data-student-name="<%= es.enrollment.student.user.name.downcase %>">
-                    <td>
-                      <div class="student-name">
-                        <strong>
-                          <%= link_to es.enrollment.student.user.name, admin_enrollment_path(es.enrollment),
-                                style: "color: #2c3e50; text-decoration: none;",
-                                title: "Ver inscripción" %>
-                          <% if es.makeup? && es.makes_up_for %>
-                            <span class="makeup-badge is-makeup" title="Recupera la falta del <%= I18n.l(es.makes_up_for.date, format: '%d/%m/%Y') %> en <%= es.makes_up_for.section.course.title %><%= " — Motivo: #{es.makeup_reason}" if es.makeup_reason.present? %>">🔁 Recuperatorio</span>
-                          <% elsif es.attended == false && es.makeup.present? %>
-                            <span class="makeup-badge has-makeup" title="Recuperado el <%= I18n.l(es.makeup.date, format: '%d/%m/%Y') %> en <%= es.makeup.section.course.title %>">↪ Recuperado <%= I18n.l(es.makeup.date, format: '%d/%m') %></span>
-                          <% end %>
-                        </strong>
-                        <span class="student-email"><%= es.enrollment.student.user.email %></span>
-                        <% if es.makeup? && es.makeup_reason.present? %>
-                          <div style="font-size: 0.78rem; color: #5b21b6; margin-top: 0.15rem; font-style: italic;">💬 <%= es.makeup_reason %></div>
-                        <% end %>
-                        <% if es.attended == false && es.regular? && es.makeup.blank? && can?(:makeup, es) %>
-                          <%= link_to makeup_admin_enrollment_section_path(es), class: "makeup-link" do %>
-                            🔁 Asignar recuperatorio
-                          <% end %>
-                        <% end %>
-                      </div>
-                    </td>
-                    <td>
-                      <% if stats && stats[:rate] %>
-                        <% fill = stats[:rate] >= 75 ? 'good' : (stats[:rate] >= 50 ? 'mid' : 'poor') %>
-                        <div class="hist-rate">
-                          <span><strong><%= stats[:present] %></strong>/<%= stats[:total] %></span>
-                          <div class="hist-bar"><div class="hist-fill <%= fill %>" style="width: <%= stats[:rate] %>%;"></div></div>
-                          <span><%= stats[:rate] %>%</span>
-                        </div>
-                      <% else %>
-                        <span class="hist-empty">Sin registros previos</span>
-                      <% end %>
-                    </td>
-                    <td style="text-align: center;">
-                      <% if es.attended == true %>
-                        <span class="status-badge status-present">✓ Presente</span>
-                      <% elsif es.attended == false %>
-                        <span class="status-badge status-absent">✗ Ausente</span>
-                      <% else %>
-                        <span class="status-badge status-pending">Sin marcar</span>
-                      <% end %>
-                    </td>
-                    <% if can? :manage, Enrollment %>
-                      <td><%= link_to "👁", admin_enrollment_path(es.enrollment), class: "icon-btn", title: "Ver inscripción" %></td>
-                    <% end %>
-                  </tr>
-                <% end %>
-              </tbody>
-            </table>
+            </div>
           <% end %>
         <% else %>
           <div class="empty-students">

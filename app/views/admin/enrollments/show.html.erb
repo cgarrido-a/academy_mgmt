@@ -1,6 +1,7 @@
 <style>
   /* === Header tipo ficha === */
   .enr-header { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+  .enr-header > * { min-width: 0; }
   @media (max-width: 800px) { .enr-header { grid-template-columns: 1fr; } }
   .enr-header h3 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: #7f8c8d; margin: 0 0 0.85rem 0; padding-bottom: 0.5rem; border-bottom: 1px solid #e9ecef; font-weight: 600; }
 
@@ -14,7 +15,8 @@
   .kv-row { display: flex; gap: 1rem; padding: 0.35rem 0; font-size: 0.9rem; border-bottom: 1px dashed #f0f0f0; }
   .kv-row:last-child { border-bottom: none; }
   .kv-row .k { color: #7f8c8d; min-width: 130px; }
-  .kv-row .v { color: #2c3e50; font-weight: 500; flex: 1; }
+  /* Emails y RUTs largos deben poder cortarse, si no empujan toda la página */
+  .kv-row .v { color: #2c3e50; font-weight: 500; flex: 1; min-width: 0; overflow-wrap: anywhere; }
 
   .total-box { margin-top: 1rem; padding: 0.85rem 1rem; background: #f8f9fa; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
   .total-box .lbl { font-size: 0.78rem; text-transform: uppercase; color: #7f8c8d; letter-spacing: 0.04em; }
@@ -80,6 +82,15 @@
   @media (max-width: 700px) {
     .class-row { grid-template-columns: 60px 1fr; gap: 0.5rem; }
     .class-row .cr-day, .class-row .cr-actions { grid-column: 1 / -1; }
+  }
+
+  @media (max-width: 600px) {
+    /* La ficha del alumno pasa a una columna: etiqueta arriba, valor abajo */
+    .kv-row { flex-direction: column; gap: 0.1rem; }
+    .kv-row .k { min-width: 0; font-size: 0.8rem; }
+    .student-avatar { width: 56px; height: 56px; font-size: 1.3rem; }
+    .student-info .name { font-size: 1.15rem; }
+    .total-box { flex-wrap: wrap; gap: 0.5rem; }
   }
 
   .empty-block { text-align: center; padding: 2rem 1rem; color: #7f8c8d; }
@@ -199,32 +210,34 @@
 
   <% if @payments.any? %>
     <div style="overflow-x: auto;">
-      <table class="pay-table">
-        <thead>
-          <tr>
-            <th>Fecha</th>
-            <th>Concepto</th>
-            <th style="text-align: right;">Monto</th>
-            <th>Método</th>
-            <th>Estado</th>
-            <th>Referencia</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <% @payments.each do |p| %>
+      <div class="table-scroll">
+        <table class="pay-table">
+          <thead>
             <tr>
-              <td><%= I18n.l(p.payment_date, format: '%d/%m/%Y') %></td>
-              <td><%= p.payment_type == 'enrollment_fee' ? 'Matrícula' : p.payment_type.humanize %></td>
-              <td style="text-align: right; font-variant-numeric: tabular-nums;"><strong>$<%= number_with_delimiter(p.amount) %></strong></td>
-              <td><%= p.payment_method.payment_method %></td>
-              <td><span class="pay-status <%= p.status %>"><%= p.status %></span></td>
-              <td style="color: #7f8c8d; font-size: 0.82rem;"><%= p.reference_number %></td>
-              <td><%= link_to "Ver", admin_payment_path(p), class: "btn btn-primary", style: "padding: 0.25rem 0.6rem; font-size: 0.8rem;" %></td>
+              <th>Fecha</th>
+              <th>Concepto</th>
+              <th style="text-align: right;">Monto</th>
+              <th>Método</th>
+              <th>Estado</th>
+              <th>Referencia</th>
+              <th></th>
             </tr>
-          <% end %>
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            <% @payments.each do |p| %>
+              <tr>
+                <td><%= I18n.l(p.payment_date, format: '%d/%m/%Y') %></td>
+                <td><%= p.payment_type == 'enrollment_fee' ? 'Matrícula' : p.payment_type.humanize %></td>
+                <td style="text-align: right; font-variant-numeric: tabular-nums;"><strong>$<%= number_with_delimiter(p.amount) %></strong></td>
+                <td><%= p.payment_method.payment_method %></td>
+                <td><span class="pay-status <%= p.status %>"><%= p.status %></span></td>
+                <td style="color: #7f8c8d; font-size: 0.82rem;"><%= p.reference_number %></td>
+                <td><%= link_to "Ver", admin_payment_path(p), class: "btn btn-primary", style: "padding: 0.25rem 0.6rem; font-size: 0.8rem;" %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
     </div>
   <% else %>
     <div class="empty-block">No hay pagos registrados para esta inscripción.</div>

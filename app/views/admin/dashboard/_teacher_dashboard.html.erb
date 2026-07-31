@@ -1,4 +1,4 @@
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+<div class="page-header">
   <h1 style="color: #2c3e50;">Mi Dashboard</h1>
 </div>
 
@@ -56,43 +56,45 @@
 <% if @section_attendance.any? %>
   <div class="card" style="margin-bottom: 1.5rem;">
     <h2 style="font-size: 1.1rem; margin-bottom: 1rem;">Asistencia por seccion - <%= I18n.l(@calendar_date, format: '%B %Y').capitalize %></h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Seccion</th>
-          <th>Dia</th>
-          <th style="text-align: center;">Presentes</th>
-          <th style="text-align: center;">Ausentes</th>
-          <th style="text-align: center;">Pendientes</th>
-          <th style="text-align: center;">Asistencia</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% @section_attendance.each do |sa| %>
+    <div class="table-scroll">
+      <table>
+        <thead>
           <tr>
-            <td>
-              <%= link_to sa[:section].course.title, admin_section_path(sa[:section]), style: "color: #3498db; text-decoration: none; font-weight: 500;" %>
-            </td>
-            <td style="color: #7f8c8d;"><%= sa[:section].weekday %> &middot; <%= sa[:section].formatted_schedule %></td>
-            <td style="text-align: center; color: #27ae60; font-weight: 600;"><%= sa[:present] %></td>
-            <td style="text-align: center; color: #e74c3c; font-weight: 600;"><%= sa[:absent] %></td>
-            <td style="text-align: center; color: #f39c12; font-weight: 600;"><%= sa[:total] - sa[:present] - sa[:absent] %></td>
-            <td style="text-align: center;">
-              <% if sa[:rate] %>
-                <div style="display: inline-flex; align-items: center; gap: 0.5rem;">
-                  <div style="width: 60px; height: 8px; background: #eee; border-radius: 4px; overflow: hidden;">
-                    <div style="width: <%= sa[:rate] %>%; height: 100%; background: <%= sa[:rate] >= 75 ? '#27ae60' : sa[:rate] >= 50 ? '#f39c12' : '#e74c3c' %>; border-radius: 4px;"></div>
-                  </div>
-                  <span style="font-weight: 600; font-size: 0.9rem; color: <%= sa[:rate] >= 75 ? '#27ae60' : sa[:rate] >= 50 ? '#f39c12' : '#e74c3c' %>;"><%= sa[:rate] %>%</span>
-                </div>
-              <% else %>
-                <span style="color: #bdc3c7;">--</span>
-              <% end %>
-            </td>
+            <th>Seccion</th>
+            <th>Dia</th>
+            <th style="text-align: center;">Presentes</th>
+            <th style="text-align: center;">Ausentes</th>
+            <th style="text-align: center;">Pendientes</th>
+            <th style="text-align: center;">Asistencia</th>
           </tr>
-        <% end %>
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          <% @section_attendance.each do |sa| %>
+            <tr>
+              <td>
+                <%= link_to sa[:section].course.title, admin_section_path(sa[:section]), style: "color: #3498db; text-decoration: none; font-weight: 500;" %>
+              </td>
+              <td style="color: #7f8c8d;"><%= sa[:section].weekday %> &middot; <%= sa[:section].formatted_schedule %></td>
+              <td style="text-align: center; color: #27ae60; font-weight: 600;"><%= sa[:present] %></td>
+              <td style="text-align: center; color: #e74c3c; font-weight: 600;"><%= sa[:absent] %></td>
+              <td style="text-align: center; color: #f39c12; font-weight: 600;"><%= sa[:total] - sa[:present] - sa[:absent] %></td>
+              <td style="text-align: center;">
+                <% if sa[:rate] %>
+                  <div style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                    <div style="width: 60px; height: 8px; background: #eee; border-radius: 4px; overflow: hidden;">
+                      <div style="width: <%= sa[:rate] %>%; height: 100%; background: <%= sa[:rate] >= 75 ? '#27ae60' : sa[:rate] >= 50 ? '#f39c12' : '#e74c3c' %>; border-radius: 4px;"></div>
+                    </div>
+                    <span style="font-weight: 600; font-size: 0.9rem; color: <%= sa[:rate] >= 75 ? '#27ae60' : sa[:rate] >= 50 ? '#f39c12' : '#e74c3c' %>;"><%= sa[:rate] %>%</span>
+                  </div>
+                <% else %>
+                  <span style="color: #bdc3c7;">--</span>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
   </div>
 <% end %>
 

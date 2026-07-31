@@ -1,12 +1,19 @@
 <div class="card">
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+  <div class="page-header">
     <h2>Usuarios</h2>
     <%= link_to "Nuevo Usuario", new_admin_user_path, class: "btn btn-success" %>
   </div>
 
   <!-- Pestañas de filtro -->
+  <style>
+    .user-tabs { display: flex; gap: 0.5rem; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .user-tabs > a { white-space: nowrap; }
+    @media (max-width: 768px) {
+      .user-tabs > a { padding-left: 0.9rem !important; padding-right: 0.9rem !important; font-size: 0.9rem; }
+    }
+  </style>
   <div style="border-bottom: 2px solid #e0e0e0; margin-bottom: 1.5rem;">
-    <div style="display: flex; gap: 0.5rem;">
+    <div class="user-tabs">
       <%= link_to admin_users_path(filter: 'all'),
           style: "padding: 0.75rem 1.5rem; text-decoration: none; color: #{@filter == 'all' ? '#3498db' : '#7f8c8d'}; border-bottom: 3px solid #{@filter == 'all' ? '#3498db' : 'transparent'}; font-weight: #{@filter == 'all' ? 'bold' : 'normal'};" do %>
         Todos (<%= @total_users %>)
@@ -30,41 +37,43 @@
   </div>
 
   <% if @users.any? %>
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Nombre</th>
-          <th>Email</th>
-          <th>Rol</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% @users.each do |user| %>
+    <div class="table-scroll">
+      <table>
+        <thead>
           <tr>
-            <td><%= user.id %></td>
-            <td><%= user.name %></td>
-            <td><%= user.email %></td>
-            <td>
-              <% roles = assigned_role_keys(user) %>
-              <% if roles.any? %>
-                <% roles.each do |role_key| %><%= role_badge(role_key) %><% end %>
-              <% else %>
-                <span style="background: #95a5a6; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">Sin rol</span>
-              <% end %>
-            </td>
-            <td>
-              <div class="actions">
-                <%= link_to "Ver", admin_user_path(user), class: "btn btn-primary" %>
-                <%= link_to "Editar", edit_admin_user_path(user), class: "btn btn-secondary" %>
-                <%= button_to "Eliminar", admin_user_path(user), method: :delete, data: { confirm: "¿Estás seguro?" }, class: "btn btn-danger" %>
-              </div>
-            </td>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Rol</th>
+            <th>Acciones</th>
           </tr>
-        <% end %>
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          <% @users.each do |user| %>
+            <tr>
+              <td><%= user.id %></td>
+              <td><%= user.name %></td>
+              <td><%= user.email %></td>
+              <td>
+                <% roles = assigned_role_keys(user) %>
+                <% if roles.any? %>
+                  <% roles.each do |role_key| %><%= role_badge(role_key) %><% end %>
+                <% else %>
+                  <span style="background: #95a5a6; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">Sin rol</span>
+                <% end %>
+              </td>
+              <td>
+                <div class="actions">
+                  <%= link_to "Ver", admin_user_path(user), class: "btn btn-primary" %>
+                  <%= link_to "Editar", edit_admin_user_path(user), class: "btn btn-secondary" %>
+                  <%= button_to "Eliminar", admin_user_path(user), method: :delete, data: { confirm: "¿Estás seguro?" }, class: "btn btn-danger" %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
   <% else %>
     <p>
       <% case @filter %>

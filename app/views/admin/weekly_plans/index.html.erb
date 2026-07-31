@@ -6,7 +6,6 @@
   .plans-table .actions { display: flex; gap: 0.4rem; flex-wrap: nowrap; align-items: center; justify-content: flex-end; }
   .plans-table .actions form { margin: 0; }
   .plans-table .actions .btn { padding: 0.35rem 0.7rem; font-size: 0.85rem; line-height: 1.2; }
-  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .badge { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.8rem; font-weight: 500; }
   .badge-course { background: #eaf2fb; color: #2471a3; }
   .badge-none { background: #fdebd0; color: #b9770e; }
@@ -15,13 +14,13 @@
 </style>
 
 <div class="card">
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+  <div class="page-header">
     <h2>Planes Semanales <span style="color: #7f8c8d; font-weight: 400; font-size: 0.95rem;">(<%= @weekly_plans.size %>)</span></h2>
     <%= link_to "Nuevo Plan", new_admin_weekly_plan_path, class: "btn btn-success" %>
   </div>
 
   <%= form_with url: admin_weekly_plans_path, method: :get, local: true, style: "margin-bottom: 1.25rem;" do %>
-    <div style="display: flex; gap: 0.5rem; max-width: 500px; align-items: center;">
+    <div style="display: flex; gap: 0.5rem; max-width: 500px; align-items: center; flex-wrap: wrap;">
       <%= select_tag :course_id,
             options_for_select(
               [["Todos los cursos", ""], ["Sin curso asignado", "none"]] +

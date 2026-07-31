@@ -42,70 +42,72 @@
 
   <!-- Transactions Table -->
   <% if @transactions.any? %>
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Fecha</th>
-          <th>Estudiante</th>
-          <th>Tipo</th>
-          <th>Monto</th>
-          <th>Buy Order</th>
-          <th>Estado</th>
-          <th>Cod. Autorización</th>
-          <th>Tarjeta</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% @transactions.each do |transaction| %>
+    <div class="table-scroll">
+      <table>
+        <thead>
           <tr>
-            <td>#<%= transaction.id %></td>
-            <td><%= transaction.created_at.strftime('%d/%m/%Y %H:%M') %></td>
-            <td>
-              <% if transaction.enrollment.present? %>
-                <%= transaction.enrollment.student.user.name %>
-              <% elsif transaction.enrollment_data.present? %>
-                <%= transaction.enrollment_data['name'] %>
-                <span style="color: #999; font-size: 0.875rem;">(pendiente)</span>
-              <% else %>
-                <em style="color: #999;">Sin datos</em>
-              <% end %>
-            </td>
-            <td>
-              <span style="background: #3498db; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem;">Matrícula</span>
-            </td>
-            <td style="font-weight: bold;">$<%= number_with_delimiter(transaction.amount) %></td>
-            <td style="font-size: 0.875rem; font-family: monospace;"><%= transaction.buy_order %></td>
-            <td>
-              <% case transaction.status %>
-              <% when 'authorized' %>
-                <span style="background: #d4edda; color: #155724; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem; font-weight: bold;">✓ Autorizada</span>
-              <% when 'pending' %>
-                <span style="background: #fff3cd; color: #856404; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem; font-weight: bold;">⏳ Pendiente</span>
-              <% when 'failed' %>
-                <span style="background: #f8d7da; color: #721c24; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem; font-weight: bold;">✗ Fallida</span>
-              <% when 'nullified' %>
-                <span style="background: #e2e3e5; color: #383d41; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem; font-weight: bold;">↩ Anulada</span>
-              <% end %>
-            </td>
-            <td style="font-family: monospace; font-size: 0.875rem;">
-              <%= transaction.authorization_code || '-' %>
-            </td>
-            <td>
-              <% if transaction.card_number.present? %>
-                **** <%= transaction.card_number %>
-              <% else %>
-                -
-              <% end %>
-            </td>
-            <td>
-              <%= link_to "Ver", admin_transbank_transaction_path(transaction), class: "btn btn-primary" %>
-            </td>
+            <th>ID</th>
+            <th>Fecha</th>
+            <th>Estudiante</th>
+            <th>Tipo</th>
+            <th>Monto</th>
+            <th>Buy Order</th>
+            <th>Estado</th>
+            <th>Cod. Autorización</th>
+            <th>Tarjeta</th>
+            <th>Acciones</th>
           </tr>
-        <% end %>
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          <% @transactions.each do |transaction| %>
+            <tr>
+              <td>#<%= transaction.id %></td>
+              <td><%= transaction.created_at.strftime('%d/%m/%Y %H:%M') %></td>
+              <td>
+                <% if transaction.enrollment.present? %>
+                  <%= transaction.enrollment.student.user.name %>
+                <% elsif transaction.enrollment_data.present? %>
+                  <%= transaction.enrollment_data['name'] %>
+                  <span style="color: #999; font-size: 0.875rem;">(pendiente)</span>
+                <% else %>
+                  <em style="color: #999;">Sin datos</em>
+                <% end %>
+              </td>
+              <td>
+                <span style="background: #3498db; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem;">Matrícula</span>
+              </td>
+              <td style="font-weight: bold;">$<%= number_with_delimiter(transaction.amount) %></td>
+              <td style="font-size: 0.875rem; font-family: monospace;"><%= transaction.buy_order %></td>
+              <td>
+                <% case transaction.status %>
+                <% when 'authorized' %>
+                  <span style="background: #d4edda; color: #155724; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem; font-weight: bold;">✓ Autorizada</span>
+                <% when 'pending' %>
+                  <span style="background: #fff3cd; color: #856404; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem; font-weight: bold;">⏳ Pendiente</span>
+                <% when 'failed' %>
+                  <span style="background: #f8d7da; color: #721c24; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem; font-weight: bold;">✗ Fallida</span>
+                <% when 'nullified' %>
+                  <span style="background: #e2e3e5; color: #383d41; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem; font-weight: bold;">↩ Anulada</span>
+                <% end %>
+              </td>
+              <td style="font-family: monospace; font-size: 0.875rem;">
+                <%= transaction.authorization_code || '-' %>
+              </td>
+              <td>
+                <% if transaction.card_number.present? %>
+                  **** <%= transaction.card_number %>
+                <% else %>
+                  -
+                <% end %>
+              </td>
+              <td>
+                <%= link_to "Ver", admin_transbank_transaction_path(transaction), class: "btn btn-primary" %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
 
     <% if @transactions.respond_to?(:total_pages) && @transactions.total_pages > 1 %>
       <div style="margin-top: 1.5rem; text-align: center;">

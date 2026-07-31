@@ -1,5 +1,17 @@
+<style>
+  /* Las celdas del calendario vienen con estilos inline desde el JS,
+     por eso el ajuste mobile necesita !important. */
+  @media (max-width: 480px) {
+    .es-cal-grid { gap: 2px !important; }
+    .es-cal-grid > div { padding: 5px 1px !important; font-size: 0.78rem; }
+    #calendar-container { padding: 0.5rem !important; }
+    #calendar-header button { padding: 0.5rem 0.7rem !important; font-size: 0.85rem; }
+    #calendar-header h3 { font-size: 1rem; }
+  }
+</style>
+
 <div class="card">
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+  <div class="page-header">
     <h2>Editar Fecha de Clase</h2>
     <div class="actions">
       <%= link_to "Volver", admin_enrollment_path(@enrollment), class: "btn btn-secondary" %>
@@ -52,7 +64,7 @@
       <%= f.hidden_field :date, id: 'selected_date_field', value: @enrollment_section.date.strftime('%Y-%m-%d') %>
 
       <div style="margin-top: 1rem;">
-        <div id="calendar-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding: 0.5rem; background: #f8f9fa; border-radius: 4px;">
+        <div id="calendar-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding: 0.5rem; background: #f8f9fa; border-radius: 4px; gap: 0.5rem; flex-wrap: wrap;">
           <button type="button" id="prev-month" style="padding: 0.5rem 1rem; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">‹ Anterior</button>
           <h3 id="current-month" style="margin: 0;"></h3>
           <button type="button" id="next-month" style="padding: 0.5rem 1rem; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Siguiente ›</button>
@@ -157,7 +169,7 @@
 
       // Crear grid del calendario
       let html = `
-        <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;">
+        <div class="es-cal-grid" style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px;">
           <div style="padding: 8px; text-align: center; font-weight: bold; background: #e9ecef;">Dom</div>
           <div style="padding: 8px; text-align: center; font-weight: bold; background: #e9ecef;">Lun</div>
           <div style="padding: 8px; text-align: center; font-weight: bold; background: #e9ecef;">Mar</div>
@@ -256,7 +268,7 @@
     // Skeleton loader
     function showSkeletonLoader() {
       let html = `
-        <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;">
+        <div class="es-cal-grid" style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px;">
           <div style="padding: 8px; text-align: center; font-weight: bold; background: #e9ecef;">Dom</div>
           <div style="padding: 8px; text-align: center; font-weight: bold; background: #e9ecef;">Lun</div>
           <div style="padding: 8px; text-align: center; font-weight: bold; background: #e9ecef;">Mar</div>

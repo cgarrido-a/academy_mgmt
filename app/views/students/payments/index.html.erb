@@ -40,6 +40,19 @@
     .status-pending { background: #fff3cd; color: #856404; }
     .status-overdue { background: #f8d7da; color: #721c24; }
     .status-paid { background: #d4edda; color: #155724; }
+
+    .payment-item-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+
+    @media (max-width: 600px) {
+      .navbar { padding: 0.85rem 1rem; }
+      .navbar h1 { font-size: 1.15rem; }
+      .container { margin: 1rem auto; padding: 0 0.75rem; }
+      .card { padding: 1rem; margin-bottom: 1rem; }
+      .payment-item-row > div { flex: 1 1 100%; }
+      .payment-item-row .btn { width: 100%; }
+      .payment-item-row form { width: 100%; }
+      .payment-amount { font-size: 1.3rem; }
+    }
   </style>
 </head>
 
@@ -64,7 +77,7 @@
 
         <% @pending_enrollment_fees.each do |enrollment| %>
           <div class="payment-item">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="payment-item-row">
               <div>
                 <h3 style="margin-bottom: 0.5rem;">Matrícula - Inscripción #<%= enrollment.id %></h3>
                 <p><strong>Cursos:</strong> <%= enrollment.sections.map { |s| s.course.title }.uniq.join(', ') %></p>

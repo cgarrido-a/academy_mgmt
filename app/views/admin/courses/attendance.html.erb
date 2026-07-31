@@ -1,4 +1,13 @@
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+<style>
+  /* En el teléfono el switch de asistencia debe verse sin scroll horizontal:
+     se ocultan las columnas de apoyo (# y Email). */
+  @media (max-width: 600px) {
+    .col-num, .col-email { display: none; }
+    h1 { font-size: 1.4rem; }
+  }
+</style>
+
+<div class="page-header">
   <div>
     <h1 style="color: #2c3e50; margin-bottom: 0.25rem;">Pasar Asistencia</h1>
     <span style="color: #7f8c8d; font-size: 0.95rem;"><%= @course.title %></span>
@@ -17,7 +26,7 @@
               params[:section_id]
             ),
             include_blank: 'Seleccionar...',
-            style: "padding: 0.4rem 0.75rem; border: 1px solid #ddd; border-radius: 4px; min-width: 320px;" %>
+            style: "padding: 0.4rem 0.75rem; border: 1px solid #ddd; border-radius: 4px; min-width: min(320px, 100%); max-width: 100%;" %>
     </div>
     <%= submit_tag 'Cargar', class: 'btn btn-primary', style: "padding: 0.4rem 1rem;" %>
   <% end %>
@@ -103,8 +112,8 @@
               <%= hidden_field_tag :date, @selected_date %>
               <%= hidden_field_tag :course_id, @course.id %>
 
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                <div style="display: flex; gap: 0.5rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; gap: 0.5rem; flex-wrap: wrap;">
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                   <button type="button" class="btn btn-secondary" style="padding: 0.3rem 0.75rem; font-size: 0.85rem;" onclick="toggleAll(true)">Todos presentes</button>
                   <button type="button" class="btn btn-secondary" style="padding: 0.3rem 0.75rem; font-size: 0.85rem;" onclick="toggleAll(false)">Desmarcar todos</button>
                 </div>
@@ -114,60 +123,64 @@
                 </span>
               </div>
 
-              <table>
-                <thead>
-                  <tr>
-                    <th style="width: 40px;">#</th>
-                    <th>Estudiante</th>
-                    <% unless current_teacher? %>
-                      <th>Email</th>
-                    <% end %>
-                    <th style="text-align: center; width: 100px;">Asistencia</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <% @enrollment_sections.each_with_index do |es, index| %>
-                    <tr class="attendance-row <%= 'attended' if es.attended? %>">
-                      <td><%= index + 1 %></td>
-                      <td><strong><%= es.enrollment.student.user.name %></strong></td>
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th class="col-num" style="width: 40px;">#</th>
+                      <th>Estudiante</th>
                       <% unless current_teacher? %>
-                        <td><%= es.enrollment.student.user.email %></td>
+                        <th class="col-email">Email</th>
                       <% end %>
-                      <td style="text-align: center;">
-                        <%= hidden_field_tag "attendance[#{es.id}][attended]", "0" %>
-                        <label class="toggle-switch">
-                          <%= check_box_tag "attendance[#{es.id}][attended]", "1", es.attended?, class: "attendance-checkbox", onchange: "updateCounter(this)" %>
-                          <span class="toggle-slider"></span>
-                        </label>
-                      </td>
+                      <th style="text-align: center; width: 100px;">Asistencia</th>
                     </tr>
-                  <% end %>
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    <% @enrollment_sections.each_with_index do |es, index| %>
+                      <tr class="attendance-row <%= 'attended' if es.attended? %>">
+                        <td class="col-num"><%= index + 1 %></td>
+                        <td><strong><%= es.enrollment.student.user.name %></strong></td>
+                        <% unless current_teacher? %>
+                          <td class="col-email"><%= es.enrollment.student.user.email %></td>
+                        <% end %>
+                        <td style="text-align: center;">
+                          <%= hidden_field_tag "attendance[#{es.id}][attended]", "0" %>
+                          <label class="toggle-switch">
+                            <%= check_box_tag "attendance[#{es.id}][attended]", "1", es.attended?, class: "attendance-checkbox", onchange: "updateCounter(this)" %>
+                            <span class="toggle-slider"></span>
+                          </label>
+                        </td>
+                      </tr>
+                    <% end %>
+                  </tbody>
+                </table>
+              </div>
 
               <div style="margin-top: 1rem;">
                 <%= submit_tag "Guardar Asistencia", class: "btn btn-success", style: "width: 100%; padding: 0.75rem; font-size: 1.05rem;" %>
               </div>
             <% end %>
           <% elsif @enrollment_sections.any? %>
-            <table>
-              <thead>
-                <tr>
-                  <th style="width: 40px;">#</th>
-                  <th>Estudiante</th>
-                  <th style="text-align: center;">Asistencia</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% @enrollment_sections.each_with_index do |es, index| %>
+            <div class="table-scroll">
+              <table>
+                <thead>
                   <tr>
-                    <td><%= index + 1 %></td>
-                    <td><%= es.enrollment.student.user.name %></td>
-                    <td style="text-align: center;"><%= es.attended? ? 'Presente' : (es.attended == false ? 'Ausente' : '—') %></td>
+                    <th class="col-num" style="width: 40px;">#</th>
+                    <th>Estudiante</th>
+                    <th style="text-align: center;">Asistencia</th>
                   </tr>
-                <% end %>
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  <% @enrollment_sections.each_with_index do |es, index| %>
+                    <tr>
+                      <td class="col-num"><%= index + 1 %></td>
+                      <td><%= es.enrollment.student.user.name %></td>
+                      <td style="text-align: center;"><%= es.attended? ? 'Presente' : (es.attended == false ? 'Ausente' : '—') %></td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
           <% else %>
             <p style="color: #7f8c8d; text-align: center; padding: 2rem;">No hay alumnos inscritos en esta sección para esta fecha.</p>
           <% end %>

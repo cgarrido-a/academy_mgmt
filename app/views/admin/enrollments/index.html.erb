@@ -5,9 +5,9 @@
   </div>
 
   <%= form_with url: admin_enrollments_path, method: :get, local: true, style: "margin-bottom: 1.25rem;" do |f| %>
-    <div style="display: flex; gap: 0.5rem; max-width: 500px;">
+    <div style="display: flex; gap: 0.5rem; max-width: 500px; flex-wrap: wrap;">
       <%= text_field_tag :q, @q, placeholder: 'Buscar por nombre o email del alumno…',
-            style: "flex: 1; padding: 0.55rem 0.85rem; border: 1px solid #dee2e6; border-radius: 6px; font-size: 0.95rem;" %>
+            style: "flex: 1 1 12rem; min-width: 0; padding: 0.55rem 0.85rem; border: 1px solid #dee2e6; border-radius: 6px; font-size: 0.95rem;" %>
       <%= submit_tag "Buscar", class: "btn btn-primary" %>
       <% if @q.present? %>
         <%= link_to "Limpiar", admin_enrollments_path, class: "btn btn-secondary" %>
@@ -16,42 +16,44 @@
   <% end %>
 
   <% if @enrollments.any? %>
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Estudiante</th>
-          <th>Curso</th>
-          <th>Sección</th>
-          <th>Plan de Pago</th>
-          <th>Método de Pago</th>
-          <th>Monto</th>
-          <th>Fecha</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% @enrollments.each do |enrollment| %>
+    <div class="table-scroll">
+      <table>
+        <thead>
           <tr>
-            <td>#<%= enrollment.id %></td>
-            <td><%= enrollment.student.user.name %></td>
-            <td><%= enrollment.sections.map { |s| s.course.title }.uniq.join(', ') %></td>
-            <td><%= enrollment.sections.map { |s| s.formatted_schedule }.join(', ') %></td>
-            <td><%= enrollment.weekly_plan.description %></td>
-            <td><%= enrollment.payment_method.payment_method %></td>
-            <td>$<%= number_with_delimiter(enrollment.total_tuition_fee) %></td>
-            <td><%= enrollment.created_at.strftime('%d/%m/%Y') %></td>
-            <td>
-              <div class="actions">
-                <%= link_to "Ver", admin_enrollment_path(enrollment), class: "btn btn-primary" %>
-                <%= link_to "Editar", edit_admin_enrollment_path(enrollment), class: "btn btn-secondary" %>
-                <%= button_to "Eliminar", admin_enrollment_path(enrollment), method: :delete, data: { confirm: "¿Estás seguro?" }, class: "btn btn-danger" %>
-              </div>
-            </td>
+            <th>ID</th>
+            <th>Estudiante</th>
+            <th>Curso</th>
+            <th>Sección</th>
+            <th>Plan de Pago</th>
+            <th>Método de Pago</th>
+            <th>Monto</th>
+            <th>Fecha</th>
+            <th>Acciones</th>
           </tr>
-        <% end %>
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          <% @enrollments.each do |enrollment| %>
+            <tr>
+              <td>#<%= enrollment.id %></td>
+              <td><%= enrollment.student.user.name %></td>
+              <td><%= enrollment.sections.map { |s| s.course.title }.uniq.join(', ') %></td>
+              <td><%= enrollment.sections.map { |s| s.formatted_schedule }.join(', ') %></td>
+              <td><%= enrollment.weekly_plan.description %></td>
+              <td><%= enrollment.payment_method.payment_method %></td>
+              <td>$<%= number_with_delimiter(enrollment.total_tuition_fee) %></td>
+              <td><%= enrollment.created_at.strftime('%d/%m/%Y') %></td>
+              <td>
+                <div class="actions">
+                  <%= link_to "Ver", admin_enrollment_path(enrollment), class: "btn btn-primary" %>
+                  <%= link_to "Editar", edit_admin_enrollment_path(enrollment), class: "btn btn-secondary" %>
+                  <%= button_to "Eliminar", admin_enrollment_path(enrollment), method: :delete, data: { confirm: "¿Estás seguro?" }, class: "btn btn-danger" %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
   <% else %>
     <p style="color: #7f8c8d; text-align: center; padding: 2rem;">
       <% if @q.present? %>

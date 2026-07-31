@@ -75,7 +75,8 @@
     <%= f.label :section_ids, "Secciones" %>
     <p id="sections_instruction" style="color: #666; font-size: 0.9em; margin-bottom: 10px;">Haz clic en las secciones del horario para seleccionarlas</p>
 
-    <div id="calendar-container" style="margin-top: 15px;">
+    <%# El horario semanal tiene min-width fijo: se desplaza dentro del contenedor, no en la página %>
+    <div id="calendar-container" style="margin-top: 15px; overflow-x: auto; -webkit-overflow-scrolling: touch;">
       <p style="color: #666; font-style: italic; text-align: center; padding: 40px;">Primero seleccione un curso y un plan de pago</p>
     </div>
 
@@ -364,6 +365,18 @@
       height: 20px;
       border-radius: 4px;
       border: 2px solid;
+    }
+
+    @media (max-width: 600px) {
+      .calendar-picker-header { padding: 0.75rem; flex-wrap: wrap; gap: 0.5rem; }
+      .calendar-picker-header h3 { font-size: 0.95em; }
+      .calendar-picker-weekdays { padding: 8px 2px; }
+      .calendar-picker-weekday { font-size: 0.7em; padding: 2px; }
+      .calendar-picker-days { gap: 3px; padding: 6px; }
+      .calendar-picker-day { font-size: 0.8em; border-width: 1px; }
+      .calendar-day-spots { font-size: 0.6em; }
+      .calendar-picker-legend { padding: 8px 10px; gap: 8px; font-size: 0.78em; }
+      .calendar-legend-color { width: 14px; height: 14px; border-width: 1px; }
     }
   </style>
 

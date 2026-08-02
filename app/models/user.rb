@@ -12,4 +12,11 @@ class User < ApplicationRecord
 
   # Validations
   validates :name, presence: true
+  # Datos de contacto del apoderado: opcionales, pero si vienen deben ser válidos.
+  validates :guardian_email, format: { with: URI::MailTo::EMAIL_REGEXP, message: 'no tiene un formato válido' },
+                             allow_blank: true
+
+  def guardian_contact?
+    guardian_email.present? || guardian_phone.present?
+  end
 end

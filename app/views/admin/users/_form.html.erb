@@ -60,6 +60,18 @@
     </div>
   </div>
 
+  <div id="student_fields" style="display: none;">
+    <div class="form-group">
+      <%= f.label :guardian_email, "Email del apoderado" %>
+      <%= f.email_field :guardian_email, placeholder: "apoderado@ejemplo.cl" %>
+    </div>
+
+    <div class="form-group">
+      <%= f.label :guardian_phone, "Teléfono del apoderado" %>
+      <%= f.telephone_field :guardian_phone, placeholder: "+56 9 1234 5678" %>
+    </div>
+  </div>
+
   <div id="admin_fields" style="display: none;">
     <div class="form-group">
       <%= label_tag 'user[admin_type]', "Tipo de Admin" %>
@@ -74,9 +86,15 @@
   <script>
     function toggleRoleFields() {
       var teacher = document.getElementById('role_teacher');
+      var student = document.getElementById('role_student');
       var admin = document.getElementById('role_admin');
       document.getElementById('teacher_fields').style.display = (teacher && teacher.checked) ? 'block' : 'none';
       document.getElementById('admin_fields').style.display = (admin && admin.checked) ? 'block' : 'none';
+      // Los datos del apoderado también se muestran si ya hay algo guardado,
+      // para no esconder información existente.
+      var hasGuardian = <%= user.guardian_contact?.to_s %>;
+      document.getElementById('student_fields').style.display =
+        ((student && student.checked) || hasGuardian) ? 'block' : 'none';
     }
     document.addEventListener('DOMContentLoaded', toggleRoleFields);
   </script>

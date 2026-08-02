@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_07_14_230000) do
+ActiveRecord::Schema[7.1].define(version: 2026_07_31_170316) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -20,6 +20,26 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_14_230000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["user_id"], name: "index_admin_users_on_user_id"
+  end
+
+  create_table "class_discounts", force: :cascade do |t|
+    t.integer "number_of_classes", null: false
+    t.integer "discount_percentage", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["number_of_classes"], name: "index_class_discounts_on_number_of_classes", unique: true
+  end
+
+  create_table "class_suspensions", force: :cascade do |t|
+    t.bigint "section_id", null: false
+    t.date "original_date", null: false
+    t.text "reason"
+    t.bigint "created_by_id"
+    t.integer "affected_count", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_by_id"], name: "index_class_suspensions_on_created_by_id"
+    t.index ["section_id"], name: "index_class_suspensions_on_section_id"
   end
 
   create_table "courses", force: :cascade do |t|
@@ -40,6 +60,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_14_230000) do
     t.string "kind", default: "regular", null: false
     t.bigint "makes_up_for_id"
     t.text "makeup_reason"
+    t.bigint "class_suspension_id"
+    t.index ["class_suspension_id"], name: "index_enrollment_sections_on_class_suspension_id"
     t.index ["enrollment_id", "section_id", "date"], name: "index_enrollment_sections_on_enrollment_section_and_date", unique: true
     t.index ["enrollment_id"], name: "index_enrollment_sections_on_enrollment_id"
     t.index ["kind"], name: "index_enrollment_sections_on_kind"
@@ -170,6 +192,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_14_230000) do
     t.string "reset_password_token"
     t.datetime "reset_password_sent_at"
     t.datetime "remember_created_at"
+    t.string "guardian_email"
+    t.string "guardian_phone"
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
@@ -185,10 +209,14 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_14_230000) do
     t.integer "saturday_price"
     t.integer "event_type"
     t.bigint "course_id"
+    t.integer "discount_percentage"
     t.index ["course_id"], name: "index_weekly_plans_on_course_id"
   end
 
   add_foreign_key "admin_users", "users"
+  add_foreign_key "class_suspensions", "sections"
+  add_foreign_key "class_suspensions", "users", column: "created_by_id"
+  add_foreign_key "enrollment_sections", "class_suspensions"
   add_foreign_key "enrollment_sections", "enrollment_sections", column: "makes_up_for_id"
   add_foreign_key "enrollment_sections", "enrollments"
   add_foreign_key "enrollment_sections", "sections"

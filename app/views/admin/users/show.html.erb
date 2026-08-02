@@ -38,6 +38,21 @@
     </div>
   <% end %>
 
+  <% if @user.guardian_contact? %>
+    <div class="form-group">
+      <strong>Apoderado:</strong>
+      <p>
+        <% if @user.guardian_email.present? %>
+          <%= mail_to @user.guardian_email %>
+        <% end %>
+        <% if @user.guardian_email.present? && @user.guardian_phone.present? %>
+          <span style="color: #7f8c8d;"> · </span>
+        <% end %>
+        <%= @user.guardian_phone %>
+      </p>
+    </div>
+  <% end %>
+
   <% if @user.admin_user %>
     <div class="form-group">
       <strong>Tipo de Admin:</strong>

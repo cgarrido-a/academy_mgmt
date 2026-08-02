@@ -1,3 +1,19 @@
+<style>
+  .suspend-table th, .suspend-table td { vertical-align: top; }
+  .suspend-student { overflow-wrap: anywhere; }
+
+  @media (max-width: 600px) {
+    /* La columna "Clase actual" repite la misma fecha en todas las filas y ya
+       aparece en el encabezado, así que se oculta para dejar ver la nueva fecha,
+       que es el dato que importa al confirmar. */
+    .suspend-table th:nth-child(2), .suspend-table td:nth-child(2) { display: none; }
+    .suspend-table th, .suspend-table td { padding: 0.55rem 0.4rem; font-size: 0.85rem; }
+    .suspend-table th { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .suspend-table .makeup-hint { display: inline !important; }
+    .actions .btn { flex: 1 1 auto; text-align: center; }
+  }
+</style>
+
 <div class="card">
   <h2>Suspender clase</h2>
   <p style="color:#6b7280; margin-top:-0.25rem;">
@@ -23,40 +39,46 @@
             style: 'width:100%;' %>
     </div>
 
-    <table class="students-table" style="margin-top:1rem;">
-      <thead>
-        <tr>
-          <th>Estudiante</th>
-          <th>Clase actual</th>
-          <th>Nueva fecha (reprogramada)</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% @cohort.each do |es| %>
+    <div class="table-scroll" style="margin-top:1rem;">
+      <table class="suspend-table">
+        <thead>
           <tr>
-            <td>
-              <strong><%= es.enrollment.student.user.name %></strong><br>
-              <span style="color:#9ca3af; font-size:0.8rem;"><%= es.enrollment.student.user.email %></span>
-            </td>
-            <td>
-              <%= I18n.l(@date, format: '%d/%m/%Y') %>
-              <% if es.makeup? %><span style="color:#5b21b6; font-size:0.8rem;"> · recuperatorio</span><% end %>
-            </td>
-            <td>
-              <% if es.attended.nil? %>
-                <% if (t = @preview[es.id]) %>
-                  <strong style="color:#047857;"><%= I18n.l(t, format: '%A %d/%m/%Y').capitalize %></strong>
-                <% else %>
-                  <span style="color:#b91c1c;">Sin cupo disponible</span>
-                <% end %>
-              <% else %>
-                <span style="color:#9ca3af;">No se mueve (asistencia ya marcada)</span>
-              <% end %>
-            </td>
+            <th>Estudiante</th>
+            <th>Clase actual</th>
+            <th>Nueva fecha (reprogramada)</th>
           </tr>
-        <% end %>
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          <% @cohort.each do |es| %>
+            <tr>
+              <td class="suspend-student">
+                <strong><%= es.enrollment.student.user.name %></strong><br>
+                <span style="color:#9ca3af; font-size:0.8rem;"><%= es.enrollment.student.user.email %></span>
+                <%# En móvil se oculta la columna "Clase actual"; el recuperatorio se marca aquí %>
+                <% if es.makeup? %>
+                  <span class="makeup-hint" style="display:none; color:#5b21b6; font-size:0.75rem;">· recuperatorio</span>
+                <% end %>
+              </td>
+              <td>
+                <%= I18n.l(@date, format: '%d/%m/%Y') %>
+                <% if es.makeup? %><span style="color:#5b21b6; font-size:0.8rem;"> · recuperatorio</span><% end %>
+              </td>
+              <td>
+                <% if es.attended.nil? %>
+                  <% if (t = @preview[es.id]) %>
+                    <strong style="color:#047857;"><%= I18n.l(t, format: '%A %d/%m/%Y').capitalize %></strong>
+                  <% else %>
+                    <span style="color:#b91c1c;">Sin cupo disponible</span>
+                  <% end %>
+                <% else %>
+                  <span style="color:#9ca3af;">No se mueve (asistencia ya marcada)</span>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
 
     <div class="actions" style="margin-top:1.5rem;">
       <%= submit_tag 'Confirmar suspensión', class: 'btn btn-danger',

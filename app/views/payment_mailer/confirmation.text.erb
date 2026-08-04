@@ -6,7 +6,10 @@ PAGO
 - Monto pagado: $<%= number_with_delimiter(@payment.amount.to_i) %>
 - Fecha: <%= l(@payment.payment_date, format: '%d/%m/%Y') rescue @payment.payment_date %>
 <% if @buy_order.present? -%>
-- Código de autorización: <%= @buy_order %>
+- Orden de compra: <%= @buy_order %>
+<% end -%>
+<% if @payment.reference_number.present? -%>
+- Código de autorización: <%= @payment.reference_number %>
 <% end -%>
 
 MATRÍCULA

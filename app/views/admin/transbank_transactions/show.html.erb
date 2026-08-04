@@ -24,6 +24,21 @@
         <h3 style="color: #721c24; margin: 0;">✗ Transacción Fallida</h3>
         <p style="margin: 0.5rem 0 0 0; color: #721c24;">El pago fue rechazado</p>
       </div>
+    <% when 'authorized_error' %>
+      <div style="background: #e8daef; padding: 1rem; border-radius: 4px; border-left: 4px solid #8e44ad;">
+        <h3 style="color: #4a235a; margin: 0;">⚠ Cobrada sin matrícula</h3>
+        <p style="margin: 0.5rem 0 0 0; color: #4a235a;">
+          Transbank <strong>sí cobró</strong> esta transacción, pero la matrícula no se pudo crear.
+          Corrige lo que corresponda y usa "Reprocesar", o devuelve la plata en el Portal de Transbank.
+        </p>
+        <p style="margin: 0.75rem 0 0 0;">
+          <%= button_to "Reprocesar y crear la matrícula",
+                        reprocess_admin_transbank_transaction_path(@transaction),
+                        method: :post,
+                        class: "btn btn-success",
+                        form: { data: { turbo_confirm: "¿Crear la matrícula con los datos guardados de esta transacción?" } } %>
+        </p>
+      </div>
     <% when 'nullified' %>
       <div style="background: #e2e3e5; padding: 1rem; border-radius: 4px; border-left: 4px solid #6c757d;">
         <h3 style="color: #383d41; margin: 0;">↩ Transacción Anulada</h3>
@@ -103,12 +118,15 @@
     <% end %>
   <% end %>
 
-  <% if @transaction.failed? && @transaction.error_message.present? %>
-    <h3 style="margin-top: 2rem; color: #e74c3c;">Información del Error</h3>
+  <% if @transaction.error_message.present? %>
+    <% revisar = @transaction.needs_review? %>
+    <h3 style="margin-top: 2rem; color: <%= revisar ? '#8e44ad' : '#e74c3c' %>;">
+      <%= revisar ? 'Para revisar' : 'Información del Error' %>
+    </h3>
 
     <div class="form-group">
-      <strong>Mensaje de Error:</strong>
-      <p style="background: #f8d7da; padding: 0.75rem; border-radius: 4px; color: #721c24;">
+      <strong><%= revisar ? 'Nota:' : 'Mensaje de Error:' %></strong>
+      <p style="background: <%= revisar ? '#f4ecf7' : '#f8d7da' %>; padding: 0.75rem; border-radius: 4px; color: <%= revisar ? '#4a235a' : '#721c24' %>;">
         <%= @transaction.error_message %>
       </p>
     </div>

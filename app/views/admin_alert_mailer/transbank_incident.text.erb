@@ -1,0 +1,41 @@
+REVISAR UN PAGO DE WEBPAY
+
+<%= @message %>
+
+TRANSACCIÓN
+- ID interno: <%= @transaction.id %>
+- Orden de compra: <%= @transaction.buy_order %>
+- Monto: $<%= number_with_delimiter(@transaction.amount.to_i) %>
+- Estado en el sistema: <%= @transaction.status %>
+<% if @transaction.authorization_code.present? -%>
+- Código de autorización (Transbank): <%= @transaction.authorization_code %>
+<% end -%>
+<% if @transaction.card_number.present? -%>
+- Tarjeta: ****<%= @transaction.card_number %>
+<% end -%>
+<% if @transaction.transaction_date.present? -%>
+- Fecha del cobro: <%= l(@transaction.transaction_date.in_time_zone('America/Santiago'), format: :long) rescue @transaction.transaction_date %>
+<% end -%>
+
+ALUMNA
+- Nombre: <%= @student_data[:name] || 'sin dato' %>
+- Correo: <%= @student_data[:email] || 'sin dato' %>
+- Teléfono: <%= @student_data[:phone] || 'sin dato' %>
+
+MATRÍCULA
+<% if @enrollment.present? -%>
+- Creada: #<%= @enrollment.id %> (<%= @enrollment.enrollment_sections.count %> clases)
+<% else -%>
+- NO se creó. La plata está cobrada: hay que reprocesar la transacción o devolverla.
+<% end -%>
+
+<% if @admin_url.present? -%>
+Ver en el panel: <%= @admin_url %>
+<% end -%>
+
+<% if @transaction.status == 'authorized_error' -%>
+Qué hacer: entra al panel y usa "Reprocesar" (la respuesta de Transbank quedó guardada).
+Si el problema era de datos, corrígelos antes de reprocesar.
+<% else -%>
+Qué hacer: revisa que las clases agendadas sean las que corresponden al plan pagado.
+<% end -%>

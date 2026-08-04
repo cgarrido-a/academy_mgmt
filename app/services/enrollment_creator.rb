@@ -1,21 +1,55 @@
 class EnrollmentCreator
-  attr_reader :errors, :enrollment
+  attr_reader :errors, :enrollment, :autocompleted_dates
 
-  def initialize(params)
+  # allow_autocomplete: si faltan fechas respecto al plan, completarlas con las
+  # próximas con cupo en vez de fallar. Va en FALSE por defecto a propósito:
+  #
+  # - ANTES de cobrar (validación del API) queremos ser estrictos: si el payload no
+  #   cuadra, se responde 422 y nadie paga por algo que no se puede crear.
+  # - DESPUÉS de cobrar (callback de Transbank) queremos ser generosos: la plata ya
+  #   se capturó y el precio siempre salió de plan × meses, así que la alumna tiene
+  #   derecho a esa cantidad de clases. Dejarla sin matrícula es lo peor que puede
+  #   pasar (incidente del 3-ago-2026, transacción 140).
+  def initialize(params, allow_autocomplete: false)
     @name = params[:name]
     @email = params[:email]
     @phone = params[:phone]
     @start_date = params[:start_date]
-    @section_ids = params[:section_ids] || [params[:section_id]].compact
+    @section_ids = (params[:section_ids] || [params[:section_id]].compact).uniq
     @section_dates = params[:section_dates] || {}
     @weekly_plan_id = params[:weekly_plan_id]
     @payment_method_id = params[:payment_method_id]
     @payment_period_id = params[:payment_period_id]
+    @allow_autocomplete = allow_autocomplete
     @errors = []
     @enrollment = nil
+    @autocompleted_dates = []
 
     # Calculate amounts from WeeklyPlan
     calculate_amounts_from_weekly_plan
+  end
+
+  # Corre la creación completa de un carrito y la revierte: sirve para saber si se
+  # puede matricular ANTES de cobrar, sin duplicar ninguna regla de validación
+  # (fechas, día de la semana, cupos, índice único, montos).
+  #
+  # Devuelve un array de mensajes de error (vacío = el carrito se puede crear).
+  def self.validate_batch(enrollments_params)
+    errors = []
+
+    ActiveRecord::Base.transaction(requires_new: true) do
+      enrollments_params.each_with_index do |params, index|
+        creator = new(params, allow_autocomplete: false)
+        next if creator.call
+
+        prefijo = enrollments_params.size > 1 ? "Inscripción #{index + 1}: " : ''
+        errors << "#{prefijo}#{creator.errors.join(', ')}"
+      end
+
+      raise ActiveRecord::Rollback
+    end
+
+    errors
   end
 
   def call
@@ -81,11 +115,28 @@ class EnrollmentCreator
       number_of_classes = number_of_classes * (payment_period.months || 1) if payment_period
     end
 
-    # When using specific dates, validate total across all sections (not per-section)
+    # Las fechas que manda el front son una PREFERENCIA; la cantidad de verdad es la
+    # del plan (plan × meses), que es sobre la que se cobra.
     if @section_dates.present?
-      total_specific_dates = @section_ids.sum { |sid| (@section_dates[sid.to_s].is_a?(Array) ? @section_dates[sid.to_s].length : 0) }
-      if total_specific_dates != number_of_classes
-        raise "Debe proporcionar exactamente #{number_of_classes} fechas en total (proporcionó #{total_specific_dates})"
+      total_specific_dates = @section_ids.sum { |sid| dates_for_section(sid).length }
+
+      if total_specific_dates > number_of_classes
+        raise "Se enviaron #{total_specific_dates} fechas y el plan es de #{number_of_classes} clases"
+      end
+
+      if total_specific_dates < number_of_classes
+        unless @allow_autocomplete
+          raise "Debe proporcionar exactamente #{number_of_classes} fechas en total (proporcionó #{total_specific_dates})"
+        end
+
+        autocomplete_missing_dates!(number_of_classes - total_specific_dates)
+      end
+
+      # Si el total cuadra pero una sección quedó sin fechas, el reparto viene mal y
+      # no hay forma de adivinarlo: mejor parar que crearle el doble de clases.
+      vacias = @section_ids.select { |sid| dates_for_section(sid).empty? }
+      if vacias.any?
+        raise "No llegaron fechas para la(s) sección(es) #{vacias.join(', ')}"
       end
     end
 
@@ -93,9 +144,9 @@ class EnrollmentCreator
       section = Section.find(section_id)
 
       # Determinar qué fechas usar
-      if @section_dates.present? && @section_dates[section_id.to_s].is_a?(Array)
+      if @section_dates.present? && dates_for_section(section_id).present?
         # Usar fechas específicas del usuario (ya validado el total arriba)
-        class_dates = validate_and_parse_specific_dates(section, @section_dates[section_id.to_s])
+        class_dates = validate_and_parse_specific_dates(section, dates_for_section(section_id))
       else
         # Usar lógica automática con start_date (comportamiento actual)
         start_date_to_use = @start_date.presence || @section_dates.values.first
@@ -107,8 +158,12 @@ class EnrollmentCreator
         # Parse date if it's a string
         start_date_to_use = Date.parse(start_date_to_use) if start_date_to_use.is_a?(String)
 
-        # Generate dates for all classes starting from start_date
-        class_dates = generate_class_dates(section, start_date_to_use, number_of_classes)
+        # Generate dates for all classes starting from start_date.
+        # Las clases del plan se reparten entre las secciones elegidas (una clase por
+        # semana en cada una); sin dividir, un plan de 2 veces por semana creaba el
+        # total en CADA sección, o sea el doble de clases.
+        per_section = (number_of_classes.to_f / @section_ids.size).ceil
+        class_dates = generate_class_dates(section, start_date_to_use, per_section)
       end
 
       # Create an enrollment_section for each class date
@@ -149,18 +204,51 @@ class EnrollmentCreator
     SecureRandom.hex(8)
   end
 
+  # Fechas enviadas para una sección (el JSON puede venir con claves string o símbolo).
+  def dates_for_section(section_id)
+    dates = @section_dates[section_id.to_s] || @section_dates[section_id]
+    dates.is_a?(Array) ? dates : []
+  end
+
+  # Completa las `missing` fechas que faltan para llegar a las clases del plan.
+  # Reparte entre las secciones que tienen menos fechas y sigue desde la última de
+  # cada una, usando generate_class_dates (que ya salta las fechas sin cupo).
+  def autocomplete_missing_dates!(missing)
+    raise 'No hay secciones a las que agregar las fechas faltantes' if @section_ids.empty?
+
+    missing.times do
+      # Sección con menos fechas (empate: la primera elegida por la alumna).
+      section_id = @section_ids.min_by { |sid| [dates_for_section(sid).length, @section_ids.index(sid)] }
+      section = Section.find(section_id)
+      current = dates_for_section(section_id).map { |d| d.is_a?(String) ? Date.parse(d) : d }.sort
+
+      desde = current.last ? current.last + 7.days : parsed_start_date_for(section)
+      nueva = generate_class_dates(section, desde, 1).first
+
+      @section_dates[section_id.to_s] = current.map(&:to_s) + [nueva.to_s]
+      @autocompleted_dates << { section_id: section_id, date: nueva.to_s }
+    end
+
+    Rails.logger.warn(
+      "[EnrollmentCreator] Se completaron #{missing} fecha(s) que el front no envió: " \
+      "#{@autocompleted_dates.map { |d| "#{d[:date]} (sección #{d[:section_id]})" }.join(', ')}"
+    )
+  end
+
+  # Primera fecha desde la que buscar clases para una sección que no recibió ninguna:
+  # parte de la fecha de inicio del carrito y avanza hasta el día de esa sección.
+  def parsed_start_date_for(section)
+    fecha = @start_date.presence || @section_dates.values.flatten.compact.min
+    raise "No hay fecha de inicio para completar las clases de la sección #{section.id}" if fecha.blank?
+
+    fecha = Date.parse(fecha) if fecha.is_a?(String)
+    target_wday = Section::WEEKDAY_TO_WDAY[section.weekday]
+    fecha += 1.day while fecha.wday != target_wday
+    fecha
+  end
+
   def validate_and_parse_specific_dates(section, dates_array)
-    # Map Spanish weekday names to Ruby's wday (0 = Sunday, 1 = Monday, etc.)
-    weekday_map = {
-      'Domingo' => 0,
-      'Lunes' => 1,
-      'Martes' => 2,
-      'Miércoles' => 3,
-      'Jueves' => 4,
-      'Viernes' => 5,
-      'Sábado' => 6
-    }
-    target_wday = weekday_map[section.weekday]
+    target_wday = Section::WEEKDAY_TO_WDAY[section.weekday]
 
     parsed_dates = dates_array.map do |date_str|
       date = Date.parse(date_str)
@@ -185,18 +273,7 @@ class EnrollmentCreator
   end
 
   def generate_class_dates(section, start_date, number_of_classes)
-    # Map Spanish weekday names to Ruby's wday (0 = Sunday, 1 = Monday, etc.)
-    weekday_map = {
-      'Domingo' => 0,
-      'Lunes' => 1,
-      'Martes' => 2,
-      'Miércoles' => 3,
-      'Jueves' => 4,
-      'Viernes' => 5,
-      'Sábado' => 6
-    }
-
-    target_wday = weekday_map[section.weekday]
+    target_wday = Section::WEEKDAY_TO_WDAY[section.weekday]
     dates = []
     current_date = start_date
 

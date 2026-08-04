@@ -15,6 +15,24 @@ module Api
           }, status: :unprocessable_entity
         end
 
+        # CANDADO: nunca iniciar un cobro que después no vamos a poder convertir en
+        # matrícula. Se corre la creación completa y se revierte; si algo no cuadra
+        # (fechas que no calzan con el plan, día de la semana, sin cupos) se responde
+        # 422 y la alumna no llega nunca a Webpay.
+        #
+        # El 3-ago-2026 faltaba este candado: se cobraron $144.000 y la matrícula no
+        # se pudo crear porque el front mandó 13 fechas para un plan de 16 clases.
+        validation_errors = EnrollmentCreator.validate_batch(enrollments)
+        if validation_errors.any?
+          Rails.logger.warn "Inscripción rechazada antes de cobrar: #{validation_errors.join(' | ')}"
+
+          return render json: {
+            success: false,
+            error: "No pudimos confirmar tu inscripción: #{validation_errors.join('; ')}",
+            errors: validation_errors
+          }, status: :unprocessable_entity
+        end
+
         # Initialize Transbank payment WITHOUT creating enrollments
         # Enrollments will be created after successful payment
         transbank_data = initialize_transbank_payment_with_data(enrollments)

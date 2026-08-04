@@ -22,7 +22,23 @@
       <h3>Fallidas</h3>
       <div class="number" style="color: #e74c3c;"><%= @failed_count %></div>
     </div>
+
+    <% if @needs_review_count.to_i > 0 %>
+      <div class="stat-card" style="border-left: 4px solid #8e44ad;">
+        <h3>Por revisar</h3>
+        <div class="number" style="color: #8e44ad;"><%= @needs_review_count %></div>
+        <small>Cobradas con algo pendiente</small>
+      </div>
+    <% end %>
   </div>
+
+  <% if @needs_review_count.to_i > 0 %>
+    <div style="background: #f4ecf7; border-left: 4px solid #8e44ad; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem;">
+      <strong>⚠️ Hay <%= @needs_review_count %> transacción(es) cobrada(s) que necesitan revisión.</strong>
+      Son pagos que Transbank ya capturó: si la matrícula no se creó, hay que reprocesarla o devolver la plata.
+      <%= link_to "Ver sólo esas", admin_transbank_transactions_path(review: '1'), class: "btn", style: "margin-left: 0.5rem; background: #8e44ad; color: white;" %>
+    </div>
+  <% end %>
 
   <div style="background: #e8f5e9; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem;">
     <strong>Total Autorizado:</strong>
@@ -38,6 +54,7 @@
     <%= link_to "Autorizadas", admin_transbank_transactions_path(status: 'authorized'), class: "btn btn-success", style: "margin-left: 0.5rem;" %>
     <%= link_to "Pendientes", admin_transbank_transactions_path(status: 'pending'), class: "btn", style: "margin-left: 0.5rem; background: #f39c12; color: white;" %>
     <%= link_to "Fallidas", admin_transbank_transactions_path(status: 'failed'), class: "btn btn-danger", style: "margin-left: 0.5rem;" %>
+    <%= link_to "Cobradas sin matrícula", admin_transbank_transactions_path(status: 'authorized_error'), class: "btn", style: "margin-left: 0.5rem; background: #8e44ad; color: white;" %>
   </div>
 
   <!-- Transactions Table -->
@@ -88,6 +105,11 @@
                   <span style="background: #f8d7da; color: #721c24; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem; font-weight: bold;">✗ Fallida</span>
                 <% when 'nullified' %>
                   <span style="background: #e2e3e5; color: #383d41; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem; font-weight: bold;">↩ Anulada</span>
+                <% when 'authorized_error' %>
+                  <span style="background: #e8daef; color: #4a235a; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.875rem; font-weight: bold;" title="Transbank cobró pero no se creó la matrícula">⚠ Cobrada sin matrícula</span>
+                <% end %>
+                <% if transaction.needs_review? && transaction.status == 'authorized' %>
+                  <br><span style="background: #f4ecf7; color: #4a235a; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.75rem;" title="<%= transaction.error_message %>">revisar</span>
                 <% end %>
               </td>
               <td style="font-family: monospace; font-size: 0.875rem;">

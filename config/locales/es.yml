@@ -1,8 +1,51 @@
 es:
+  # Mensajes de validación en español. Sin esto salían como
+  # "Translation missing: es.activerecord.errors.messages.required", y desde que el
+  # API responde 422 con los errores de la inscripción, ese texto lo ve la alumna.
+  errors:
+    format: "%{attribute} %{message}"
+    messages:
+      required: "es obligatorio"
+      blank: "no puede estar vacío"
+      present: "debe estar vacío"
+      taken: "ya está en uso"
+      invalid: "no es válido"
+      confirmation: "no coincide"
+      accepted: "debe ser aceptado"
+      inclusion: "no está incluido en la lista"
+      exclusion: "no está disponible"
+      not_a_number: "no es un número"
+      not_an_integer: "debe ser un número entero"
+      greater_than: "debe ser mayor que %{count}"
+      greater_than_or_equal_to: "debe ser mayor o igual que %{count}"
+      less_than: "debe ser menor que %{count}"
+      less_than_or_equal_to: "debe ser menor o igual que %{count}"
+      equal_to: "debe ser igual a %{count}"
+      too_long: "es demasiado largo (máximo %{count} caracteres)"
+      too_short: "es demasiado corto (mínimo %{count} caracteres)"
+      wrong_length: "no tiene la longitud correcta (%{count} caracteres exactos)"
   activerecord:
     errors:
       messages:
         record_invalid: "La validación falló: %{errors}"
+        required: "es obligatorio"
+        blank: "no puede estar vacío"
+        taken: "ya está en uso"
+  # Formato chileno de números: miles con punto y decimales con coma.
+  # Sin esto number_with_delimiter cae al default en inglés y los montos salen
+  # "$144,000" en los correos y en el panel (el repo no usa el gem rails-i18n).
+  number:
+    format:
+      delimiter: "."
+      separator: ","
+      precision: 0
+    currency:
+      format:
+        unit: "$"
+        format: "%u%n"
+        delimiter: "."
+        separator: ","
+        precision: 0
   date:
     formats:
       default: "%d/%m/%Y"

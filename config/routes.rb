@@ -81,7 +81,10 @@ Rails.application.routes.draw do
         get 'export', action: :export
       end
     end
-    resources :transbank_transactions, only: [:index, :show]
+    resources :transbank_transactions, only: [:index, :show] do
+      # Reintenta crear la matrícula de un cobro que Transbank ya capturó.
+      member { post :reprocess }
+    end
     resources :teacher_payments, only: [:index, :show] do
       member do
         patch :toggle_status

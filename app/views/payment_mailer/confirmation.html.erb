@@ -19,8 +19,14 @@
       </tr>
       <% if @buy_order.present? %>
         <tr>
-          <td style="padding: 4px 0; color: #7f8c8d;">Código de autorización</td>
+          <td style="padding: 4px 0; color: #7f8c8d;">Orden de compra</td>
           <td style="padding: 4px 0; text-align: right;"><%= @buy_order %></td>
+        </tr>
+      <% end %>
+      <% if @payment.reference_number.present? %>
+        <tr>
+          <td style="padding: 4px 0; color: #7f8c8d;">Código de autorización</td>
+          <td style="padding: 4px 0; text-align: right;"><%= @payment.reference_number %></td>
         </tr>
       <% end %>
     </table>

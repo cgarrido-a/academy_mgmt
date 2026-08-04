@@ -53,8 +53,21 @@ class TransbankController < ApplicationController
 
       # Check if transaction was approved
       if response['response_code'] == 0
-        # Transaction approved - this will create enrollment(s) if they don't exist
-        payments = transaction_record.mark_as_authorized!(response)
+        # Transaction approved - this will create enrollment(s) if they don't exist.
+        #
+        # OJO: desde acá para abajo la plata YA ESTÁ COBRADA. Si la creación de la
+        # matrícula falla, no se puede tratar como un pago fallido (ver el rescue de
+        # abajo): hay que dejar registro, avisar y poder reprocesar.
+        begin
+          payments = transaction_record.mark_as_authorized!(response)
+        rescue StandardError => e
+          return handle_authorized_but_not_enrolled(transaction_record, response, e)
+        end
+
+        if transaction_record.needs_review?
+          Rails.logger.warn "Matrícula creada con fechas completadas: #{transaction_record.error_message}"
+          notify_admins(transaction_record, transaction_record.error_message)
+        end
 
         # Log payment info (handle both single and multiple payments)
         if payments.is_a?(Array)
@@ -113,6 +126,33 @@ class TransbankController < ApplicationController
     render plain: message, status: :bad_request
   end
 
+  # Transbank cobró pero no pudimos crear la matrícula.
+  # La alumna NO puede ver "pago fallido" (fue lo que pasó el 3-ago-2026 con $144.000):
+  # se le confirma el pago avisando que falta el último paso, se deja la transacción en
+  # authorized_error con la respuesta guardada para reprocesar, y se avisa a los admins.
+  def handle_authorized_but_not_enrolled(transaction_record, response, error)
+    Rails.logger.error "PAGO COBRADO SIN MATRÍCULA (tx #{transaction_record.id}): #{error.message}"
+    Rails.logger.error error.backtrace.join("\n")
+
+    begin
+      transaction_record.record_authorized_failure!(response, error.message)
+    rescue StandardError => e
+      # Si ni esto se puede guardar, al menos que quede en el log con todo lo necesario.
+      Rails.logger.error "No se pudo registrar el cobro sin matrícula: #{e.message}"
+      Rails.logger.error "Respuesta de Transbank: #{response.inspect}"
+    end
+
+    notify_admins(transaction_record, "COBRO SIN MATRÍCULA: #{error.message}")
+
+    redirect_to_frontend_success(transaction_record, nil, enrollment_pending: true)
+  end
+
+  def notify_admins(transaction_record, message)
+    AdminAlertMailer.transbank_incident(transaction_record, message).deliver_later
+  rescue StandardError => e
+    Rails.logger.error "No se pudo avisar a los admins (tx #{transaction_record.id}): #{e.message}"
+  end
+
   def handle_cancelled_transaction(buy_order, session_id)
     Rails.logger.info "Transacción cancelada por el usuario. Buy Order: #{buy_order}, Session ID: #{session_id}"
 
@@ -140,7 +180,9 @@ class TransbankController < ApplicationController
     end
   end
 
-  def redirect_to_frontend_success(transaction_record, payments = nil)
+  # enrollment_pending: el cobro salió bien pero la matrícula quedó en revisión.
+  # El front muestra "pago recibido, estamos confirmando tu matrícula".
+  def redirect_to_frontend_success(transaction_record, payments = nil, enrollment_pending: false)
     # Build frontend success URL with transaction details
     frontend_url = ENV['FRONTEND_URL'] || 'http://localhost:5173'
 
@@ -152,13 +194,16 @@ class TransbankController < ApplicationController
                        [transaction_record.enrollment_id].compact
                      end
 
-    redirect_url = "#{frontend_url}/payment/success?" + {
+    query = {
       enrollment_ids: enrollment_ids.join(','),
       transaction_id: transaction_record.id,
       buy_order: transaction_record.buy_order,
       amount: transaction_record.amount,
       authorization_code: transaction_record.authorization_code
-    }.to_query
+    }
+    query[:enrollment_pending] = 1 if enrollment_pending
+
+    redirect_url = "#{frontend_url}/payment/success?" + query.to_query
 
     redirect_to redirect_url, allow_other_host: true
   end

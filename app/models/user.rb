@@ -19,4 +19,16 @@ class User < ApplicationRecord
   def guardian_contact?
     guardian_email.present? || guardian_phone.present?
   end
+
+  # Correos de los admins para avisos internos (copias de confirmaciones, alertas).
+  #
+  # Filtra vacíos, inválidos y de prueba (@example.com y compañía) porque Resend
+  # rechaza el mensaje COMPLETO (550) si un solo destinatario es inválido: un
+  # admin@example.com en la base dejaba sin correo también a la alumna.
+  def self.admin_notification_emails
+    joins(:admin_user).distinct.pluck(:email).compact.select do |email|
+      email.present? && email.match?(URI::MailTo::EMAIL_REGEXP) &&
+        !email.match?(/@(example\.(com|org|net)|test\.|localhost)/i)
+    end
+  end
 end

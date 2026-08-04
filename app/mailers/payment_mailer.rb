@@ -39,13 +39,9 @@ class PaymentMailer < ApplicationMailer
       File.read(Rails.root.join("app/assets/images/banner-email-gustarte.png"))
 
     # Copia (oculta) a los administradores: reciben cada confirmación de pago
-    # sin exponer sus correos al alumno. Se filtran correos vacíos/inválidos/de
-    # prueba (ej. @example.com): Resend rechaza TODO el mensaje (550) si un solo
-    # destinatario es inválido, lo que dejaba sin correo también al alumno.
-    admin_emails = User.joins(:admin_user).distinct.pluck(:email).compact.select do |e|
-      e.present? && e.match?(URI::MailTo::EMAIL_REGEXP) &&
-        !e.match?(/@(example\.(com|org|net)|test\.|localhost)/i)
-    end
+    # sin exponer sus correos al alumno. El filtrado de correos inválidos/de prueba
+    # vive en User.admin_notification_emails (lo comparte con AdminAlertMailer).
+    admin_emails = User.admin_notification_emails
 
     mail(
       to: @user.email,

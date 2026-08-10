@@ -83,6 +83,8 @@ module Admin
       user_email = params[:user_email]&.strip&.downcase
       user_name = params[:user_name]&.strip
       user_phone = params[:user_phone]&.strip
+      user_guardian_email = params[:user_guardian_email]&.strip
+      user_guardian_phone = params[:user_guardian_phone]&.strip
 
       @enrollment = Enrollment.new(params_for_enrollment.except(:student_id))
       success = false
@@ -141,6 +143,8 @@ module Admin
               email: user_email,
               name: user_name,
               phone: user_phone,
+              guardian_email: user_guardian_email.presence,
+              guardian_phone: user_guardian_phone.presence,
               password: random_password,
               password_confirmation: random_password
             )

@@ -11,6 +11,11 @@ Rails.application.routes.draw do
   # Can be used by load balancers and uptime monitors to verify that the app is live.
   get "up" => "rails/health#show", as: :rails_health_check
 
+  # Feed de reportes CSV protegido por token (para Google Apps Script u otra
+  # herramienta externa), sin pasar por el login de admin.
+  get 'reports/:key', to: 'reports#show', as: :report_feed,
+      constraints: { key: /financial|monthly|monthly_by_course/ }
+
   # API routes
   namespace :api do
     namespace :v1 do

@@ -36,6 +36,8 @@ class FinancialReportCsvExporter
             user.name,
             user.email,
             user.phone,
+            user.guardian_email,
+            user.guardian_phone,
 
             # Enrollment info
             enrollment.id,
@@ -72,6 +74,8 @@ class FinancialReportCsvExporter
             user.name,
             user.email,
             user.phone,
+            user.guardian_email,
+            user.guardian_phone,
 
             # Enrollment info
             enrollment.id,
@@ -105,6 +109,8 @@ class FinancialReportCsvExporter
       'Nombre Estudiante',
       'Email',
       'Teléfono',
+      'Email Apoderado',
+      'Teléfono Apoderado',
 
       # Enrollment info
       'ID Matrícula',

@@ -22,6 +22,8 @@
           <tr>
             <th>ID</th>
             <th>Estudiante</th>
+            <th>Email Apoderado</th>
+            <th>Teléfono Apoderado</th>
             <th>Curso</th>
             <th>Sección</th>
             <th>Plan de Pago</th>
@@ -36,6 +38,8 @@
             <tr>
               <td>#<%= enrollment.id %></td>
               <td><%= enrollment.student.user.name %></td>
+              <td><%= enrollment.student.user.guardian_email.presence || '—' %></td>
+              <td><%= enrollment.student.user.guardian_phone.presence || '—' %></td>
               <td><%= enrollment.sections.map { |s| s.course.title }.uniq.join(', ') %></td>
               <td><%= enrollment.sections.map { |s| s.formatted_schedule }.join(', ') %></td>
               <td><%= enrollment.weekly_plan.description %></td>

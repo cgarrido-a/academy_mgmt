@@ -16,13 +16,12 @@
 
     <div class="form-group">
       <%= label_tag :user_email, "Email del Estudiante" %>
-      <div style="display: flex; gap: 10px;">
+      <div class="email-search-row">
         <%= text_field_tag :user_email,
             enrollment.student&.user&.email,
             placeholder: "Ingrese el email del estudiante",
             required: true,
-            id: 'user_email_field',
-            style: 'flex: 1;' %>
+            id: 'user_email_field' %>
         <button type="button" id="search_user_btn" class="btn btn-primary" onclick="searchUserByEmail()">
           Buscar
         </button>
@@ -114,6 +113,16 @@
   </div>
 
   <style>
+    .email-search-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .email-search-row input {
+      flex: 1;
+      min-width: 0;
+    }
+
     .weekly-calendar {
       display: grid;
       grid-template-columns: 80px repeat(6, 1fr);
@@ -123,6 +132,55 @@
       border-radius: 8px;
       overflow: hidden;
       min-width: 900px;
+    }
+
+    .weekly-list {
+      display: none;
+    }
+
+    .weekly-list-day {
+      margin-bottom: 15px;
+    }
+
+    .weekly-list-day-title {
+      margin: 0 0 8px 0;
+      color: #2c3e50;
+      font-size: 1em;
+    }
+
+    .weekly-list .section-block {
+      margin: 0 0 8px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .weekly-list .section-block-time {
+      font-weight: bold;
+    }
+
+    .weekly-list .section-block-teacher {
+      opacity: 0.9;
+    }
+
+    .weekly-list .section-block-places {
+      font-weight: bold;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 700px) {
+      .email-search-row {
+        flex-direction: column;
+      }
+
+      .weekly-calendar {
+        display: none;
+      }
+
+      .weekly-list {
+        display: block;
+      }
     }
 
     .calendar-header {
@@ -899,11 +957,13 @@
           selectedSectionIds.add(sectionId);
         }
 
-        // Update visual state
-        const block = document.querySelector(`[data-section-id="${sectionId}"]`);
-        if (block) {
+        // Update visual state on every matching block (grid version and
+        // mobile list version both carry the same data-section-id). Scoped
+        // to .section-block so it doesn't also match the start-date picker,
+        // which reuses data-section-id for a different purpose.
+        document.querySelectorAll(`.section-block[data-section-id="${sectionId}"]`).forEach(block => {
           block.classList.toggle('selected');
-        }
+        });
 
         updateHiddenFields();
       }
@@ -962,6 +1022,35 @@
         });
 
         html += '</div>';
+
+        // Mobile-friendly list, grouped by weekday, shown instead of the
+        // grid under the 700px breakpoint (see .weekly-list CSS above).
+        html += '<div class="weekly-list">';
+        weekdays.slice(1).forEach(day => {
+          const daySections = sections
+            .filter(s => s.weekday === day)
+            .sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
+          if (daySections.length === 0) return;
+
+          html += `<div class="weekly-list-day"><h4 class="weekly-list-day-title">${day}</h4>`;
+          daySections.forEach(section => {
+            const isSelected = selectedSectionIds.has(section.id);
+            html += `
+              <div class="section-block ${isSelected ? 'selected' : ''}"
+                   data-section-id="${section.id}"
+                   onclick="toggleSection(${section.id})">
+                <div>
+                  <div class="section-block-time">${section.start_time} - ${section.end_time}</div>
+                  <div class="section-block-teacher">${section.teacher}</div>
+                </div>
+                <div class="section-block-places">${section.places} cupos</div>
+              </div>
+            `;
+          });
+          html += '</div>';
+        });
+        html += '</div>';
+
         html += '<div id="selected-sections-info" class="selected-sections-info"></div>';
 
         calendarContainer.innerHTML = html;

@@ -1,6 +1,10 @@
 <div class="page-header">
   <h1>Dashboard</h1>
-  <%= link_to "Exportar Reporte Financiero CSV", admin_export_financial_report_path(format: :csv), class: "btn btn-primary" %>
+  <div class="actions">
+    <%= link_to "Exportar Reporte Financiero CSV", admin_export_financial_report_path(format: :csv), class: "btn btn-primary" %>
+    <%= link_to "Exportar Resumen Mensual CSV", admin_export_monthly_financial_report_path(format: :csv), class: "btn btn-secondary" %>
+    <%= link_to "Exportar Resumen Mensual por Curso CSV", admin_export_monthly_by_course_financial_report_path(format: :csv), class: "btn btn-secondary" %>
+  </div>
 </div>
 
 <div class="stats-grid">

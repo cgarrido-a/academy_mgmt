@@ -209,5 +209,29 @@ module Admin
         end
       end
     end
+
+    def export_monthly
+      csv_data = MonthlyFinancialReportCsvExporter.call
+
+      respond_to do |format|
+        format.csv do
+          send_data csv_data,
+                    filename: "reporte_financiero_mensual_#{Date.today.strftime('%Y%m%d')}.csv",
+                    type: 'text/csv; charset=utf-8'
+        end
+      end
+    end
+
+    def export_monthly_by_course
+      csv_data = MonthlyCourseFinancialReportCsvExporter.call
+
+      respond_to do |format|
+        format.csv do
+          send_data csv_data,
+                    filename: "reporte_financiero_mensual_por_curso_#{Date.today.strftime('%Y%m%d')}.csv",
+                    type: 'text/csv; charset=utf-8'
+        end
+      end
+    end
   end
 end

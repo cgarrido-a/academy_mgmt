@@ -78,7 +78,7 @@ module Admin
     end
 
     def user_params
-      permitted = params.require(:user).permit(:name, :email, :password, :guardian_email, :guardian_phone)
+      permitted = params.require(:user).permit(:name, :email, :password, :phone, :guardian_email, :guardian_phone)
       # En edición, dejar la contraseña en blanco significa "no cambiarla".
       permitted.delete(:password) if permitted[:password].blank?
       permitted

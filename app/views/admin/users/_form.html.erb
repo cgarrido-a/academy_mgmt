@@ -17,6 +17,24 @@
   <% end %>
 
   <div class="form-group">
+    <%= label_tag :roles_select, "Rol" %>
+    <small style="display: block; color: #7f8c8d; margin-bottom: 0.5rem;">
+      Un usuario puede tener más de un rol (por ejemplo, docente y administrador):
+      volvé a editarlo para agregar otro. Los roles ya asignados no se pueden
+      quitar desde aquí.
+    </small>
+    <select id="roles_select" name="user[roles][]" onchange="toggleRoleFields()">
+      <option value="">Seleccionar rol</option>
+      <% ApplicationHelper::USER_ROLES.each do |role| %>
+        <% already = assigned_role_keys(user).include?(role[:key]) %>
+        <option value="<%= role[:key] %>" <%= 'disabled' if already %>>
+          <%= role[:label] %><%= already ? ' (ya asignado)' : '' %>
+        </option>
+      <% end %>
+    </select>
+  </div>
+
+  <div class="form-group">
     <%= f.label :name, "Nombre" %>
     <%= f.text_field :name, required: true %>
   </div>
@@ -34,32 +52,7 @@
     <% end %>
   </div>
 
-  <div class="form-group">
-    <%= label_tag :roles, "Roles" %>
-    <small style="display: block; color: #7f8c8d; margin-bottom: 0.5rem;">
-      Un usuario puede tener más de un rol (por ejemplo, docente y administrador).
-      Los roles ya asignados no se pueden quitar desde aquí.
-    </small>
-    <div style="display: flex; flex-direction: column; gap: 0.4rem;">
-      <% %w[teacher student admin].each do |role_key| %>
-        <% already = assigned_role_keys(user).include?(role_key) %>
-        <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: normal;">
-          <%= check_box_tag 'user[roles][]', role_key, already,
-                id: "role_#{role_key}", disabled: already, onchange: 'toggleRoleFields()' %>
-          <%= role_badge(role_key) %>
-          <% if already %><small style="color: #7f8c8d;">(ya asignado)</small><% end %>
-        </label>
-      <% end %>
-    </div>
-  </div>
-
-  <div id="teacher_fields" style="display: none;">
-    <div class="form-group">
-      <%= label_tag 'user[profession]', "Profesión (para docentes)" %>
-      <%= text_field_tag 'user[profession]', user.teacher&.profession, placeholder: "Ej: Ingeniera, Licenciada, etc." %>
-    </div>
-  </div>
-
+  <!-- Estudiante: se pide el contacto del apoderado en vez del teléfono normal. -->
   <div id="student_fields" style="display: none;">
     <div class="form-group">
       <%= f.label :guardian_email, "Email del apoderado" %>
@@ -69,6 +62,21 @@
     <div class="form-group">
       <%= f.label :guardian_phone, "Teléfono del apoderado" %>
       <%= f.telephone_field :guardian_phone, placeholder: "+56 9 1234 5678" %>
+    </div>
+  </div>
+
+  <!-- Cualquier otro rol (o ninguno todavía): teléfono normal del usuario. -->
+  <div id="normal_phone_field" style="display: none;">
+    <div class="form-group">
+      <%= f.label :phone, "Teléfono" %>
+      <%= f.telephone_field :phone, placeholder: "+56 9 1234 5678" %>
+    </div>
+  </div>
+
+  <div id="teacher_fields" style="display: none;">
+    <div class="form-group">
+      <%= label_tag 'user[profession]', "Profesión (para docentes)" %>
+      <%= text_field_tag 'user[profession]', user.teacher&.profession, placeholder: "Ej: Ingeniera, Licenciada, etc." %>
     </div>
   </div>
 
@@ -84,17 +92,26 @@
   </div>
 
   <script>
+    // Roles que el usuario YA tiene (el select solo sirve para agregar uno
+    // nuevo, así que estos flags no dependen de lo que esté elegido en él).
+    var alreadyTeacher = <%= assigned_role_keys(user).include?('teacher').to_s %>;
+    var alreadyStudent = <%= assigned_role_keys(user).include?('student').to_s %>;
+    var alreadyAdmin = <%= assigned_role_keys(user).include?('admin').to_s %>;
+
     function toggleRoleFields() {
-      var teacher = document.getElementById('role_teacher');
-      var student = document.getElementById('role_student');
-      var admin = document.getElementById('role_admin');
-      document.getElementById('teacher_fields').style.display = (teacher && teacher.checked) ? 'block' : 'none';
-      document.getElementById('admin_fields').style.display = (admin && admin.checked) ? 'block' : 'none';
-      // Los datos del apoderado también se muestran si ya hay algo guardado,
-      // para no esconder información existente.
-      var hasGuardian = <%= user.guardian_contact?.to_s %>;
-      document.getElementById('student_fields').style.display =
-        ((student && student.checked) || hasGuardian) ? 'block' : 'none';
+      var selectedRole = document.getElementById('roles_select').value;
+      var isTeacher = alreadyTeacher || selectedRole === 'teacher';
+      var isStudent = alreadyStudent || selectedRole === 'student';
+      var isAdmin = alreadyAdmin || selectedRole === 'admin';
+
+      document.getElementById('teacher_fields').style.display = isTeacher ? 'block' : 'none';
+      document.getElementById('admin_fields').style.display = isAdmin ? 'block' : 'none';
+      document.getElementById('student_fields').style.display = isStudent ? 'block' : 'none';
+
+      // Teléfono normal: para todo lo que no sea estudiante. Si ya tiene un
+      // teléfono guardado se muestra igual, para no esconder datos existentes.
+      var hasPhone = <%= user.phone.present?.to_s %>;
+      document.getElementById('normal_phone_field').style.display = (!isStudent || hasPhone) ? 'block' : 'none';
     }
     document.addEventListener('DOMContentLoaded', toggleRoleFields);
   </script>

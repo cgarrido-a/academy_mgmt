@@ -35,6 +35,8 @@ module Api
             schedule: section.schedule,
             teacher_name: section.teacher.user.name,
             total_places: section.places,
+            # Última fecha de inicio que acepta la web (nil = sin límite).
+            max_start_date: BusinessRule.current.max_start_date,
             dates: dates_with_availability
           }
         }

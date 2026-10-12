@@ -64,6 +64,27 @@ class Api::V1::EnrollmentsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/17 fechas y el plan es de 16/, JSON.parse(response.body)["error"])
   end
 
+  test "rechaza con 422 si la primera clase es más allá del plazo de las reglas" do
+    lejos = Date.current.next_occurring(:saturday) + 35
+    fechas = (0..15).map { |i| (lejos + (i * 7)).to_s }
+
+    assert_no_difference "TransbankTransaction.count" do
+      post "/api/v1/enrollments", params: payload(fechas), as: :json
+    end
+
+    assert_response :unprocessable_entity
+    assert_match(/a más tardar el/, JSON.parse(response.body)["error"])
+  end
+
+  test "con el plazo en 0 no limita la fecha de inicio" do
+    BusinessRule.create!(max_days_ahead_for_start: 0, seat_hold_days: 7)
+    lejos = Date.current.next_occurring(:saturday) + 35
+    fechas = (0..15).map { |i| (lejos + (i * 7)).to_s }
+
+    assert_empty EnrollmentCreator.validate_batch([payload(fechas)[:enrollments].first.with_indifferent_access])
+    assert_nil BusinessRule.current.max_start_date
+  end
+
   test "inicia el cobro cuando el payload cuadra con el plan" do
     fake_tx = Minitest::Mock.new
     fake_tx.expect(:create, {

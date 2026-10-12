@@ -82,6 +82,7 @@ Rails.application.routes.draw do
     resources :weekly_plans
     resources :payment_periods
     resources :class_discounts
+    resource :business_rules, only: [:edit, :update]
     resources :payment_methods
     resources :payments do
       collection do

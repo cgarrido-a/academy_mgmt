@@ -46,8 +46,11 @@ class EnrollmentSection < ApplicationRecord
 
   def section_has_available_places_for_date
     return if section.blank? || date.blank?
+    # Solo al tomar un cupo nuevo: al marcar asistencia u otro cambio sin mover la
+    # clase, la alumna ya está contada en ese cupo y no hay que volver a validarlo.
+    return unless new_record? || will_save_change_to_date? || will_save_change_to_section_id?
 
-    unless section.has_available_places_for_date?(date)
+    unless section.has_available_places_for_date?(date, except_student_id: enrollment&.student_id)
       errors.add(:section, "no tiene cupos disponibles para la fecha #{date.strftime('%d/%m/%Y')}")
     end
   end

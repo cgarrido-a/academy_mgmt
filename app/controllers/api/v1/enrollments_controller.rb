@@ -15,6 +15,12 @@ module Api
           }, status: :unprocessable_entity
         end
 
+        # Regla del admin: la web no vende planes que empiecen demasiado lejos.
+        too_late = start_too_far_error(enrollments)
+        if too_late
+          return render json: { success: false, error: too_late }, status: :unprocessable_entity
+        end
+
         # CANDADO: nunca iniciar un cobro que después no vamos a poder convertir en
         # matrícula. Se corre la creación completa y se revierte; si algo no cuadra
         # (fechas que no calzan con el plan, día de la semana, sin cupos) se responde
@@ -79,6 +85,23 @@ module Api
           course = wp.course
           course.title if course && !course.active?
         end.uniq
+      end
+
+      # Mensaje de error si alguna inscripción del carrito parte después de la fecha
+      # máxima que permiten las reglas (BusinessRule#max_start_date); nil si todo OK.
+      def start_too_far_error(enrollments_array)
+        max_date = BusinessRule.current.max_start_date
+        return nil if max_date.nil?
+
+        first_dates = enrollments_array.filter_map do |e|
+          dates = [e[:start_date], *Array(e[:section_dates]&.to_h&.values).flatten].compact_blank
+          dates.map { |d| Date.parse(d.to_s) }.min
+        end
+        return nil if first_dates.empty? || first_dates.max <= max_date
+
+        "Solo puedes inscribirte para empezar a más tardar el #{max_date.strftime('%d/%m/%Y')}. Elige una fecha de inicio más cercana."
+      rescue ArgumentError
+        nil # fecha mal formada: la rechaza EnrollmentCreator.validate_batch con su propio mensaje
       end
 
       def initialize_transbank_payment_with_data(enrollments_array)

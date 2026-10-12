@@ -64,7 +64,7 @@ class SessionSuspender
     base = contract_end || @date
     candidate = base + 7.days
     MAX_WEEKS_AHEAD.times do
-      return candidate if @section.has_available_places_for_date?(candidate)
+      return candidate if @section.has_available_places_for_date?(candidate, except_student_id: enrollment.student_id)
 
       candidate += 7.days
     end

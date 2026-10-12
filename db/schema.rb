@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_07_31_170316) do
+ActiveRecord::Schema[7.1].define(version: 2026_10_12_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -20,6 +20,13 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_31_170316) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["user_id"], name: "index_admin_users_on_user_id"
+  end
+
+  create_table "business_rules", force: :cascade do |t|
+    t.integer "max_days_ahead_for_start", default: 30, null: false
+    t.integer "seat_hold_days", default: 7, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "class_discounts", force: :cascade do |t|

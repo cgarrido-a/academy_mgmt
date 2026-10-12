@@ -370,6 +370,9 @@
             <% if can? :manage, PaymentMethod %>
               <%= link_to "Métodos de Pago", admin_payment_methods_path %>
             <% end %>
+            <% if can? :manage, BusinessRule %>
+              <%= link_to "Reglas", edit_admin_business_rules_path %>
+            <% end %>
           </div>
         </div>
       <% end %>

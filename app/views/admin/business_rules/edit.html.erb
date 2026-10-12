@@ -1,0 +1,32 @@
+<div class="card">
+  <h2>Reglas de inscripción</h2>
+
+  <%= form_with model: @business_rule, url: admin_business_rules_path, method: :patch, local: true do |f| %>
+    <% if @business_rule.errors.any? %>
+      <div class="alert alert-error">
+        <h3><%= pluralize(@business_rule.errors.count, "error") %> impidieron guardar las reglas:</h3>
+        <ul>
+          <% @business_rule.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <div class="form-group">
+      <%= f.label :max_days_ahead_for_start, "Plazo máximo para empezar (días)" %>
+      <%= f.number_field :max_days_ahead_for_start, required: true, min: 0 %>
+      <small style="color: #666;">En la web, la primera clase de una compra no puede ser más de estos días después de hoy. Desde este panel se puede inscribir sin límite. 0 = sin límite.</small>
+    </div>
+
+    <div class="form-group">
+      <%= f.label :seat_hold_days, "Cupo reservado para renovar (días)" %>
+      <%= f.number_field :seat_hold_days, required: true, min: 0 %>
+      <small style="color: #666;">Mientras su plan está vigente y hasta estos días después de su última clase, la alumna conserva su cupo en el horario: nadie más puede tomarlo y ella puede renovar. 0 = sin reserva (el cupo se libera al terminar el plan).</small>
+    </div>
+
+    <div class="actions">
+      <%= f.submit "Guardar", class: "btn btn-success" %>
+    </div>
+  <% end %>
+</div>

@@ -288,7 +288,7 @@ class EnrollmentCreator
 
     while dates.length < number_of_classes && attempts < max_attempts
       # Check if this date has available places
-      if section.has_available_places_for_date?(current_date)
+      if section.has_available_places_for_date?(current_date, except_student_id: @student&.id)
         dates << current_date
       end
       # If no spots available, skip to next week

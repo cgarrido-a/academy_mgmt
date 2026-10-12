@@ -15,14 +15,33 @@ class Section < ApplicationRecord
   validates :weekday, presence: true
   validate :schedule_format
 
-  # Calculate available places for a specific date
-  def available_places_for_date(date)
+  # Cupos libres en una fecha = cupos − inscritos ese día − cupos reservados.
+  # except_student_id: la alumna que está comprando; su propia reserva no le quita
+  # el cupo a ella (así puede renovar en el mismo horario).
+  def available_places_for_date(date, except_student_id: nil)
     enrolled_count = enrollment_sections.where(date: date).count
-    places - enrolled_count
+    places - enrolled_count - held_places_for_date(date, except_student_id: except_student_id)
   end
 
-  def has_available_places_for_date?(date)
-    available_places_for_date(date) > 0
+  def has_available_places_for_date?(date, except_student_id: nil)
+    available_places_for_date(date, except_student_id: except_student_id) > 0
+  end
+
+  # Cupos reservados para `date`: alumnas cuya última clase regular en este horario
+  # es anterior a `date` y que todavía están dentro del plazo para renovar
+  # (hoy <= última clase + seat_hold_days). Mientras su plan sigue vigente la
+  # reserva cubre todas las fechas posteriores; al vencer el plazo se libera.
+  def held_places_for_date(date, except_student_id: nil)
+    hold_days = BusinessRule.current.seat_hold_days.to_i
+    return 0 if hold_days.zero?
+
+    scope = enrollment_sections.regular.joins(:enrollment)
+    scope = scope.where.not(enrollments: { student_id: except_student_id }) if except_student_id
+    scope.group('enrollments.student_id')
+         .having('MAX(enrollment_sections.date) < ? AND MAX(enrollment_sections.date) >= ?',
+                 date, Date.current - hold_days.days)
+         .count
+         .size
   end
 
   # Format schedule for display
